@@ -6,7 +6,6 @@ function App() {
   const [reports, setReports] = useState([]);
   const [company, setCompany] = useState('');
   const [score, setScore] = useState('');
-  const [loading, setLoading] = useState(true);
 
   const fetchReports = async () => {
     try {
@@ -23,9 +22,7 @@ function App() {
     } catch (err) {
       console.error(err);
       setReports([]);
-    } finally {
-      setLoading(false);
-    }
+    } 
   };
 
   const addReport = async (e) => {
