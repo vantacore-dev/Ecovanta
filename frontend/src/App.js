@@ -1,38 +1,54 @@
 import React, { useEffect, useState } from 'react';
 
-const API = "https://ecovanta.onrender.com"; // 🔥 PUT YOUR REAL URL
+const API = "https://ecovanta.onrender.com"; // 🔥 replace
 
 function App() {
   const [reports, setReports] = useState([]);
   const [company, setCompany] = useState('');
   const [score, setScore] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // Load reports
   const fetchReports = async () => {
-    const res = await fetch(`${API}/reports`);
-    const data = await res.json();
-    console.log("GET:", data);
-    setReports(data);
+    try {
+      const res = await fetch(`${API}/reports`);
+      const data = await res.json();
+
+      console.log("GET:", data);
+
+      if (Array.isArray(data)) {
+        setReports(data);
+      } else {
+        setReports([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setReports([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Add report
   const addReport = async () => {
-    console.log("Sending:", company, score);
+    try {
+      const res = await fetch(`${API}/reports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company, score: Number(score) })
+      });
 
-    const res = await fetch(`${API}/reports`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company, score: Number(score) })
-    });
+      const data = await res.json();
 
-    const data = await res.json();
-    console.log("POST response:", data);
+      console.log("POST:", data);
 
-    // 🔥 FORCE UPDATE FROM BACKEND RESPONSE
-    setReports(data);
+      if (Array.isArray(data)) {
+        setReports(data);
+      }
 
-    setCompany('');
-    setScore('');
+      setCompany('');
+      setScore('');
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
@@ -43,27 +59,33 @@ function App() {
     <div style={{ padding: 20 }}>
       <h1>Ecovanta ESG Dashboard</h1>
 
-      <input
-        value={company}
-        placeholder="Company"
-        onChange={e => setCompany(e.target.value)}
-      />
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <>
+          <input
+            value={company}
+            placeholder="Company"
+            onChange={e => setCompany(e.target.value)}
+          />
 
-      <input
-        value={score}
-        placeholder="Score"
-        onChange={e => setScore(e.target.value)}
-      />
+          <input
+            value={score}
+            placeholder="Score"
+            onChange={e => setScore(e.target.value)}
+          />
 
-      <button onClick={addReport}>Add Report</button>
+          <button onClick={addReport}>Add Report</button>
 
-      <ul>
-        {reports.map((r) => (
-          <li key={r.id}>
-            {r.company} - ESG Score: {r.score}
-          </li>
-        ))}
-      </ul>
+          <ul>
+            {reports.map((r) => (
+              <li key={r.id}>
+                {r.company} - ESG Score: {r.score}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
