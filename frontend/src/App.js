@@ -28,28 +28,28 @@ function App() {
     }
   };
 
-  const addReport = async () => {
-    try {
-      const res = await fetch(`${API}/reports`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company, score: Number(score) })
-      });
+  const addReport = async (e) => {
+  if (e) e.preventDefault();
 
-      const data = await res.json();
+  try {
+    const res = await fetch(`${API}/reports`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company, score: Number(score) })
+    });
 
-      console.log("POST:", data);
+    const data = await res.json();
 
-      if (Array.isArray(data)) {
-        setReports(data);
-      }
-
-      setCompany('');
-      setScore('');
-    } catch (err) {
-      console.error(err);
+    if (Array.isArray(data)) {
+      setReports(data);
     }
-  };
+
+    setCompany('');
+    setScore('');
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   useEffect(() => {
     fetchReports();
@@ -75,7 +75,7 @@ function App() {
             onChange={e => setScore(e.target.value)}
           />
 
-          <button onClick={addReport}>Add Report</button>
+          <button type="button" onClick={addReport}>Add Report</button>
 
           <ul>
             {reports.map((r) => (
