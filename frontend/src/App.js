@@ -2,12 +2,42 @@ import React, { useEffect, useState } from 'react';
 
 import { PieChart, Pie, Cell } from 'recharts';
 
+import jsPDF from "jspdf";
+
 const API = "https://ecovanta.onrender.com"; // 🔥 replace
 
 function App() {
   const [reports, setReports] = useState([]);
   const [company, setCompany] = useState('');
   const [score, setScore] = useState('');
+
+const generatePDF = (report) => {
+  const doc = new jsPDF();
+
+  doc.setFontSize(18);
+  doc.text("Ecovanta ESG Report", 20, 20);
+
+  doc.setFontSize(12);
+  doc.text(`Company: ${report.company}`, 20, 40);
+  doc.text(`ESG Score: ${Math.round(report.score)}`, 20, 50);
+
+  doc.text("Breakdown:", 20, 70);
+  doc.text(`Environmental: ${Math.round(report.score * 0.4)}`, 20, 80);
+  doc.text(`Social: ${Math.round(report.score * 0.3)}`, 20, 90);
+  doc.text(`Governance: ${Math.round(report.score * 0.3)}`, 20, 100);
+
+  doc.text("Assessment:", 20, 120);
+
+  if (report.score > 80) {
+    doc.text("ESG Leader", 20, 130);
+  } else if (report.score > 60) {
+    doc.text("Compliant", 20, 130);
+  } else {
+    doc.text("At Risk", 20, 130);
+  }
+
+  doc.save(`${report.company}_ESG_Report.pdf`);
+};
 
   const fetchReports = async () => {
     try {
@@ -100,6 +130,11 @@ function App() {
           <Cell fill="#FFC107" />
         </Pie>
       </PieChart>
+
+<button onClick={() => generatePDF(r)}>
+  Download ESG Report
+</button>
+
     </div>
   );
 })}
