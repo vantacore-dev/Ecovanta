@@ -59,31 +59,28 @@ function App() {
   <div style={{ padding: 20 }}>
     <h1>Ecovanta ESG Dashboard</h1>
 
-    <form onSubmit={(e) => e.preventDefault()}>
-      
+    <div>
       <input
         value={company}
         placeholder="Company"
-        onChange={e => setCompany(e.target.value)}
+        onChange={(e) => setCompany(e.target.value)}
       />
 
       <input
         value={score}
         placeholder="Score"
-        onChange={e => setScore(e.target.value)}
+        onChange={(e) => setScore(e.target.value)}
       />
 
       <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault(); // 🔥 force stop refresh
+        onClick={() => {
+          console.log("CLICK WORKS"); // 🔥 debug
           addReport();
         }}
       >
         Add Report
       </button>
-
-    </form>
+    </div>
 
     <ul>
       {reports.map((r) => (
@@ -94,6 +91,7 @@ function App() {
     </ul>
   </div>
 );
+
 }
 
 export default App;
