@@ -5,8 +5,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const BIN_ID = "69c58ccbc3097a1dd5636162";
-const API_KEY = "$2a$10$PafMHhMfytGzoyF9pUsO4uwR5XgP5R0B5kN/4EuCsfnkhzd9WmutS";
+const BIN_ID = "YOUR_BIN_ID";
+const API_KEY = "YOUR_API_KEY";
 
 // GET reports
 app.get('/reports', async (req, res) => {
@@ -33,15 +33,15 @@ app.post('/reports', async (req, res) => {
     });
 
     const json = await getRes.json();
-    const data = json.record.reports;
+    const reports = json.record.reports;
 
     const report = {
-      id: data.length + 1,
+      id: reports.length + 1,
       company,
       score
     };
 
-    data.push(report);
+    reports.push(report);
 
     await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
       method: "PUT",
@@ -49,14 +49,16 @@ app.post('/reports', async (req, res) => {
         "Content-Type": "application/json",
         "X-Master-Key": API_KEY
       },
-      body: JSON.stringify({ reports: data })
+      body: JSON.stringify({ reports })
     });
 
-    res.json(data);
+    res.json(reports);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "POST failed" });
   }
 });
 
-app.listen(3001, () => console.log("Backend running"));
+app.listen(3001, () => {
+  console.log("Backend running");
+});
