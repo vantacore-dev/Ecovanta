@@ -56,38 +56,44 @@ function App() {
   }, []);
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Ecovanta ESG Dashboard</h1>
+  <div style={{ padding: 20 }}>
+    <h1>Ecovanta ESG Dashboard</h1>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          <input
-            value={company}
-            placeholder="Company"
-            onChange={e => setCompany(e.target.value)}
-          />
+    <form onSubmit={(e) => e.preventDefault()}>
+      
+      <input
+        value={company}
+        placeholder="Company"
+        onChange={e => setCompany(e.target.value)}
+      />
 
-          <input
-            value={score}
-            placeholder="Score"
-            onChange={e => setScore(e.target.value)}
-          />
+      <input
+        value={score}
+        placeholder="Score"
+        onChange={e => setScore(e.target.value)}
+      />
 
-          <button type="button" onClick={addReport}>Add Report</button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault(); // 🔥 force stop refresh
+          addReport();
+        }}
+      >
+        Add Report
+      </button>
 
-          <ul>
-            {reports.map((r) => (
-              <li key={r.id}>
-                {r.company} - ESG Score: {r.score}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </div>
-  );
+    </form>
+
+    <ul>
+      {reports.map((r) => (
+        <li key={r.id}>
+          {r.company} - ESG Score: {r.score}
+        </li>
+      ))}
+    </ul>
+  </div>
+);
 }
 
 export default App;
