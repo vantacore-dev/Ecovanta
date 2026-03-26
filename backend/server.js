@@ -1,33 +1,33 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const db = new sqlite3.Database('./ecovanta.db');
+// In-memory storage (temporary)
+let reports = [];
 
-db.run(`CREATE TABLE IF NOT EXISTS reports (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    company TEXT,
-    score INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)`);
-
+// GET all reports
 app.get('/reports', (req, res) => {
-    db.all("SELECT * FROM reports", [], (err, rows) => {
-        res.json(rows);
-    });
+    res.json(reports);
 });
 
+// POST a new report
 app.post('/reports', (req, res) => {
     const { company, score } = req.body;
-    db.run("INSERT INTO reports (company, score) VALUES (?, ?)",
-        [company, score],
-        function(err) {
-            res.json({ id: this.lastID });
-        });
+
+    const report = {
+        id: reports.length + 1,
+        company,
+        score
+    };
+
+    reports.push(report);
+    res.json(report);
 });
 
-app.listen(3001, () => console.log("Backend running on port 3001"));
+// Start server
+app.listen(3001, () => {
+    console.log("Backend running on port 3001");
+});
