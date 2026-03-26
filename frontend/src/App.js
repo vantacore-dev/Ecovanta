@@ -1,23 +1,38 @@
 import React, { useEffect, useState } from 'react';
 
+const API = "https://ecovanta.onrender.com"; // 🔥 PUT YOUR REAL URL
+
 function App() {
   const [reports, setReports] = useState([]);
   const [company, setCompany] = useState('');
   const [score, setScore] = useState('');
 
+  // Load reports
   const fetchReports = async () => {
-    const res = await fetch('http://localhost:3001/reports');
+    const res = await fetch(`${API}/reports`);
     const data = await res.json();
+    console.log("GET:", data);
     setReports(data);
   };
 
+  // Add report
   const addReport = async () => {
-    await fetch('http://localhost:3001/reports', {
+    console.log("Sending:", company, score);
+
+    const res = await fetch(`${API}/reports`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company, score })
+      body: JSON.stringify({ company, score: Number(score) })
     });
-    fetchReports();
+
+    const data = await res.json();
+    console.log("POST response:", data);
+
+    // 🔥 FORCE UPDATE FROM BACKEND RESPONSE
+    setReports(data);
+
+    setCompany('');
+    setScore('');
   };
 
   useEffect(() => {
@@ -28,13 +43,25 @@ function App() {
     <div style={{ padding: 20 }}>
       <h1>Ecovanta ESG Dashboard</h1>
 
-      <input placeholder="Company" onChange={e => setCompany(e.target.value)} />
-      <input placeholder="Score" onChange={e => setScore(e.target.value)} />
+      <input
+        value={company}
+        placeholder="Company"
+        onChange={e => setCompany(e.target.value)}
+      />
+
+      <input
+        value={score}
+        placeholder="Score"
+        onChange={e => setScore(e.target.value)}
+      />
+
       <button onClick={addReport}>Add Report</button>
 
       <ul>
-        {reports.map(r => (
-          <li key={r.id}>{r.company} - ESG Score: {r.score}</li>
+        {reports.map((r) => (
+          <li key={r.id}>
+            {r.company} - ESG Score: {r.score}
+          </li>
         ))}
       </ul>
     </div>
