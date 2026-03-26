@@ -10,24 +10,28 @@ let reports = [];
 
 // GET all reports
 app.get('/reports', (req, res) => {
-    res.json(reports);
+    res.json(data.record.reports);
 });
 
 // POST a new report
-app.post('/reports', (req, res) => {
-    const { company, score } = req.body;
+const json = await getRes.json();
+const data = json.record.reports;
 
-    const report = {
-        id: reports.length + 1,
-        company,
-        score
-    };
+const report = {
+  id: data.length + 1,
+  company,
+  score
+};
 
-    reports.push(report);
-    
-    res.json(reports);
+data.push(report);
 
-// Start server
-app.listen(3001, () => {
-    console.log("Backend running on port 3001");
+await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+  method: "PUT",
+  headers: {
+    "Content-Type": "application/json",
+    "X-Master-Key": API_KEY
+  },
+  body: JSON.stringify({ reports: data }) // 👈 IMPORTANT
 });
+
+res.json(data);
