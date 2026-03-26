@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+import { PieChart, Pie, Cell } from 'recharts';
+
 const API = "https://ecovanta.onrender.com"; // 🔥 replace
 
 function App() {
@@ -80,11 +82,27 @@ function App() {
     </div>
 
     <ul>
-      {reports.map((r) => (
-        <li key={r.id}>
-          {r.company} - ESG Score: {r.score}
-        </li>
-      ))}
+      {reports.map((r) => {
+  const data = [
+    { name: "Environmental", value: r.score * 0.4 },
+    { name: "Social", value: r.score * 0.3 },
+    { name: "Governance", value: r.score * 0.3 }
+  ];
+
+  return (
+    <div key={r.id} style={{ marginTop: 20 }}>
+      <h3>{r.company} - ESG Score: {Math.round(r.score)}</h3>
+
+      <PieChart width={200} height={200}>
+        <Pie data={data} dataKey="value" outerRadius={80}>
+          <Cell fill="#4CAF50" />
+          <Cell fill="#2196F3" />
+          <Cell fill="#FFC107" />
+        </Pie>
+      </PieChart>
+    </div>
+  );
+})}
     </ul>
   </div>
 );
