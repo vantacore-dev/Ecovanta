@@ -24,8 +24,8 @@ app.post('/reports', (req, res) => {
     };
 
     reports.push(report);
-    res.json(report);
-});
+    
+    res.json(reports);
 
 // Start server
 app.listen(3001, () => {
