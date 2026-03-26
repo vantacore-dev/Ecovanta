@@ -5,8 +5,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const BIN_ID = "YOUR_BIN_ID";
-const API_KEY = "YOUR_API_KEY";
+const BIN_ID = "69c58ccbc3097a1dd5636162";
+const API_KEY = "$2a$10$PafMHhMfytGzoyF9pUsO4uwR5XgP5R0B5kN/4EuCsfnkhzd9WmutS";
 
 // GET reports
 app.get('/reports', async (req, res) => {
