@@ -221,8 +221,10 @@ const getRating = (score) => {
   </PieChart>
 </div>
 
-            <button type="button" onClick={() => generatePDF(r)}
-       style={{
+<button
+  type="button"
+  onClick={() => generatePDF(r)}
+  style={{
     marginTop: 15,
     padding: 10,
     background: "#2e7d32",
@@ -233,12 +235,11 @@ const getRating = (score) => {
     width: "100%"
   }}
 >
-  Download ESG Score
+  Download ESG Report
+</button>
 
-          </div>
-        );
-      })}
-    </div>
-  </div>
-);}
+</div>
+);
+})}
+
 export default App;
