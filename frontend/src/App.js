@@ -28,33 +28,30 @@ if (chartElement) {
 const generatePDF = async (report) => {
   const doc = new jsPDF();
 
-  const canvas = await html2canvas(chartElement);
-
   doc.setFontSize(18);
   doc.text("Ecovanta ESG Report", 20, 20);
 
   doc.setFontSize(12);
-  doc.text(`Company: ${report.company || "N/A"}`, 20, 40);
+  doc.text(`Company: ${report.company}`, 20, 40);
   doc.text(`ESG Score: ${Math.round(report.score)}`, 20, 50);
 
-  doc.text("Breakdown:", 20, 70);
- 
-const e = report.environmental ?? 1;
-const s = report.social ?? 1;
-const g = report.governance ?? 1;
+  // Safe ESG values
+  const e = report.environmental ?? 1;
+  const s = report.social ?? 1;
+  const g = report.governance ?? 1;
 
-doc.text(`Environmental: ${(e / 3 * 40).toFixed(1)}`, 20, 80);
-doc.text(`Social: ${(s / 3 * 30).toFixed(1)}`, 20, 90);
-doc.text(`Governance: ${(g / 3 * 30).toFixed(1)}`, 20, 100);
+  doc.text(`Environmental: ${(e / 3 * 40).toFixed(1)}`, 20, 70);
+  doc.text(`Social: ${(s / 3 * 30).toFixed(1)}`, 20, 80);
+  doc.text(`Governance: ${(g / 3 * 30).toFixed(1)}`, 20, 90);
 
-  doc.text("Assessment:", 20, 120);
+  // Capture chart
+  const chartElement = document.getElementById(`chart-${report.id}`);
 
-  if (report.score > 80) {
-    doc.text("ESG Leader", 20, 130);
-  } else if (report.score > 60) {
-    doc.text("Compliant", 20, 130);
-  } else {
-    doc.text("At Risk", 20, 130);
+  if (chartElement) {
+    const canvas = await html2canvas(chartElement);
+    const imgData = canvas.toDataURL("image/png");
+
+    doc.addImage(imgData, "PNG", 20, 110, 160, 100);
   }
 
   doc.save(`${report.company}_ESG_Report.pdf`);
