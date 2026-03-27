@@ -154,7 +154,13 @@ const getRating = (score) => {
     </div>
 
     {/* REPORTS */}
-    <div>
+    <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+    gap: 20
+  }}
+>
       {reports.map((r) => (
         <div key={r.id} style={{ marginBottom: 20 }}>
 
