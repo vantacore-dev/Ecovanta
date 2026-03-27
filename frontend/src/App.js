@@ -25,9 +25,14 @@ const generatePDF = (report) => {
   doc.text(`ESG Score: ${Math.round(report.score)}`, 20, 50);
 
   doc.text("Breakdown:", 20, 70);
-  doc.text(`Environmental: ${(report.environmental / 3 * 40).toFixed(1)}`, 20, 80);
-  doc.text(`Social: ${(report.social / 3 * 30).toFixed(1)}`, 20, 90);
-  doc.text(`Governance: ${(report.governance / 3 * 30).toFixed(1)}`, 20, 100);
+ 
+const e = report.environmental ?? 1;
+const s = report.social ?? 1;
+const g = report.governance ?? 1;
+
+doc.text(`Environmental: ${(e / 3 * 40).toFixed(1)}`, 20, 80);
+doc.text(`Social: ${(s / 3 * 30).toFixed(1)}`, 20, 90);
+doc.text(`Governance: ${(g / 3 * 30).toFixed(1)}`, 20, 100);
 
   doc.text("Assessment:", 20, 120);
 
