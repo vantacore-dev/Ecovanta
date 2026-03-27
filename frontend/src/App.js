@@ -189,57 +189,59 @@ const getRating = (score) => {
       gap: 20
     }}>
 
-      {reports.map((r) => {
-               return (
-          <div key={r.id} style={{
-            background: "white",
-            padding: 20,
-            borderRadius: 12,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
-          }}>
-            <h3>{r.company}</h3>
+     {reports.map((r) => {
+  return (
+    <div key={r.id} style={{
+      background: "white",
+      padding: 20,
+      borderRadius: 12,
+      marginBottom: 20
+    }}>
 
-            <p>Score: <b>{Math.round(r.score)}</b></p>
-            <p>Rating: <b>{getRating(r.score)}</b></p>
+      <h3>{r.company}</h3>
 
-<div id={`chart-${r.id}`} style={{ background: "#fff", padding: 10 }}>
-  <PieChart width={250} height={250}>
-    <Pie
-      data={[
-        { name: "Environmental", value: Number(r.environmental || 1) / 3 * 40 },
-        { name: "Social", value: Number(r.social || 1) / 3 * 30 },
-        { name: "Governance", value: Number(r.governance || 1) / 3 * 30 }
-      ]}
-      dataKey="value"
-      outerRadius={90}
-      label
-    >
-      <Cell fill="#4CAF50" />
-      <Cell fill="#2196F3" />
-      <Cell fill="#FFC107" />
-    </Pie>
-  </PieChart>
-</div>
+      <p>Score: <b>{Math.round(r.score)}</b></p>
+      <p>Assessment: <b>{getRating(r.score)}</b></p>
 
-<button
-  type="button"
-  onClick={() => generatePDF(r)}
-  style={{
-    marginTop: 15,
-    padding: 10,
-    background: "#2e7d32",
-    color: "white",
-    border: "none",
-    borderRadius: 8,
-    cursor: "pointer",
-    width: "100%"
-  }}
->
-  Download ESG Report
-</button>
+      {/* Chart */}
+      <div id={`chart-${r.id}`} style={{ padding: 10 }}>
+        <PieChart width={250} height={250}>
+          <Pie
+            data={[
+              { name: "Environmental", value: Number(r.environmental || 1) / 3 * 40 },
+              { name: "Social", value: Number(r.social || 1) / 3 * 30 },
+              { name: "Governance", value: Number(r.governance || 1) / 3 * 30 }
+            ]}
+            dataKey="value"
+            outerRadius={90}
+            label
+          >
+            <Cell fill="#4CAF50" />
+            <Cell fill="#2196F3" />
+            <Cell fill="#FFC107" />
+          </Pie>
+        </PieChart>
+      </div>
 
-</div>
-);
+      <button
+        type="button"
+        onClick={() => generatePDF(r)}
+        style={{
+          marginTop: 15,
+          padding: 10,
+          background: "#2e7d32",
+          color: "white",
+          border: "none",
+          borderRadius: 8,
+          cursor: "pointer",
+          width: "100%"
+        }}
+      >
+        Download ESG Report
+      </button>
+
+    </div>
+  );
 })}
 
 export default App;
