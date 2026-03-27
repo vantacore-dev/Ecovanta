@@ -20,6 +20,8 @@ const [governance, setGovernance] = useState(1);
 const generatePDF = async (report) => {
   const doc = new jsPDF();
 
+ const chartElement = document.getElementById(`chart-${report.id}`);
+
 if (chartElement) {
   const canvas = await html2canvas(chartElement);
   const imgData = canvas.toDataURL("image/png");
@@ -44,8 +46,7 @@ if (chartElement) {
   doc.text(`Governance: ${(g / 3 * 30).toFixed(1)}`, 20, 90);
 
   // Capture chart
-  const chartElement = document.getElementById(`chart-${report.id}`);
-
+ 
   if (chartElement) {
     const canvas = await html2canvas(chartElement);
     const imgData = canvas.toDataURL("image/png");
