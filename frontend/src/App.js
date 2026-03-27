@@ -191,6 +191,5 @@ const getRating = (score) => {
 
   </div>
 );
-})}
-
+}
 export default App;
