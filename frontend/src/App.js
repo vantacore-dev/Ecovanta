@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+import html2canvas from "html2canvas";
+
 import { PieChart, Pie, Cell } from 'recharts';
 
 import jsPDF from "jspdf";
@@ -198,13 +200,15 @@ const getRating = (score) => {
             <p>Score: <b>{Math.round(r.score)}</b></p>
             <p>Rating: <b>{getRating(r.score)}</b></p>
 
-            <PieChart width={200} height={200}>
-              <Pie data={data} dataKey="value" outerRadius={80}>
-                <Cell fill="#4CAF50" />
-                <Cell fill="#2196F3" />
-                <Cell fill="#FFC107" />
-              </Pie>
-            </PieChart>
+            <div id={`chart-${r.id}`}>
+  <PieChart width={200} height={200}>
+    <Pie data={data} dataKey="value" outerRadius={80}>
+      <Cell fill="#4CAF50" />
+      <Cell fill="#2196F3" />
+      <Cell fill="#FFC107" />
+    </Pie>
+  </PieChart>
+</div>
 
             <button onClick={() => generatePDF(r)}>
               <button
