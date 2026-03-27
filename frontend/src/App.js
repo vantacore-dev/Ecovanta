@@ -201,14 +201,14 @@ const getInsights = (r) => {
  <div style={{ marginBottom: 10 }}>
   <label style={{ fontWeight: "bold" }}>Social:</label><br />
 
-  <select
-    value={social}
-    onChange={(e) => setSocial(Number(e.target.value))}
-  >
-    <option value="1">High Risk</option>
-    <option value="2">Moderate</option>
-    <option value="3">Best Practice</option>
-  </select>
+ <select
+  value={governance}
+  onChange={(e) => setGovernance(Number(e.target.value))}
+>
+  <option value="1">High Risk</option>
+  <option value="2">Moderate</option>
+  <option value="3">Best Practice</option>
+</select>
 </div>
 
   <button type="button" onClick={addReport}>
