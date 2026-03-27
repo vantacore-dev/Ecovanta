@@ -16,17 +16,18 @@ const [environmental, setEnvironmental] = useState(1);
 const [social, setSocial] = useState(1);
 const [governance, setGovernance] = useState(1);
 
+
+const generatePDF = async (report) => {
+  const doc = new jsPDF();
+
 const chartElement = document.getElementById(`chart-${report.id}`);
 
 if (chartElement) {
-
+  const canvas = await html2canvas(chartElement);
   const imgData = canvas.toDataURL("image/png");
 
   doc.addImage(imgData, "PNG", 20, 110, 160, 100);
 }
-
-const generatePDF = async (report) => {
-  const doc = new jsPDF();
 
   doc.setFontSize(18);
   doc.text("Ecovanta ESG Report", 20, 20);
