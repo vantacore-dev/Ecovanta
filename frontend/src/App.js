@@ -175,14 +175,14 @@ const getInsights = (r) => {
     Measures emissions, resource use, and environmental impact
   </small><br />
 
- <select
+<select
   value={environmental}
   onChange={(e) => setEnvironmental(Number(e.target.value))}
 >
-    <option value="1">High Risk</option>
-    <option value="2">Moderate</option>
-    <option value="3">Best Practice</option>
-  </select>
+  <option value="1">High Risk</option>
+  <option value="2">Moderate</option>
+  <option value="3">Best Practice</option>
+</select>
 </div>
 
   {/* Social */}
@@ -197,10 +197,10 @@ const getInsights = (r) => {
   value={social}
   onChange={(e) => setSocial(Number(e.target.value))}
 >
-    <option value="1">High Risk</option>
-    <option value="2">Moderate</option>
-    <option value="3">Best Practice</option>
-  </select>
+  <option value="1">High Risk</option>
+  <option value="2">Moderate</option>
+  <option value="3">Best Practice</option>
+</select>
 </div>
 
   {/* Governance */}
@@ -215,10 +215,10 @@ const getInsights = (r) => {
   value={governance}
   onChange={(e) => setGovernance(Number(e.target.value))}
 >
-    <option value="1">High Risk</option>
-    <option value="2">Moderate</option>
-    <option value="3">Best Practice</option>
-  </select>
+  <option value="1">High Risk</option>
+  <option value="2">Moderate</option>
+  <option value="3">Best Practice</option>
+</select>
 </div>
 
   <button type="button" onClick={addReport}>
