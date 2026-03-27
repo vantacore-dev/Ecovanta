@@ -85,78 +85,54 @@ const generatePDF = (report) => {
   }, []);
 
   return (
-  <div style={{ padding: 20 }}>
-    <h1>🔥 ECOVANTA DASHBOARD UI 🔥</h1>
+  <div style={{
+    fontFamily: "Arial, sans-serif",
+    backgroundColor: "#f5f7fa",
+    minHeight: "100vh",
+    padding: "40px"
+  }}>
+    
+    <h1>🔥 NEW DASHBOARD UI 🔥</h1>
 
-    <div>
-      <input
-        value={company}
-        placeholder="Company"
-        onChange={(e) => setCompany(e.target.value)}
-      />
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+      gap: 20
+    }}>
+      {reports.map((r) => {
+        const data = [
+          { name: "Environmental", value: (r.environmental / 3) * 40 },
+          { name: "Social", value: (r.social / 3) * 30 },
+          { name: "Governance", value: (r.governance / 3) * 30 }
+        ];
 
-      <input
-        value={score}
-        placeholder="Score"
-        onChange={(e) => setScore(e.target.value)}
-      />
+        return (
+          <div key={r.id} style={{
+            background: "white",
+            padding: 20,
+            borderRadius: 12,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+          }}>
+            <h3>{r.company}</h3>
 
-      <button
-        onClick={() => {
-          console.log("CLICK WORKS"); // 🔥 debug
-          addReport();
-        }}
-      >
-        Add Report
-      </button>
+            <p>Score: <b>{Math.round(r.score)}</b></p>
+            <p>Rating: <b>{getRating(r.score)}</b></p>
+
+            <PieChart width={200} height={200}>
+              <Pie data={data} dataKey="value" outerRadius={80}>
+                <Cell fill="#4CAF50" />
+                <Cell fill="#2196F3" />
+                <Cell fill="#FFC107" />
+              </Pie>
+            </PieChart>
+
+            <button onClick={() => generatePDF(r)}>
+              Download ESG Report
+            </button>
+          </div>
+        );
+      })}
     </div>
-    <ul>
-   <div style={{
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-  gap: 20
-}}>
-  {reports.map((r) => {
-    const data = [
-      { name: "Environmental", value: (r.environmental / 3) * 40 },
-      { name: "Social", value: (r.social / 3) * 30 },
-      { name: "Governance", value: (r.governance / 3) * 30 }
-    ];
-
-    return (
-      <div key={r.id} style={{
-        background: "white",
-        padding: 20,
-        borderRadius: 12,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
-      }}>
-        <h3>{r.company}</h3>
-
-        <p>Score: <b>{Math.round(r.score)}</b></p>
-        <p>Rating: <b>{getRating(r.score)}</b></p>
-
-        <PieChart width={200} height={200}>
-          <Pie data={data} dataKey="value" outerRadius={80}>
-            <Cell fill="#4CAF50" />
-            <Cell fill="#2196F3" />
-            <Cell fill="#FFC107" />
-          </Pie>
-        </PieChart>
-
-        <button
-          onClick={() => generatePDF(r)}
-          style={{
-            marginTop: 10,
-            padding: 8,
-            background: "#1976d2",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: "pointer",
-            width: "100%"
-          }}
-        >
-          Download ESG Report
-        </button>
-      </div>
-    );
+  </div>
+);
+export default App;
