@@ -363,19 +363,22 @@ const getInsights = (r) => {
  
 <div style={{ marginTop: 10 }}>
   <b>AI Recommendations:</b>
+
   <p>
     {r.aiInsights || "Click to generate AI insights"}
   </p>
 
-  <button onClick={async () => {
-    const insights = await getAIInsights(r);
+  <button
+    onClick={async () => {
+      const insights = await getAIInsights(r);
 
-    setReports(prev =>
-      prev.map(rep =>
-        rep.id === r.id ? { ...rep, aiInsights: insights } : rep
-      )
-    );
-  }}>
+      setReports(prev =>
+        prev.map(rep =>
+          rep.id === r.id ? { ...rep, aiInsights: insights } : rep
+        )
+      );
+    }}
+  >
     Generate AI Insights
   </button>
 </div>
