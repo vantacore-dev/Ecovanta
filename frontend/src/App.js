@@ -101,11 +101,68 @@ const getRating = (score) => {
     
     <h1>🔥 ECOVANTA DASHBOARD UI 🔥</h1>
 
+<div style={{
+  background: "white",
+  padding: 20,
+  borderRadius: 12,
+  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+  marginBottom: 30,
+  maxWidth: 400
+}}>
+  <h2>Add Company</h2>
+
+  <input
+    value={company}
+    placeholder="Company"
+    onChange={(e) => setCompany(e.target.value)}
+    style={{ width: "100%", padding: 10, marginBottom: 10 }}
+  />
+
+  <p>Environmental</p>
+  <select onChange={(e) => setEnvironmental(e.target.value)}>
+    <option value="1">High Risk</option>
+    <option value="2">Moderate</option>
+    <option value="3">Best Practice</option>
+  </select>
+
+  <p>Social</p>
+  <select onChange={(e) => setSocial(e.target.value)}>
+    <option value="1">High Risk</option>
+    <option value="2">Moderate</option>
+    <option value="3">Best Practice</option>
+  </select>
+
+  <p>Governance</p>
+  <select onChange={(e) => setGovernance(e.target.value)}>
+    <option value="1">High Risk</option>
+    <option value="2">Moderate</option>
+    <option value="3">Best Practice</option>
+  </select>
+
+  <button
+    onClick={addReport}
+    style={{
+      marginTop: 15,
+      padding: 10,
+      background: "#2e7d32",
+      color: "white",
+      border: "none",
+      borderRadius: 8,
+      cursor: "pointer",
+      width: "100%"
+    }}
+  >
+    Download ESG Score
+  </button>
+</div>
+
+
     <div style={{
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
       gap: 20
     }}>
+
       {reports.map((r) => {
         const data = [
           { name: "Environmental", value: (r.environmental / 3) * 40 },
