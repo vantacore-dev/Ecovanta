@@ -2,13 +2,20 @@ import React, { useEffect, useState } from 'react';
 
 import html2canvas from "html2canvas";
 
-import { PieChart, Pie, Cell } from 'recharts';
-
 import jsPDF from "jspdf";
 
-import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
-
-import { BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip
+} from "recharts";
 
 const API = "https://ecovanta.onrender.com"; // 🔥 replace
 
