@@ -31,14 +31,27 @@ const [environmental, setEnvironmental] = useState(1);
 const [social, setSocial] = useState(1);
 const [governance, setGovernance] = useState(1);
 
-<div style={{ background: "#fff", padding: 20, borderRadius: 10, marginBottom: 30 }}>
-  <h3>ESG Score Trend</h3>
+{/* TREND CHART */}
+<div
+  style={{
+    background: "#fff",
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 30
+  }}
+>
+  <h3>ESG Score Comparison</h3>
 
-  <LineChart width={500} height={300} data={reports}>
+  <LineChart width={700} height={300} data={reports}>
     <XAxis dataKey="company" />
     <YAxis />
     <Tooltip />
-    <Line type="monotone" dataKey="score" stroke="#1976d2" />
+    <Line
+      type="monotone"
+      dataKey="score"
+      stroke="#1976d2"
+      strokeWidth={3}
+    />
   </LineChart>
 </div>
 
