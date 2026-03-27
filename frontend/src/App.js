@@ -161,13 +161,54 @@ const getRating = (score) => {
     gap: 20
   }}
 >
+
+<div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
+  <div style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
+    <h3>Total Companies</h3>
+    <p>{reports.length}</p>
+  </div>
+
+  <div style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
+    <h3>Average Score</h3>
+    <p>
+      {reports.length
+        ? Math.round(
+            reports.reduce((sum, r) => sum + r.score, 0) / reports.length
+          )
+        : 0}
+    </p>
+  </div>
+</div>
+
       {reports.map((r) => (
         <div key={r.id} style={{ marginBottom: 20 }}>
 
           <h3>{r.company}</h3>
 
           <p>Score: <b>{Math.round(r.score)}</b></p>
-          <p>Assessment: <b>{getRating(r.score)}</b></p>
+          
+
+<p>
+  Assessment:{" "}
+  <span
+    style={{
+      padding: "4px 8px",
+      borderRadius: 6,
+      background:
+        r.score >= 80
+          ? "#4CAF50"
+          : r.score >= 60
+          ? "#2196F3"
+          : r.score >= 40
+          ? "#FFC107"
+          : "#F44336",
+      color: "white"
+    }}
+  >
+    {getRating(r.score)}
+  </span>
+</p>
+
 
           <div id={`chart-${r.id}`}>
             <PieChart width={250} height={250}>
