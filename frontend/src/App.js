@@ -83,58 +83,45 @@ doc.text(`Company: ${companyName}`, 20, 40);
 };
 
   const addReport = async () => {
-  console.log(environmental, social, governance);
-    if (!company) {
-  alert("Please enter a company name");
-  return;
-}
-    const score =
+  if (!company) {
+    alert("Please enter a company name");
+    return;
+  }
+
+  const score =
     (environmental / 3) * 40 +
     (social / 3) * 30 +
     (governance / 3) * 30;
-setCompany('');
+
   try {
-    const res = await fetch(`${API}/reports`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-  company,
-  score,
-  environmental: Number(environmental),
-  social: Number(social),
-  governance: Number(governance)
-})
+    // optional: still send to backend
+    await fetch(`${API}/reports`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        company,
+        score,
+        environmental: Number(environmental),
+        social: Number(social),
+        governance: Number(governance)
+      })
     });
 
-    const data = await res.json();
-
+    // ✅ FORCE correct data into UI
     setReports([
-  ...reports,
-  {
-    id: Date.now(),
-    company,
-    score,
-    environmental: Number(environmental),
-    social: Number(social),
-    governance: Number(governance)
-  }
-]);
-    else {
-  // fallback if backend doesn't return full list
-  setReports([
-    ...reports,
-    {
-      id: Date.now(),
-      company,
-      score,
-      environmental: Number(environmental),
-      social: Number(social),
-      governance: Number(governance)
-    }
-  ]);
-}
+      ...reports,
+      {
+        id: Date.now(),
+        company,
+        score,
+        environmental: Number(environmental),
+        social: Number(social),
+        governance: Number(governance)
+      }
+    ]);
 
-    setCompany('');
+    setCompany("");
+
   } catch (err) {
     console.error(err);
   }
