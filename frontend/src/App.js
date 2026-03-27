@@ -143,7 +143,7 @@ const getRating = (score) => {
   return "D (Critical)";
 };
 
-  return (
+ return (
   <div style={{ padding: 20 }}>
 
     <h1>Ecovanta ESG Dashboard</h1>
@@ -179,73 +179,33 @@ const getRating = (score) => {
       </button>
     </div>
 
-    {/* REPORTS */}
+    {/* TREND CHART */}
+    <div style={{ background: "#fff", padding: 20, borderRadius: 10, marginBottom: 30 }}>
+      <h3>ESG Score Comparison</h3>
+
+      <LineChart width={700} height={300} data={reports}>
+        <XAxis dataKey="company" />
+        <YAxis />
+        <Tooltip />
+        <Line type="monotone" dataKey="score" stroke="#1976d2" strokeWidth={3} />
+      </LineChart>
+    </div>
+
+    {/* REPORTS GRID */}
     <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-    gap: 20
-  }}
->
-
-<div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
-  <div style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
-    <h3>Total Companies</h3>
-    <p>{reports.length}</p>
-  </div>
-
-  <div
-  style={{
-    background: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    marginBottom: 30
-  }}
->
-  <h3>ESG Score Comparison</h3>
-
-  <LineChart width={700} height={300} data={reports}>
-    <XAxis dataKey="company" />
-    <YAxis />
-    <Tooltip />
-    <Line
-      type="monotone"
-      dataKey="score"
-      stroke="#1976d2"
-      strokeWidth={3}
-    />
-  </LineChart>
-</div>
-
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+        gap: 20
+      }}
+    >
       {reports.map((r) => (
-        <div key={r.id} style={{ marginBottom: 20 }}>
+        <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
 
           <h3>{r.company}</h3>
 
           <p>Score: <b>{Math.round(r.score)}</b></p>
-          
-
-<p>
-  Assessment:{" "}
-  <span
-    style={{
-      padding: "4px 8px",
-      borderRadius: 6,
-      background:
-        r.score >= 80
-          ? "#4CAF50"
-          : r.score >= 60
-          ? "#2196F3"
-          : r.score >= 40
-          ? "#FFC107"
-          : "#F44336",
-      color: "white"
-    }}
-  >
-    {getRating(r.score)}
-  </span>
-</p>
-
+          <p>Assessment: <b>{getRating(r.score)}</b></p>
 
           <div id={`chart-${r.id}`}>
             <PieChart width={250} height={250}>
