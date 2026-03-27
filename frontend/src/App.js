@@ -155,6 +155,40 @@ const getRating = (score) => {
       </button>
     </div>
 
+<div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
+
+  {/* Total Companies */}
+  <div style={{
+    background: "#fff",
+    padding: 20,
+    borderRadius: 10,
+    flex: 1
+  }}>
+    <h3>Total Companies</h3>
+    <p style={{ fontSize: 24, fontWeight: "bold" }}>
+      {reports.length}
+    </p>
+  </div>
+
+  {/* Average Score */}
+  <div style={{
+    background: "#fff",
+    padding: 20,
+    borderRadius: 10,
+    flex: 1
+  }}>
+    <h3>Average ESG Score</h3>
+    <p style={{ fontSize: 24, fontWeight: "bold" }}>
+      {reports.length
+        ? Math.round(
+            reports.reduce((sum, r) => sum + r.score, 0) / reports.length
+          )
+        : 0}
+    </p>
+  </div>
+
+</div>
+
     {/* TREND CHART */}
     <div style={{ background: "#fff", padding: 20, borderRadius: 10, marginBottom: 30 }}>
       <h3>ESG Score Comparison</h3>
