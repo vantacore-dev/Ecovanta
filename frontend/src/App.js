@@ -168,57 +168,47 @@ const getInsights = (r) => {
   />
 
   {/* Environmental */}
+ 
  <div style={{ marginBottom: 10 }}>
   <label style={{ fontWeight: "bold" }}>Environmental:</label><br />
 
-  <small style={{ color: "#666" }}>
-    Measures emissions, resource use, and environmental impact
-  </small><br />
-
-<select
-  value={environmental}
-  onChange={(e) => setEnvironmental(Number(e.target.value))}
->
-  <option value="1">High Risk</option>
-  <option value="2">Moderate</option>
-  <option value="3">Best Practice</option>
-</select>
+  <select
+    value={environmental}
+    onChange={(e) => setEnvironmental(Number(e.target.value))}
+  >
+    <option value="1">High Risk</option>
+    <option value="2">Moderate</option>
+    <option value="3">Best Practice</option>
+  </select>
 </div>
 
   {/* Social */}
   <div style={{ marginBottom: 10 }}>
   <label style={{ fontWeight: "bold" }}>Social:</label><br />
 
-  <small style={{ color: "#666" }}>
-    Covers labor practices, diversity, and employee wellbeing
-  </small><br />
-
- <select
-  value={social}
-  onChange={(e) => setSocial(Number(e.target.value))}
->
-  <option value="1">High Risk</option>
-  <option value="2">Moderate</option>
-  <option value="3">Best Practice</option>
-</select>
+  <select
+    value={social}
+    onChange={(e) => setSocial(Number(e.target.value))}
+  >
+    <option value="1">High Risk</option>
+    <option value="2">Moderate</option>
+    <option value="3">Best Practice</option>
+  </select>
 </div>
 
   {/* Governance */}
+ 
  <div style={{ marginBottom: 10 }}>
-  <label style={{ fontWeight: "bold" }}>Governance:</label><br />
-
-  <small style={{ color: "#666" }}>
-    Includes board structure, transparency, and compliance
-  </small><br />
+  <label style={{ fontWeight: "bold" }}>Social:</label><br />
 
   <select
-  value={governance}
-  onChange={(e) => setGovernance(Number(e.target.value))}
->
-  <option value="1">High Risk</option>
-  <option value="2">Moderate</option>
-  <option value="3">Best Practice</option>
-</select>
+    value={social}
+    onChange={(e) => setSocial(Number(e.target.value))}
+  >
+    <option value="1">High Risk</option>
+    <option value="2">Moderate</option>
+    <option value="3">Best Practice</option>
+  </select>
 </div>
 
   <button type="button" onClick={addReport}>
