@@ -128,6 +128,24 @@ const getRating = (score) => {
   return "D (Critical)";
 };
 
+const getInsights = (r) => {
+  let insights = [];
+
+  if (r.environmental < 2)
+    insights.push("Improve environmental practices (emissions, waste, suppliers)");
+
+  if (r.social < 2)
+    insights.push("Strengthen social policies (labor, diversity, safety)");
+
+  if (r.governance < 2)
+    insights.push("Enhance governance (board structure, reporting)");
+
+  if (insights.length === 0)
+    insights.push("Strong ESG performance. Maintain current practices.");
+
+  return insights;
+};
+
  return (
  <div style={{
   padding: 20,
@@ -329,6 +347,15 @@ const getRating = (score) => {
 
           <p>Score: <b>{Math.round(r.score)}</b></p>
           <p>Assessment: <b>{getRating(r.score)}</b></p>
+
+          <div style={{ marginTop: 10 }}>
+  <b>Recommendations:</b>
+  <ul>
+    {getInsights(r).map((insight, i) => (
+      <li key={i}>{insight}</li>
+    ))}
+  </ul>
+</div>
 
           <div id={`chart-${r.id}`}>
             <PieChart width={250} height={250}>
