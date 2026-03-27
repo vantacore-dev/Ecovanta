@@ -8,6 +8,8 @@ import jsPDF from "jspdf";
 
 import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 
+import { BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+
 const API = "https://ecovanta.onrender.com"; // 🔥 replace
 
 function App() {
@@ -229,6 +231,31 @@ const getRating = (score) => {
     </p>
   </div>
 
+</div>
+
+<div style={{
+  background: "#fff",
+  padding: 20,
+  borderRadius: 10,
+  marginBottom: 30
+}}>
+  <h3>ESG Rating Distribution</h3>
+
+  <BarChart
+    width={600}
+    height={300}
+    data={[
+      { name: "A", value: reports.filter(r => r.score >= 80).length },
+      { name: "B", value: reports.filter(r => r.score >= 60 && r.score < 80).length },
+      { name: "C", value: reports.filter(r => r.score >= 40 && r.score < 60).length },
+      { name: "D", value: reports.filter(r => r.score < 40).length }
+    ]}
+  >
+    <XAxis dataKey="name" />
+    <YAxis />
+    <Tooltip />
+    <Bar dataKey="value" fill="#1976d2" />
+  </BarChart>
 </div>
 
     {/* TREND CHART */}
