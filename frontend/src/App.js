@@ -233,9 +233,16 @@ function App() {
 
 </div>
 
-  {reports.map((r) => (
-  <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
-
+ {reports.map((r) => (
+  <div
+    key={r.id}
+    style={{
+      background: "#fff",
+      padding: 20,
+      borderRadius: 10,
+      marginTop: 10
+    }}
+  >
     <h3>{r.company}</h3>
 
     <p>Score: <b>{Math.round(r.score)}</b></p>
@@ -264,5 +271,5 @@ function App() {
     </div>
 
   </div>
-))}   
+))}
 export default App;
