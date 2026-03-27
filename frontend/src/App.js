@@ -132,7 +132,7 @@ const getRating = (score) => {
  <div style={{
   padding: 20,
   background: "#f5f7fa",
-  minHeight: "100vh"
+  minHeight: "100vh",
   boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
 }}>
 
@@ -256,7 +256,7 @@ const getRating = (score) => {
   background: "#fff",
   padding: 20,
   borderRadius: 10,
-  marginBottom: 30
+  marginBottom: 30,
   boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
 }}>
   <h3>ESG Rating Distribution</h3>
