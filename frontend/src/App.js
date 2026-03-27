@@ -61,14 +61,23 @@ const generatePDF = (report) => {
     } 
   };
 
-  const addReport = async (e) => {
-  if (e) e.preventDefault();
+  const addReport = async () => {
+  const score =
+    (environmental / 3) * 40 +
+    (social / 3) * 30 +
+    (governance / 3) * 30;
 
   try {
     const res = await fetch(`${API}/reports`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company, score: Number(score) })
+      body: JSON.stringify({
+        company,
+        score,
+        environmental,
+        social,
+        governance
+      })
     });
 
     const data = await res.json();
@@ -78,7 +87,6 @@ const generatePDF = (report) => {
     }
 
     setCompany('');
-    setScore('');
   } catch (err) {
     console.error(err);
   }
