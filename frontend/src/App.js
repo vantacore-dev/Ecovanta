@@ -190,55 +190,83 @@ function App() {
       </h3>
 
       {/* REPORTS */}
-      {reports.map((r) => (
-        <div key={r.id} style={{ background: "#fff", padding: 20, marginTop: 10 }}>
-          <h3>{r.company}</h3>
 
-          <p>Score: {Math.round(r.score)}</p>
-          <p>{getRating(r.score)}</p>
+<div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
 
-          {/* RULE-BASED */}
-          <ul>
-            {getInsights(r).map((i, idx) => (
-              <li key={idx}>{i}</li>
-            ))}
-          </ul>
+  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+    <h3>Total Companies</h3>
+    <p>{reports.length}</p>
+  </div>
 
-          {/* AI */}
-          <div>
-            <p>{r.aiInsights || "Click for AI insights"}</p>
-           <div style={{ marginTop: 10 }}>
-  <b>AI Recommendations:</b>
+  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+    <h3>Average Score</h3>
+    <p>
+      {reports.length
+        ? Math.round(
+            reports.reduce((sum, r) => sum + r.score, 0) / reports.length
+          )
+        : 0}
+    </p>
+  </div>
 
-  <p>
-    {r.aiInsights || "Generating AI insights..."}
-  </p>
+  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+    <h3>Top Performer</h3>
+    <p>
+      {reports.length
+        ? reports.reduce((best, r) =>
+            r.score > best.score ? r : best
+          ).company
+        : "-"}
+    </p>
+  </div>
+
+  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+    <h3>At Risk</h3>
+    <p>
+      {reports.length
+        ? reports.reduce((worst, r) =>
+            r.score < worst.score ? r : worst
+          ).company
+        : "-"}
+    </p>
+  </div>
+
 </div>
-          </div>
 
-          {/* CHART */}
-          <div id={`chart-${r.id}`}>
-            <PieChart width={200} height={200}>
-              <Pie
-                data={[
-                  { name: "E", value: r.environmental },
-                  { name: "S", value: r.social },
-                  { name: "G", value: r.governance }
-                ]}
-                dataKey="value"
-              >
-                <Cell fill="#4CAF50" />
-                <Cell fill="#2196F3" />
-                <Cell fill="#FFC107" />
-              </Pie>
-            </PieChart>
-          </div>
+      {reports.map((r) => (
+        <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
 
-          <button onClick={() => generatePDF(r)}>Download PDF</button>
-        </div>
-      ))}
-    </div>
-  );
-}
+  {/* Company */}
+  <h3>{r.company}</h3>
+
+  {/* Score */}
+  <p>Score: <b>{Math.round(r.score)}</b></p>
+  <p>Assessment: <b>{getRating(r.score)}</b></p>
+
+  {/* Chart */}
+  <div id={`chart-${r.id}`}>
+    <PieChart width={200} height={200}>
+      <Pie
+        data={[
+          { name: "E", value: r.environmental },
+          { name: "S", value: r.social },
+          { name: "G", value: r.governance }
+        ]}
+        dataKey="value"
+      >
+        <Cell fill="#4CAF50" />
+        <Cell fill="#2196F3" />
+        <Cell fill="#FFC107" />
+      </Pie>
+    </PieChart>
+  </div>
+
+  {/* AI Insights */}
+  <div style={{ marginTop: 10 }}>
+    <b>AI Recommendations:</b>
+    <p>{r.aiInsights || "Generating AI insights..."}</p>
+  </div>
+
+</div>
 
 export default App;
