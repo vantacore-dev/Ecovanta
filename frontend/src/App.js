@@ -9,7 +9,6 @@ const API = "https://ecovanta.onrender.com"; // 🔥 replace
 function App() {
   const [reports, setReports] = useState([]);
   const [company, setCompany] = useState('');
-  const [score, setScore] = useState('');
 
 const [environmental, setEnvironmental] = useState(1);
 const [social, setSocial] = useState(1);
