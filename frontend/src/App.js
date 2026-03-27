@@ -134,7 +134,21 @@ const getRating = (score) => {
             </PieChart>
 
             <button onClick={() => generatePDF(r)}>
-              Download ESG Report
+              <button
+  onClick={addReport}
+  style={{
+    marginTop: 15,
+    padding: 10,
+    background: "#2e7d32",
+    color: "white",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+    width: "100%"
+  }}
+>
+  Download ESG Score
+</button>
             </button>
           </div>
         );
