@@ -267,6 +267,4 @@ function App() {
     <p>{r.aiInsights || "Generating AI insights..."}</p>
   </div>
 
-</div>
-
 export default App;
