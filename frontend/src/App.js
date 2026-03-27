@@ -163,7 +163,7 @@ const getRating = (score) => {
       width: "100%"
     }}
   >
-    Download ESG Score
+    Generate ESG Score
   </button>
 </div>
 
