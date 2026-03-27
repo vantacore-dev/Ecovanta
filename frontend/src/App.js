@@ -84,6 +84,13 @@ const generatePDF = (report) => {
     fetchReports();
   }, []);
 
+const getRating = (score) => {
+  if (score >= 80) return "A (Leader)";
+  if (score >= 60) return "B (Compliant)";
+  if (score >= 40) return "C (At Risk)";
+  return "D (Critical)";
+};
+
   return (
   <div style={{
     fontFamily: "Arial, sans-serif",
