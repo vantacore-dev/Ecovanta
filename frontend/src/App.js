@@ -118,130 +118,79 @@ const getRating = (score) => {
 };
 
   return (
-  <div style={{
-    fontFamily: "Arial, sans-serif",
-    backgroundColor: "#f5f7fa",
-    minHeight: "100vh",
-    padding: "40px"
-  }}>
-    
-    <h1>🔥 ECOVANTA DASHBOARD UI 🔥</h1>
+  <div style={{ padding: 20 }}>
 
-<div style={{
-  background: "white",
-  padding: 20,
-  borderRadius: 12,
-  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-  marginBottom: 30,
-  maxWidth: 400
-}}>
-  <h2>Add Company</h2>
+    <h1>Ecovanta ESG Dashboard</h1>
 
-  <input
-    value={company}
-    placeholder="Company"
-    onChange={(e) => setCompany(e.target.value)}
-    style={{ width: "100%", padding: 10, marginBottom: 10 }}
-  />
+    {/* INPUT */}
+    <div style={{ marginBottom: 20 }}>
+      <input
+        value={company}
+        placeholder="Company"
+        onChange={(e) => setCompany(e.target.value)}
+      />
 
-  <p>Environmental</p>
-  <select onChange={(e) => setEnvironmental(e.target.value)}>
-    <option value="1">High Risk</option>
-    <option value="2">Moderate</option>
-    <option value="3">Best Practice</option>
-  </select>
+      <select onChange={(e) => setEnvironmental(e.target.value)}>
+        <option value="1">High Risk</option>
+        <option value="2">Moderate</option>
+        <option value="3">Best Practice</option>
+      </select>
 
-  <p>Social</p>
-  <select onChange={(e) => setSocial(e.target.value)}>
-    <option value="1">High Risk</option>
-    <option value="2">Moderate</option>
-    <option value="3">Best Practice</option>
-  </select>
+      <select onChange={(e) => setSocial(e.target.value)}>
+        <option value="1">High Risk</option>
+        <option value="2">Moderate</option>
+        <option value="3">Best Practice</option>
+      </select>
 
-  <p>Governance</p>
-  <select onChange={(e) => setGovernance(e.target.value)}>
-    <option value="1">High Risk</option>
-    <option value="2">Moderate</option>
-    <option value="3">Best Practice</option>
-  </select>
+      <select onChange={(e) => setGovernance(e.target.value)}>
+        <option value="1">High Risk</option>
+        <option value="2">Moderate</option>
+        <option value="3">Best Practice</option>
+      </select>
 
-  <button
-    type="button" onClick={addReport}
-    style={{
-      marginTop: 15,
-      padding: 10,
-      background: "#2e7d32",
-      color: "white",
-      border: "none",
-      borderRadius: 8,
-      cursor: "pointer",
-      width: "100%"
-    }}
-  >
-    Generate ESG Score
-  </button>
-</div>
-
-
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-      gap: 20
-    }}>
-
-     {reports.map((r) => {
-  return (
-    <div key={r.id} style={{
-      background: "white",
-      padding: 20,
-      borderRadius: 12,
-      marginBottom: 20
-    }}>
-
-      <h3>{r.company}</h3>
-
-      <p>Score: <b>{Math.round(r.score)}</b></p>
-      <p>Assessment: <b>{getRating(r.score)}</b></p>
-
-      {/* Chart */}
-      <div id={`chart-${r.id}`} style={{ padding: 10 }}>
-        <PieChart width={250} height={250}>
-          <Pie
-            data={[
-              { name: "Environmental", value: Number(r.environmental || 1) / 3 * 40 },
-              { name: "Social", value: Number(r.social || 1) / 3 * 30 },
-              { name: "Governance", value: Number(r.governance || 1) / 3 * 30 }
-            ]}
-            dataKey="value"
-            outerRadius={90}
-            label
-          >
-            <Cell fill="#4CAF50" />
-            <Cell fill="#2196F3" />
-            <Cell fill="#FFC107" />
-          </Pie>
-        </PieChart>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => generatePDF(r)}
-        style={{
-          marginTop: 15,
-          padding: 10,
-          background: "#2e7d32",
-          color: "white",
-          border: "none",
-          borderRadius: 8,
-          cursor: "pointer",
-          width: "100%"
-        }}
-      >
-        Download ESG Report
+      <button type="button" onClick={addReport}>
+        Generate ESG Score
       </button>
-
     </div>
-  );
+
+    {/* REPORTS */}
+    <div>
+      {reports.map((r) => (
+        <div key={r.id} style={{ marginBottom: 20 }}>
+
+          <h3>{r.company}</h3>
+
+          <p>Score: <b>{Math.round(r.score)}</b></p>
+          <p>Assessment: <b>{getRating(r.score)}</b></p>
+
+          <div id={`chart-${r.id}`}>
+            <PieChart width={250} height={250}>
+              <Pie
+                data={[
+                  { name: "Environmental", value: Number(r.environmental || 1) / 3 * 40 },
+                  { name: "Social", value: Number(r.social || 1) / 3 * 30 },
+                  { name: "Governance", value: Number(r.governance || 1) / 3 * 30 }
+                ]}
+                dataKey="value"
+                outerRadius={90}
+              >
+                <Cell fill="#4CAF50" />
+                <Cell fill="#2196F3" />
+                <Cell fill="#FFC107" />
+              </Pie>
+            </PieChart>
+          </div>
+
+          <button type="button" onClick={() => generatePDF(r)}>
+            Download ESG Report
+          </button>
+
+        </div>
+      ))}
+    </div>
+
+  </div>
+);
 })}
 
 export default App;
