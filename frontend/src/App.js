@@ -6,6 +6,8 @@ import { PieChart, Pie, Cell } from 'recharts';
 
 import jsPDF from "jspdf";
 
+import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
+
 const API = "https://ecovanta.onrender.com"; // 🔥 replace
 
 function App() {
@@ -28,6 +30,17 @@ const fetchReports = async () => {
 const [environmental, setEnvironmental] = useState(1);
 const [social, setSocial] = useState(1);
 const [governance, setGovernance] = useState(1);
+
+<div style={{ background: "#fff", padding: 20, borderRadius: 10, marginBottom: 30 }}>
+  <h3>ESG Score Trend</h3>
+
+  <LineChart width={500} height={300} data={reports}>
+    <XAxis dataKey="company" />
+    <YAxis />
+    <Tooltip />
+    <Line type="monotone" dataKey="score" stroke="#1976d2" />
+  </LineChart>
+</div>
 
 const generatePDF = async (report) => {
   const doc = new jsPDF();
