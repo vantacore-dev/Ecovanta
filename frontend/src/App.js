@@ -166,7 +166,7 @@ const getRating = (score) => {
   </select>
 
   <button
-    onClick={addReport}
+    type="button" onClick={addReport}
     style={{
       marginTop: 15,
       padding: 10,
@@ -221,10 +221,8 @@ const getRating = (score) => {
   </PieChart>
 </div>
 
-            <button onClick={() => generatePDF(r)}>
-              <button
-  onClick={addReport}
-  style={{
+            <button type="button" onClick={() => generatePDF(r)}
+       style={{
     marginTop: 15,
     padding: 10,
     background: "#2e7d32",
@@ -236,8 +234,7 @@ const getRating = (score) => {
   }}
 >
   Download ESG Score
-</button>
-            </button>
+
           </div>
         );
       })}
