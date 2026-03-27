@@ -120,16 +120,133 @@ const generatePDF = (report) => {
   ];
 
   return (
-    <div key={r.id} style={{ marginTop: 20 }}>
-      <h3>{r.company} - ESG Score: {Math.round(r.score)}</h3>
+  <div style={{
+    fontFamily: "Arial, sans-serif",
+    backgroundColor: "#f5f7fa",
+    minHeight: "100vh",
+    padding: "40px"
+  }}>
+    
+    <h1 style={{ marginBottom: 30 }}>
+      Ecovanta ESG Dashboard
+    </h1>
 
-      <PieChart width={200} height={200}>
-        <Pie data={data} dataKey="value" outerRadius={80}>
-          <Cell fill="#4CAF50" />
-          <Cell fill="#2196F3" />
-          <Cell fill="#FFC107" />
-        </Pie>
-      </PieChart>
+    {/* INPUT CARD */}
+    <div style={{
+      background: "white",
+      padding: 20,
+      borderRadius: 12,
+      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+      marginBottom: 30,
+      maxWidth: 400
+    }}>
+      <h2>Add Company</h2>
+
+      <input
+        value={company}
+        placeholder="Company"
+        onChange={(e) => setCompany(e.target.value)}
+        style={{ width: "100%", padding: 10, marginBottom: 10 }}
+      />
+
+      <p>Environmental</p>
+      <select onChange={(e) => setEnvironmental(e.target.value)}>
+        <option value="1">High Risk</option>
+        <option value="2">Moderate</option>
+        <option value="3">Best Practice</option>
+      </select>
+
+      <p>Social</p>
+      <select onChange={(e) => setSocial(e.target.value)}>
+        <option value="1">High Risk</option>
+        <option value="2">Moderate</option>
+        <option value="3">Best Practice</option>
+      </select>
+
+      <p>Governance</p>
+      <select onChange={(e) => setGovernance(e.target.value)}>
+        <option value="1">High Risk</option>
+        <option value="2">Moderate</option>
+        <option value="3">Best Practice</option>
+      </select>
+
+      <button
+        onClick={addReport}
+        style={{
+          marginTop: 15,
+          padding: 10,
+          background: "#2e7d32",
+          color: "white",
+          border: "none",
+          borderRadius: 8,
+          cursor: "pointer",
+          width: "100%"
+        }}
+      >
+        Generate ESG Score
+      </button>
+    </div>
+
+    {/* REPORTS GRID */}
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+      gap: 20
+    }}>
+      {reports.map((r) => {
+        const data = [
+          { name: "Environmental", value: (r.environmental / 3) * 40 },
+          { name: "Social", value: (r.social / 3) * 30 },
+          { name: "Governance", value: (r.governance / 3) * 30 }
+        ];
+
+        return (
+          <div key={r.id} style={{
+            background: "white",
+            padding: 20,
+            borderRadius: 12,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+          }}>
+            <h3>{r.company}</h3>
+
+            <p>
+              Score: <b>{Math.round(r.score)}</b>
+            </p>
+
+            <p>
+              Rating: <b>{getRating(r.score)}</b>
+            </p>
+
+            <PieChart width={200} height={200}>
+              <Pie data={data} dataKey="value" outerRadius={80}>
+                <Cell fill="#4CAF50" />
+                <Cell fill="#2196F3" />
+                <Cell fill="#FFC107" />
+              </Pie>
+            </PieChart>
+
+            <button
+              onClick={() => generatePDF(r)}
+              style={{
+                marginTop: 10,
+                padding: 8,
+                background: "#1976d2",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                cursor: "pointer",
+                width: "100%"
+              }}
+            >
+              Download ESG Report
+            </button>
+          </div>
+        );
+      })}
+    </div>
+
+  </div>
+);
 
 <button onClick={() => generatePDF(r)}>
   Download ESG Report
