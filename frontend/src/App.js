@@ -4,14 +4,7 @@ import jsPDF from "jspdf";
 import {
   PieChart,
   Pie,
-  Cell,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip
+  Cell
 } from "recharts";
 
 const API = "https://ecovanta.onrender.com";
