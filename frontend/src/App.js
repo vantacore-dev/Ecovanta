@@ -83,7 +83,8 @@ doc.text(`Company: ${companyName}`, 20, 40);
 };
 
   const addReport = async () => {
-  if (!company) {
+  console.log(environmental, social, governance);
+    if (!company) {
   alert("Please enter a company name");
   return;
 }
@@ -96,8 +97,7 @@ setCompany('');
     const res = await fetch(`${API}/reports`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      console.log(environmental, social, governance);
-      body: JSON.stringify({
+            body: JSON.stringify({
         company,
         score,
         environmental,
