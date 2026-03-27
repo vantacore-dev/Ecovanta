@@ -174,7 +174,7 @@ const getInsights = (r) => {
     Measures emissions, resource use, and environmental impact
   </small><br />
 
-  <select onChange={(e) => setEnvironmental(e.target.value)}>
+  <select onChange={(e) => setEnvironmental(Number(e.target.value))}>
     <option value="1">High Risk</option>
     <option value="2">Moderate</option>
     <option value="3">Best Practice</option>
@@ -189,7 +189,7 @@ const getInsights = (r) => {
     Covers labor practices, diversity, and employee wellbeing
   </small><br />
 
-  <select onChange={(e) => setSocial(e.target.value)}>
+  <select onChange={(e) => setSocial(Number(e.target.value))}>
     <option value="1">High Risk</option>
     <option value="2">Moderate</option>
     <option value="3">Best Practice</option>
@@ -204,7 +204,7 @@ const getInsights = (r) => {
     Includes board structure, transparency, and compliance
   </small><br />
 
-  <select onChange={(e) => setGovernance(e.target.value)}>
+  <select onChange={(e) => setGovernance(Number(e.target.value))}>
     <option value="1">High Risk</option>
     <option value="2">Moderate</option>
     <option value="3">Best Practice</option>
