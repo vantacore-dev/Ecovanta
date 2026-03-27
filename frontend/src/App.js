@@ -176,8 +176,8 @@ const getRating = (score) => {
     background: "#fff",
     padding: 20,
     borderRadius: 10,
+        flex: 1,
     boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-    flex: 1
   }}>
     <h3>Total Companies</h3>
     <p style={{ fontSize: 24, fontWeight: "bold" }}>
@@ -190,9 +190,8 @@ const getRating = (score) => {
     background: "#fff",
     padding: 20,
     borderRadius: 10,
-    boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-    flex: 1
-    
+       flex: 1,
+     boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
   }}>
     <h3>Average ESG Score</h3>
     <p style={{ fontSize: 24, fontWeight: "bold" }}>
