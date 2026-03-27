@@ -203,9 +203,18 @@ const getRating = (score) => {
             <p>Score: <b>{Math.round(r.score)}</b></p>
             <p>Rating: <b>{getRating(r.score)}</b></p>
 
-            <div id={`chart-${r.id}`}>
-  <PieChart width={200} height={200}>
-    <Pie data={data} dataKey="value" outerRadius={80}>
+<div id={`chart-${r.id}`} style={{ background: "#fff", padding: 10 }}>
+  <PieChart width={250} height={250}>
+    <Pie
+      data={[
+        { name: "Environmental", value: Number(r.environmental || 1) / 3 * 40 },
+        { name: "Social", value: Number(r.social || 1) / 3 * 30 },
+        { name: "Governance", value: Number(r.governance || 1) / 3 * 30 }
+      ]}
+      dataKey="value"
+      outerRadius={90}
+      label
+    >
       <Cell fill="#4CAF50" />
       <Cell fill="#2196F3" />
       <Cell fill="#FFC107" />
