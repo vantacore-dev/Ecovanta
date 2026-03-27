@@ -185,13 +185,7 @@ const getRating = (score) => {
     }}>
 
       {reports.map((r) => {
-        const data = [
-          { name: "Environmental", value: (r.environmental / 3) * 40 },
-          { name: "Social", value: (r.social / 3) * 30 },
-          { name: "Governance", value: (r.governance / 3) * 30 }
-        ];
-
-        return (
+               return (
           <div key={r.id} style={{
             background: "white",
             padding: 20,
