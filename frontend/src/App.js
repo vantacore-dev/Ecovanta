@@ -210,15 +210,13 @@ const getRating = (score) => {
 
   {/* Total Companies */}
   <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
-    boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-    <h3>Total Companies</h3>
+       <h3>Total Companies</h3>
     <p>{reports.length}</p>
   </div>
 
   {/* Average Score */}
   <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
-    boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-    <h3>Average ESG Score</h3>
+        <h3>Average ESG Score</h3>
     <p>
       {reports.length
         ? Math.round(
@@ -230,8 +228,7 @@ const getRating = (score) => {
 
   {/* 🥇 Top Performer */}
   <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
-        boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-    <h3>Top Performer</h3>
+           <h3>Top Performer</h3>
     <p>
       {reports.length
         ? reports.reduce((best, r) => r.score > best.score ? r : best).company
@@ -241,8 +238,7 @@ const getRating = (score) => {
 
   {/* ⚠️ At Risk */}
   <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
-    boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-    <h3>At Risk</h3>
+        <h3>At Risk</h3>
     <p>
       {reports.length
         ? reports.reduce((worst, r) => r.score < worst.score ? r : worst).company
@@ -280,8 +276,7 @@ const getRating = (score) => {
 
     {/* TREND CHART */}
     <div style={{ background: "#fff", padding: 20, borderRadius: 10, marginBottom: 30 }}>
-      boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-      <h3>ESG Score Comparison</h3>
+            <h3>ESG Score Comparison</h3>
 
       <LineChart width={700} height={300} data={reports}>
         <XAxis dataKey="company" />
@@ -301,8 +296,7 @@ const getRating = (score) => {
     >
       {reports.map((r) => (
         <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
-         boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
-          <h3>{r.company}</h3>
+                   <h3>{r.company}</h3>
 
           <p>Score: <b>{Math.round(r.score)}</b></p>
           <p>Assessment: <b>{getRating(r.score)}</b></p>
