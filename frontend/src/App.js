@@ -140,13 +140,6 @@ const getRating = (score) => {
 
     {/* INPUT */}
     <div style={{ marginBottom: 20 }}>
-      <input
-        value={company}
-        placeholder="Company"
-        onChange={(e) => setCompany(e.target.value)}
-      />
-
-      <div style={{ marginBottom: 20 }}>
 
   <input
     value={company}
@@ -157,7 +150,7 @@ const getRating = (score) => {
 
   {/* Environmental */}
   <div style={{ marginBottom: 10 }}>
-   <label style={{ fontWeight: "bold" }}>Environmental</label>
+    <label style={{ fontWeight: "bold" }}>Environmental:</label><br />
     <select onChange={(e) => setEnvironmental(e.target.value)}>
       <option value="1">High Risk</option>
       <option value="2">Moderate</option>
@@ -167,7 +160,7 @@ const getRating = (score) => {
 
   {/* Social */}
   <div style={{ marginBottom: 10 }}>
-    <label>Social:</label><br />
+    <label style={{ fontWeight: "bold" }}>Social:</label><br />
     <select onChange={(e) => setSocial(e.target.value)}>
       <option value="1">High Risk</option>
       <option value="2">Moderate</option>
@@ -177,7 +170,7 @@ const getRating = (score) => {
 
   {/* Governance */}
   <div style={{ marginBottom: 10 }}>
-    <label>Governance:</label><br />
+    <label style={{ fontWeight: "bold" }}>Governance:</label><br />
     <select onChange={(e) => setGovernance(e.target.value)}>
       <option value="1">High Risk</option>
       <option value="2">Moderate</option>
@@ -188,7 +181,6 @@ const getRating = (score) => {
   <button type="button" onClick={addReport}>
     Generate ESG Score
   </button>
-
 </div>
 
 <div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
