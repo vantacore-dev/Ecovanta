@@ -92,7 +92,7 @@ const generatePDF = (report) => {
     padding: "40px"
   }}>
     
-    <h1>🔥 NEW DASHBOARD UI 🔥</h1>
+    <h1>🔥 ECOVANTA DASHBOARD UI 🔥</h1>
 
     <div style={{
       display: "grid",
@@ -134,5 +134,5 @@ const generatePDF = (report) => {
       })}
     </div>
   </div>
-);
+);}
 export default App;
