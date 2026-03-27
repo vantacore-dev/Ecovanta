@@ -16,17 +16,7 @@ function App() {
   const [social, setSocial] = useState(1);
   const [governance, setGovernance] = useState(1);
 
-  const fetchReports = async () => {
-    try {
-      const res = await fetch(`${API}/reports`);
-      const data = await res.json();
-      if (Array.isArray(data)) setReports(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
- useEffect(() => {
+  useEffect(() => {
   const generateAllAI = async () => {
     const updatedReports = await Promise.all(
       reports.map(async (r) => {
