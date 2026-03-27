@@ -181,16 +181,27 @@ const getRating = (score) => {
     <p>{reports.length}</p>
   </div>
 
-  <div style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
-    <h3>Average Score</h3>
-    <p>
-      {reports.length
-        ? Math.round(
-            reports.reduce((sum, r) => sum + r.score, 0) / reports.length
-          )
-        : 0}
-    </p>
-  </div>
+  <div
+  style={{
+    background: "#fff",
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 30
+  }}
+>
+  <h3>ESG Score Comparison</h3>
+
+  <LineChart width={700} height={300} data={reports}>
+    <XAxis dataKey="company" />
+    <YAxis />
+    <Tooltip />
+    <Line
+      type="monotone"
+      dataKey="score"
+      stroke="#1976d2"
+      strokeWidth={3}
+    />
+  </LineChart>
 </div>
 
       {reports.map((r) => (
