@@ -26,9 +26,24 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    fetchReports();
-  }, []);
+ useEffect(() => {
+  const generateAllAI = async () => {
+    const updatedReports = await Promise.all(
+      reports.map(async (r) => {
+        if (r.aiInsights) return r;
+
+        const ai = await getAIInsights(r);
+        return { ...r, aiInsights: ai };
+      })
+    );
+
+    setReports(updatedReports);
+  };
+
+  if (reports.length > 0) {
+    generateAllAI();
+  }
+}, [reports]);
 
   const getRating = (score) => {
     if (score >= 80) return "A (Leader)";
@@ -202,18 +217,13 @@ function App() {
           {/* AI */}
           <div>
             <p>{r.aiInsights || "Click for AI insights"}</p>
-            <button
-              onClick={async () => {
-                const ai = await getAIInsights(r);
-                setReports((prev) =>
-                  prev.map((rep) =>
-                    rep.id === r.id ? { ...rep, aiInsights: ai } : rep
-                  )
-                );
-              }}
-            >
-              AI Insights
-            </button>
+           <div style={{ marginTop: 10 }}>
+  <b>AI Recommendations:</b>
+
+  <p>
+    {r.aiInsights || "Generating AI insights..."}
+  </p>
+</div>
           </div>
 
           {/* CHART */}
