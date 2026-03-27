@@ -108,9 +108,18 @@ setCompany('');
 
     const data = await res.json();
 
-   if (Array.isArray(data)) {
-  setReports(data);
-} else {
+    setReports([
+  ...reports,
+  {
+    id: Date.now(),
+    company,
+    score,
+    environmental: Number(environmental),
+    social: Number(social),
+    governance: Number(governance)
+  }
+]);
+    else {
   // fallback if backend doesn't return full list
   setReports([
     ...reports,
