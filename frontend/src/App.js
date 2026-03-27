@@ -233,38 +233,36 @@ function App() {
 
 </div>
 
-      {reports.map((r) => (
-        <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
+  {reports.map((r) => (
+  <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
 
-  {/* Company */}
-  <h3>{r.company}</h3>
+    <h3>{r.company}</h3>
 
-  {/* Score */}
-  <p>Score: <b>{Math.round(r.score)}</b></p>
-  <p>Assessment: <b>{getRating(r.score)}</b></p>
+    <p>Score: <b>{Math.round(r.score)}</b></p>
+    <p>Assessment: <b>{getRating(r.score)}</b></p>
 
-  {/* Chart */}
-  <div id={`chart-${r.id}`}>
-    <PieChart width={200} height={200}>
-      <Pie
-        data={[
-          { name: "E", value: r.environmental },
-          { name: "S", value: r.social },
-          { name: "G", value: r.governance }
-        ]}
-        dataKey="value"
-      >
-        <Cell fill="#4CAF50" />
-        <Cell fill="#2196F3" />
-        <Cell fill="#FFC107" />
-      </Pie>
-    </PieChart>
+    <div id={`chart-${r.id}`}>
+      <PieChart width={200} height={200}>
+        <Pie
+          data={[
+            { name: "E", value: r.environmental },
+            { name: "S", value: r.social },
+            { name: "G", value: r.governance }
+          ]}
+          dataKey="value"
+        >
+          <Cell fill="#4CAF50" />
+          <Cell fill="#2196F3" />
+          <Cell fill="#FFC107" />
+        </Pie>
+      </PieChart>
+    </div>
+
+    <div style={{ marginTop: 10 }}>
+      <b>AI Recommendations:</b>
+      <p>{r.aiInsights || "Generating AI insights..."}</p>
+    </div>
+
   </div>
-
-  {/* AI Insights */}
-  <div style={{ marginTop: 10 }}>
-    <b>AI Recommendations:</b>
-    <p>{r.aiInsights || "Generating AI insights..."}</p>
-  </div>
-
+))}   
 export default App;
