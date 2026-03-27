@@ -98,19 +98,32 @@ setCompany('');
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-        company,
-        score,
-        environmental,
-        social,
-        governance
-      })
+  company,
+  score,
+  environmental: Number(environmental),
+  social: Number(social),
+  governance: Number(governance)
+})
     });
 
     const data = await res.json();
 
-    if (Array.isArray(data)) {
-      setReports(data);
+   if (Array.isArray(data)) {
+  setReports(data);
+} else {
+  // fallback if backend doesn't return full list
+  setReports([
+    ...reports,
+    {
+      id: Date.now(),
+      company,
+      score,
+      environmental: Number(environmental),
+      social: Number(social),
+      governance: Number(governance)
     }
+  ]);
+}
 
     setCompany('');
   } catch (err) {
