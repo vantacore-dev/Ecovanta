@@ -11,6 +11,10 @@ function App() {
   const [company, setCompany] = useState('');
   const [score, setScore] = useState('');
 
+const [environmental, setEnvironmental] = useState(1);
+const [social, setSocial] = useState(1);
+const [governance, setGovernance] = useState(1);
+
 const generatePDF = (report) => {
   const doc = new jsPDF();
 
