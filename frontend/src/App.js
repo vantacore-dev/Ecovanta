@@ -129,7 +129,12 @@ const getRating = (score) => {
 };
 
  return (
-  <div style={{ padding: 20 }}>
+ <div style={{
+  padding: 20,
+  background: "#f5f7fa",
+  minHeight: "100vh"
+  boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
+}}>
 
     <h1>Ecovanta ESG Dashboard</h1>
 
@@ -171,6 +176,7 @@ const getRating = (score) => {
     background: "#fff",
     padding: 20,
     borderRadius: 10,
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
     flex: 1
   }}>
     <h3>Total Companies</h3>
@@ -184,7 +190,9 @@ const getRating = (score) => {
     background: "#fff",
     padding: 20,
     borderRadius: 10,
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
     flex: 1
+    
   }}>
     <h3>Average ESG Score</h3>
     <p style={{ fontSize: 24, fontWeight: "bold" }}>
@@ -202,12 +210,14 @@ const getRating = (score) => {
 
   {/* Total Companies */}
   <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
     <h3>Total Companies</h3>
     <p>{reports.length}</p>
   </div>
 
   {/* Average Score */}
   <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
     <h3>Average ESG Score</h3>
     <p>
       {reports.length
@@ -220,6 +230,7 @@ const getRating = (score) => {
 
   {/* 🥇 Top Performer */}
   <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+        boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
     <h3>Top Performer</h3>
     <p>
       {reports.length
@@ -230,6 +241,7 @@ const getRating = (score) => {
 
   {/* ⚠️ At Risk */}
   <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
     <h3>At Risk</h3>
     <p>
       {reports.length
@@ -245,6 +257,7 @@ const getRating = (score) => {
   padding: 20,
   borderRadius: 10,
   marginBottom: 30
+  boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
 }}>
   <h3>ESG Rating Distribution</h3>
 
@@ -267,6 +280,7 @@ const getRating = (score) => {
 
     {/* TREND CHART */}
     <div style={{ background: "#fff", padding: 20, borderRadius: 10, marginBottom: 30 }}>
+      boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
       <h3>ESG Score Comparison</h3>
 
       <LineChart width={700} height={300} data={reports}>
@@ -287,7 +301,7 @@ const getRating = (score) => {
     >
       {reports.map((r) => (
         <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
-
+         boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
           <h3>{r.company}</h3>
 
           <p>Score: <b>{Math.round(r.score)}</b></p>
