@@ -86,7 +86,7 @@ const generatePDF = (report) => {
 
   return (
   <div style={{ padding: 20 }}>
-    <h1>Ecovanta ESG Dashboard</h1>
+    <h1>🔥 ECOVANTA DASHBOARD UI 🔥</h1>
 
     <div>
       <input
