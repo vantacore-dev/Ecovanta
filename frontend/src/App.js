@@ -12,10 +12,22 @@ function App() {
   const [reports, setReports] = useState([]);
   const [company, setCompany] = useState('');
 
+const fetchReports = async () => {
+  try {
+    const res = await fetch(`${API}/reports`);
+    const data = await res.json();
+
+    if (Array.isArray(data)) {
+      setReports(data);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
 const [environmental, setEnvironmental] = useState(1);
 const [social, setSocial] = useState(1);
 const [governance, setGovernance] = useState(1);
-
 
 const generatePDF = async (report) => {
   const doc = new jsPDF();
