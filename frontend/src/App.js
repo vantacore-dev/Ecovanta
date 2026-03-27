@@ -20,60 +20,43 @@ const [governance, setGovernance] = useState(1);
 const generatePDF = async (report) => {
   const doc = new jsPDF();
 
- const chartElement = document.getElementById(`chart-${report.id}`);
-
-if (chartElement) {
-  const canvas = await html2canvas(chartElement);
-  const imgData = canvas.toDataURL("image/png");
-
-  doc.addImage(imgData, "PNG", 20, 110, 160, 100);
-}
-
+  // Title
   doc.setFontSize(18);
   doc.text("Ecovanta ESG Report", 20, 20);
 
+  // Company + score
   doc.setFontSize(12);
   doc.text(`Company: ${report.company}`, 20, 40);
   doc.text(`ESG Score: ${Math.round(report.score)}`, 20, 50);
 
-  // Safe ESG values
+  // ⭐ Assessment (FIXED)
+  doc.text(`Assessment: ${getRating(report.score)}`, 20, 60);
+
+  // ESG breakdown
   const e = report.environmental ?? 1;
   const s = report.social ?? 1;
   const g = report.governance ?? 1;
 
-  doc.text(`Environmental: ${(e / 3 * 40).toFixed(1)}`, 20, 70);
-  doc.text(`Social: ${(s / 3 * 30).toFixed(1)}`, 20, 80);
-  doc.text(`Governance: ${(g / 3 * 30).toFixed(1)}`, 20, 90);
+  doc.text(`Environmental: ${(e / 3 * 40).toFixed(1)}`, 20, 75);
+  doc.text(`Social: ${(s / 3 * 30).toFixed(1)}`, 20, 85);
+  doc.text(`Governance: ${(g / 3 * 30).toFixed(1)}`, 20, 95);
 
-  // Capture chart
- 
+  // 📊 Chart capture (FIXED)
+  const chartElement = document.getElementById(`chart-${report.id}`);
+
   if (chartElement) {
+    // Wait for chart to fully render
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     const canvas = await html2canvas(chartElement);
     const imgData = canvas.toDataURL("image/png");
 
     doc.addImage(imgData, "PNG", 20, 110, 160, 100);
   }
 
+  // Save
   doc.save(`${report.company}_ESG_Report.pdf`);
 };
-
-  const fetchReports = async () => {
-    try {
-      const res = await fetch(`${API}/reports`);
-      const data = await res.json();
-
-      console.log("GET:", data);
-
-      if (Array.isArray(data)) {
-        setReports(data);
-      } else {
-        setReports([]);
-      }
-    } catch (err) {
-      console.error(err);
-      setReports([]);
-    } 
-  };
 
   const addReport = async () => {
   const score =
