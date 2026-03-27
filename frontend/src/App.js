@@ -360,12 +360,26 @@ const getInsights = (r) => {
 <p>DEBUG: E={r.environmental} S={r.social} G={r.governance}</p>
           <div style={{ marginTop: 10 }}>
   <b>Recommendations:</b>
-  <ul>
-    {getInsights(r).map((insight, i) => (
-      <li key={i}>{insight}</li>
-    ))}
-  </ul>
+ 
+<div style={{ marginTop: 10 }}>
+  <b>AI Recommendations:</b>
+  <p>
+    {r.aiInsights || "Click to generate AI insights"}
+  </p>
+
+  <button onClick={async () => {
+    const insights = await getAIInsights(r);
+
+    setReports(prev =>
+      prev.map(rep =>
+        rep.id === r.id ? { ...rep, aiInsights: insights } : rep
+      )
+    );
+  }}>
+    Generate AI Insights
+  </button>
 </div>
+ 
 
           <div id={`chart-${r.id}`}>
             <PieChart width={250} height={250}>
@@ -396,4 +410,28 @@ const getInsights = (r) => {
   </div>
 );
 }
+
+const getAIInsights = async (r) => {
+  try {
+    const res = await fetch(`${API}/ai-insights`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        environmental: r.environmental,
+        social: r.social,
+        governance: r.governance
+      })
+    });
+
+    const data = await res.json();
+    return data.insights;
+
+  } catch (err) {
+    console.error(err);
+    return "AI insights unavailable.";
+  }
+};
+
 export default App;
