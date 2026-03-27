@@ -21,7 +21,7 @@ const generatePDF = (report) => {
   doc.text("Ecovanta ESG Report", 20, 20);
 
   doc.setFontSize(12);
-  doc.text(`Company: ${report.company}`, 20, 40);
+  doc.text(`Company: ${report.company || "N/A"}`, 20, 40);
   doc.text(`ESG Score: ${Math.round(report.score)}`, 20, 50);
 
   doc.text("Breakdown:", 20, 70);
