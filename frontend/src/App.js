@@ -156,7 +156,28 @@ const getInsights = (r) => {
 
   return insights;
 };
+const getAIInsights = async (r) => {
+  try {
+    const res = await fetch(`${API}/ai-insights`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        environmental: r.environmental,
+        social: r.social,
+        governance: r.governance
+      })
+    });
 
+    const data = await res.json();
+    return data.insights;
+
+  } catch (err) {
+    console.error(err);
+    return "AI insights unavailable.";
+  }
+};
  return (
  <div style={{
   padding: 20,
@@ -362,6 +383,7 @@ const getInsights = (r) => {
   <b>Recommendations:</b>
  
 <div style={{ marginTop: 10 }}>
+  <div style={{ marginTop: 10 }}>
   <b>AI Recommendations:</b>
 
   <p>
@@ -382,7 +404,7 @@ const getInsights = (r) => {
     Generate AI Insights
   </button>
 </div>
- 
+ ))}
 
           <div id={`chart-${r.id}`}>
             <PieChart width={250} height={250}>
@@ -413,28 +435,5 @@ const getInsights = (r) => {
   </div>
 );
 }
-
-const getAIInsights = async (r) => {
-  try {
-    const res = await fetch(`${API}/ai-insights`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        environmental: r.environmental,
-        social: r.social,
-        governance: r.governance
-      })
-    });
-
-    const data = await res.json();
-    return data.insights;
-
-  } catch (err) {
-    console.error(err);
-    return "AI insights unavailable.";
-  }
-};
 
 export default App;
