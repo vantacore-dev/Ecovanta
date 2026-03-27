@@ -25,7 +25,7 @@ if (chartElement) {
   doc.addImage(imgData, "PNG", 20, 110, 160, 100);
 }
 
-const generatePDF = (report) => {
+const generatePDF = async (report) => {
   const doc = new jsPDF();
 
   doc.setFontSize(18);
