@@ -149,34 +149,49 @@ const getRating = (score) => {
   />
 
   {/* Environmental */}
-  <div style={{ marginBottom: 10 }}>
-    <label style={{ fontWeight: "bold" }}>Environmental:</label><br />
-    <select onChange={(e) => setEnvironmental(e.target.value)}>
-      <option value="1">High Risk</option>
-      <option value="2">Moderate</option>
-      <option value="3">Best Practice</option>
-    </select>
-  </div>
+ <div style={{ marginBottom: 10 }}>
+  <label style={{ fontWeight: "bold" }}>Environmental:</label><br />
+
+  <small style={{ color: "#666" }}>
+    Measures emissions, resource use, and environmental impact
+  </small><br />
+
+  <select onChange={(e) => setEnvironmental(e.target.value)}>
+    <option value="1">High Risk</option>
+    <option value="2">Moderate</option>
+    <option value="3">Best Practice</option>
+  </select>
+</div>
 
   {/* Social */}
   <div style={{ marginBottom: 10 }}>
-    <label style={{ fontWeight: "bold" }}>Social:</label><br />
-    <select onChange={(e) => setSocial(e.target.value)}>
-      <option value="1">High Risk</option>
-      <option value="2">Moderate</option>
-      <option value="3">Best Practice</option>
-    </select>
-  </div>
+  <label style={{ fontWeight: "bold" }}>Social:</label><br />
+
+  <small style={{ color: "#666" }}>
+    Covers labor practices, diversity, and employee wellbeing
+  </small><br />
+
+  <select onChange={(e) => setSocial(e.target.value)}>
+    <option value="1">High Risk</option>
+    <option value="2">Moderate</option>
+    <option value="3">Best Practice</option>
+  </select>
+</div>
 
   {/* Governance */}
-  <div style={{ marginBottom: 10 }}>
-    <label style={{ fontWeight: "bold" }}>Governance:</label><br />
-    <select onChange={(e) => setGovernance(e.target.value)}>
-      <option value="1">High Risk</option>
-      <option value="2">Moderate</option>
-      <option value="3">Best Practice</option>
-    </select>
-  </div>
+ <div style={{ marginBottom: 10 }}>
+  <label style={{ fontWeight: "bold" }}>Governance:</label><br />
+
+  <small style={{ color: "#666" }}>
+    Includes board structure, transparency, and compliance
+  </small><br />
+
+  <select onChange={(e) => setGovernance(e.target.value)}>
+    <option value="1">High Risk</option>
+    <option value="2">Moderate</option>
+    <option value="3">Best Practice</option>
+  </select>
+</div>
 
   <button type="button" onClick={addReport}>
     Generate ESG Score
