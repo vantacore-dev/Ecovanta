@@ -108,17 +108,18 @@ doc.text(`Company: ${companyName}`, 20, 40);
     });
 
     // ✅ FORCE correct data into UI
-    setReports([
-      ...reports,
-      {
-        id: Date.now(),
-        company,
-        score,
-        environmental: Number(environmental),
-        social: Number(social),
-        governance: Number(governance)
-      }
-    ]);
+    
+    setReports((prevReports) => [
+  ...prevReports,
+  {
+    id: Date.now(),
+    company,
+    score,
+    environmental: Number(environmental),
+    social: Number(social),
+    governance: Number(governance)
+  }
+]);
 
     setCompany("");
 
@@ -252,11 +253,11 @@ const getInsights = (r) => {
   }}>
     <h3>Average ESG Score</h3>
     <p style={{ fontSize: 24, fontWeight: "bold" }}>
-      {reports.length
-        ? Math.round(
-            reports.reduce((sum, r) => sum + r.score, 0) / reports.length
-          )
-        : 0}
+     {reports.length > 0
+  ? Math.round(
+      reports.reduce((sum, r) => sum + Number(r.score || 0), 0) / reports.length
+    )
+  : 0} 
     </p>
   </div>
 
