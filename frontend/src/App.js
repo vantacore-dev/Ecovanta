@@ -189,6 +189,48 @@ const getRating = (score) => {
 
 </div>
 
+<div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
+
+  {/* Total Companies */}
+  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+    <h3>Total Companies</h3>
+    <p>{reports.length}</p>
+  </div>
+
+  {/* Average Score */}
+  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+    <h3>Average ESG Score</h3>
+    <p>
+      {reports.length
+        ? Math.round(
+            reports.reduce((sum, r) => sum + r.score, 0) / reports.length
+          )
+        : 0}
+    </p>
+  </div>
+
+  {/* 🥇 Top Performer */}
+  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+    <h3>Top Performer</h3>
+    <p>
+      {reports.length
+        ? reports.reduce((best, r) => r.score > best.score ? r : best).company
+        : "-"}
+    </p>
+  </div>
+
+  {/* ⚠️ At Risk */}
+  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+    <h3>At Risk</h3>
+    <p>
+      {reports.length
+        ? reports.reduce((worst, r) => r.score < worst.score ? r : worst).company
+        : "-"}
+    </p>
+  </div>
+
+</div>
+
     {/* TREND CHART */}
     <div style={{ background: "#fff", padding: 20, borderRadius: 10, marginBottom: 30 }}>
       <h3>ESG Score Comparison</h3>
