@@ -146,28 +146,50 @@ const getRating = (score) => {
         onChange={(e) => setCompany(e.target.value)}
       />
 
-      <select onChange={(e) => setEnvironmental(e.target.value)}>
-        <option value="1">High Risk</option>
-        <option value="2">Moderate</option>
-        <option value="3">Best Practice</option>
-      </select>
+      <div style={{ marginBottom: 20 }}>
 
-      <select onChange={(e) => setSocial(e.target.value)}>
-        <option value="1">High Risk</option>
-        <option value="2">Moderate</option>
-        <option value="3">Best Practice</option>
-      </select>
+  <input
+    value={company}
+    placeholder="Company"
+    onChange={(e) => setCompany(e.target.value)}
+    style={{ marginBottom: 10 }}
+  />
 
-      <select onChange={(e) => setGovernance(e.target.value)}>
-        <option value="1">High Risk</option>
-        <option value="2">Moderate</option>
-        <option value="3">Best Practice</option>
-      </select>
+  {/* Environmental */}
+  <div style={{ marginBottom: 10 }}>
+   <label style={{ fontWeight: "bold" }}>Environmental</label>
+    <select onChange={(e) => setEnvironmental(e.target.value)}>
+      <option value="1">High Risk</option>
+      <option value="2">Moderate</option>
+      <option value="3">Best Practice</option>
+    </select>
+  </div>
 
-      <button type="button" onClick={addReport}>
-        Generate ESG Score
-      </button>
-    </div>
+  {/* Social */}
+  <div style={{ marginBottom: 10 }}>
+    <label>Social:</label><br />
+    <select onChange={(e) => setSocial(e.target.value)}>
+      <option value="1">High Risk</option>
+      <option value="2">Moderate</option>
+      <option value="3">Best Practice</option>
+    </select>
+  </div>
+
+  {/* Governance */}
+  <div style={{ marginBottom: 10 }}>
+    <label>Governance:</label><br />
+    <select onChange={(e) => setGovernance(e.target.value)}>
+      <option value="1">High Risk</option>
+      <option value="2">Moderate</option>
+      <option value="3">Best Practice</option>
+    </select>
+  </div>
+
+  <button type="button" onClick={addReport}>
+    Generate ESG Score
+  </button>
+
+</div>
 
 <div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
 
