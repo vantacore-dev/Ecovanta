@@ -347,7 +347,7 @@ const getInsights = (r) => {
 
           <p>Score: <b>{Math.round(r.score)}</b></p>
           <p>Assessment: <b>{getRating(r.score)}</b></p>
-
+<p>DEBUG: E={r.environmental} S={r.social} G={r.governance}</p>
           <div style={{ marginTop: 10 }}>
   <b>Recommendations:</b>
   <ul>
