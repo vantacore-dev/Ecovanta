@@ -38,7 +38,8 @@ const generatePDF = async (report) => {
 
   // Company + score
   doc.setFontSize(12);
-  doc.text(`Company: ${report.company}`, 20, 40);
+  const companyName = report.company || "Unknown Company";
+doc.text(`Company: ${companyName}`, 20, 40);
   doc.text(`ESG Score: ${Math.round(report.score)}`, 20, 50);
 
   // ⭐ Assessment (FIXED)
@@ -67,15 +68,19 @@ const generatePDF = async (report) => {
   }
 
   // Save
-  doc.save(`${report.company}_ESG_Report.pdf`);
+  doc.save(`${companyName}_ESG_Report.pdf`);
 };
 
   const addReport = async () => {
-  const score =
+  if (!company) {
+  alert("Please enter a company name");
+  return;
+}
+    const score =
     (environmental / 3) * 40 +
     (social / 3) * 30 +
     (governance / 3) * 30;
-
+setCompany('');
   try {
     const res = await fetch(`${API}/reports`, {
       method: 'POST',
