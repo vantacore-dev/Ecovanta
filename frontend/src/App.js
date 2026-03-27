@@ -22,9 +22,9 @@ const generatePDF = (report) => {
   doc.text(`ESG Score: ${Math.round(report.score)}`, 20, 50);
 
   doc.text("Breakdown:", 20, 70);
-  doc.text(`Environmental: ${Math.round(report.score * 0.4)}`, 20, 80);
-  doc.text(`Social: ${Math.round(report.score * 0.3)}`, 20, 90);
-  doc.text(`Governance: ${Math.round(report.score * 0.3)}`, 20, 100);
+  doc.text(`Environmental: ${(r.environmental / 3 * 40).toFixed(1)}`, 20, 80);
+  doc.text(`Social: ${(r.social / 3 * 30).toFixed(1)}`, 20, 90);
+  doc.text(`Governance: ${(r.governance / 3 * 30).toFixed(1)}`, 20, 100);
 
   doc.text("Assessment:", 20, 120);
 
