@@ -2,64 +2,89 @@ import React, { useEffect, useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend
+  PieChart, Pie, Cell,
+  BarChart, Bar,
+  LineChart, Line,
+  XAxis, YAxis, Tooltip, Legend
 } from "recharts";
 
 const API = "https://ecovanta.onrender.com";
 
 function App() {
   const [reports, setReports] = useState([]);
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
   const [company, setCompany] = useState("");
+  const [sector, setSector] = useState("Tech");
+  const [benchmark, setBenchmark] = useState(0);
+  const [branding, setBranding] = useState({
+    logo: null,
+    color: "#1976d2"
+  });
+
   const [environmental, setEnvironmental] = useState(1);
   const [social, setSocial] = useState(1);
   const [governance, setGovernance] = useState(1);
 
+  // 🔐 LOAD USER
+  useEffect(() => {
+    if (token) {
+      fetch(`${API}/me`, {
+        headers: { Authorization: token }
+      })
+        .then(res => res.json())
+        .then(setUser)
+        .catch(() => setUser(null));
+    }
+  }, [token]);
+
+  // 📊 LOAD REPORTS
   useEffect(() => {
     fetch(`${API}/reports`)
       .then(res => res.json())
-      .then(data => setReports(Array.isArray(data) ? data : []))
-      .catch(err => console.error(err));
+      .then(data => setReports(Array.isArray(data) ? data : []));
   }, []);
 
+  // 📊 LOAD BENCHMARK
+  useEffect(() => {
+    fetch(`${API}/benchmark/${sector}`)
+      .then(res => res.json())
+      .then(data => setBenchmark(data.benchmark || 60));
+  }, [sector]);
+
   const getRating = (score = 0) => {
-    if (score >= 80) return "A (Leader)";
-    if (score >= 60) return "B (Compliant)";
-    if (score >= 40) return "C (At Risk)";
-    return "D (Critical)";
+    if (score >= 80) return "A";
+    if (score >= 60) return "B";
+    if (score >= 40) return "C";
+    return "D";
   };
 
-  const addReport = async () => {
-    if (!company) return alert("Enter company");
+  // 🔐 LOGIN
+  const login = async () => {
+    const res = await fetch(`${API}/login`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ email: "demo@test.com", password: "1234" })
+    });
 
+    const data = await res.json();
+    localStorage.setItem("token", data.token);
+    setToken(data.token);
+  };
+
+  // ➕ ADD REPORT
+  const addReport = async () => {
     const score =
       (environmental / 3) * 40 +
       (social / 3) * 30 +
       (governance / 3) * 30;
 
-    let aiInsights = "AI unavailable";
-
+    // 🔌 External ESG API
+    let externalData = {};
     try {
-      const res = await fetch(`${API}/ai-insights`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ environmental, social, governance })
-      });
-
-      const data = await res.json();
-      if (data?.insights) aiInsights = data.insights;
-    } catch (err) {
-      console.error(err);
-    }
+      const res = await fetch(`${API}/external-esg/${company}`);
+      externalData = await res.json();
+    } catch {}
 
     const newReport = {
       id: Date.now(),
@@ -68,210 +93,155 @@ function App() {
       environmental,
       social,
       governance,
-      aiInsights
+      externalData
     };
 
     setReports(prev => [...prev, newReport]);
-    setCompany("");
   };
 
+  // 📄 PDF (WHITE LABEL)
   const generatePDF = async (r) => {
     const doc = new jsPDF();
 
-    const getColor = (score = 0) => {
-      if (score >= 80) return [46, 125, 50];
-      if (score >= 60) return [255, 152, 0];
-      return [211, 47, 47];
-    };
-
-    const color = getColor(r.score);
+    doc.setTextColor(branding.color);
 
     doc.setFontSize(18);
-    doc.text("Ecovanta ESG Report", 20, 20);
+    doc.text("ESG Report", 20, 20);
 
-    doc.setFontSize(12);
+    if (branding.logo) {
+      doc.addImage(branding.logo, "PNG", 150, 10, 40, 15);
+    }
+
+    doc.setTextColor(0,0,0);
+
     doc.text(`Company: ${r.company}`, 20, 40);
+    doc.text(`Score: ${Math.round(r.score)}`, 20, 50);
 
-    doc.setFontSize(16);
-    doc.setTextColor(...color);
-    doc.text(`Score: ${Math.round(r.score || 0)}`, 20, 55);
-
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Assessment: ${getRating(r.score)}`, 20, 65);
-
-    doc.text(`Environmental: ${r.environmental}`, 20, 80);
-    doc.text(`Social: ${r.social}`, 20, 90);
-    doc.text(`Governance: ${r.governance}`, 20, 100);
+    // Benchmark
+    doc.text(`Industry Avg: ${benchmark}`, 20, 65);
 
     // Gauge
     doc.setFillColor(220);
-    doc.rect(20, 115, 120, 10, "F");
+    doc.rect(20, 80, 120, 10, "F");
 
-    doc.setFillColor(...color);
-    doc.rect(20, 115, (r.score / 100) * 120, 10, "F");
+    doc.setFillColor(0,150,0);
+    doc.rect(20, 80, (r.score / 100) * 120, 10, "F");
 
-    doc.text("ESG Score", 20, 110);
-
-    // Pie chart
+    // Chart
     const el = document.getElementById(`chart-${r.id}`);
     if (el) {
       const canvas = await html2canvas(el);
-      const img = canvas.toDataURL("image/png");
-      doc.addImage(img, "PNG", 140, 40, 60, 60);
+      doc.addImage(canvas.toDataURL(), "PNG", 140, 40, 60, 60);
     }
-
-    // AI (multi-page)
-    const insights = r.aiInsights || "No AI insights available";
-    const lines = doc.splitTextToSize(insights, 170);
-
-    let y = 140;
-    doc.text("Ecovanta Recommendations:", 20, y);
-    y += 10;
-
-    lines.forEach((line) => {
-      if (y > 270) {
-        doc.addPage();
-        doc.text("Ecovanta Recommendations (continued)", 20, 20);
-        y = 30;
-      }
-      doc.text(line, 20, y);
-      y += 8;
-    });
 
     doc.save(`${r.company}.pdf`);
   };
 
-  // KPI CALCULATIONS
-  const averageScore =
+  // 📊 KPI
+  const avg =
     reports.length > 0
-      ? Math.round(
-          reports.reduce((sum, r) => sum + (r.score || 0), 0) /
-            reports.length
-        )
+      ? Math.round(reports.reduce((s, r) => s + r.score, 0) / reports.length)
       : 0;
 
+  // 🔥 RISK HEATMAP DATA
+  const heatmapData = [
+    { name: "Environmental", value: environmental * 30 },
+    { name: "Social", value: social * 30 },
+    { name: "Governance", value: governance * 30 }
+  ];
+
+  const getHeatColor = (v) => {
+    if (v > 70) return "red";
+    if (v > 40) return "orange";
+    return "green";
+  };
+
+  // 🔐 IF NOT LOGGED
+  if (!user) {
+    return (
+      <div style={{ padding: 50 }}>
+        <h2>Login</h2>
+        <button onClick={login}>Login Demo</button>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ padding: 20, background: "#f5f7fa" }}>
-      <h1>Ecovanta ESG Dashboard</h1>
+    <div style={{ padding: 20 }}>
+
+      <h1>Ecovanta ESG SaaS</h1>
+      <p>Role: {user.role}</p>
 
       {/* INPUT */}
       <input
-        value={company}
         placeholder="Company"
         onChange={(e) => setCompany(e.target.value)}
       />
 
-      <div>
-        <label>Environmental</label>
-        <select onChange={(e) => setEnvironmental(Number(e.target.value))}>
-          <option value="1">High Risk</option>
-          <option value="2">Moderate</option>
-          <option value="3">Best Practice</option>
-        </select>
-      </div>
+      <select onChange={(e) => setSector(e.target.value)}>
+        <option>Tech</option>
+        <option>Energy</option>
+        <option>Manufacturing</option>
+      </select>
 
-      <div>
-        <label>Social</label>
-        <select onChange={(e) => setSocial(Number(e.target.value))}>
-          <option value="1">High Risk</option>
-          <option value="2">Moderate</option>
-          <option value="3">Best Practice</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Governance</label>
-        <select onChange={(e) => setGovernance(Number(e.target.value))}>
-          <option value="1">High Risk</option>
-          <option value="2">Moderate</option>
-          <option value="3">Best Practice</option>
-        </select>
-      </div>
-
-      <button onClick={addReport}>Generate ESG</button>
+      <button onClick={addReport}>Add</button>
 
       {/* KPI */}
-      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
-        <div style={{ background: "#fff", padding: 15, borderRadius: 10 }}>
-          <b>Total Companies:</b> {reports.length}
-        </div>
+      <p>Total: {reports.length} | Avg: {avg}</p>
 
-        <div style={{ background: "#fff", padding: 15, borderRadius: 10 }}>
-          <b>Average Score:</b> {averageScore}
-        </div>
+      {/* BENCHMARK */}
+      <p>Industry Benchmark ({sector}): {benchmark}</p>
+
+      {/* HEATMAP */}
+      <div style={{ display: "flex", gap: 10 }}>
+        {heatmapData.map(h => (
+          <div key={h.name}
+            style={{
+              width: 100,
+              height: 100,
+              background: getHeatColor(h.value),
+              color: "#fff"
+            }}>
+            {h.name}
+          </div>
+        ))}
       </div>
 
-      {/* DISTRIBUTION */}
-      {reports.length > 0 && (
-        <BarChart width={500} height={250} data={[
-          { name: "A", value: reports.filter(r => r.score >= 80).length },
-          { name: "B", value: reports.filter(r => r.score >= 60 && r.score < 80).length },
-          { name: "C", value: reports.filter(r => r.score >= 40 && r.score < 60).length },
-          { name: "D", value: reports.filter(r => r.score < 40).length }
-        ]}>
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Bar dataKey="value" fill="#1976d2" />
-        </BarChart>
+      {/* ROLE BASED */}
+      {user.role === "admin" && (
+        <div>
+          <h3>Admin Panel</h3>
+          <input
+            type="color"
+            onChange={(e) => setBranding({...branding, color: e.target.value})}
+          />
+        </div>
       )}
 
-      {/* TREND */}
-      {reports.length > 1 && (
-        <LineChart width={600} height={250} data={reports}>
-          <XAxis dataKey="company" />
-          <YAxis />
-          <Tooltip />
-          <Line type="monotone" dataKey="score" stroke="#1976d2" />
-        </LineChart>
-      )}
+      {/* REPORTS */}
+      {reports.map(r => (
+        <div key={r.id} style={{ marginTop: 20 }}>
+          <h3>{r.company}</h3>
+          <p>{r.score}</p>
 
-      {/* CARDS */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 300px)", gap: 20 }}>
-        {reports.map((r) => {
-          const pieData = [
-            { name: "Environmental", value: r.environmental },
-            { name: "Social", value: r.social },
-            { name: "Governance", value: r.governance }
-          ];
+          <div id={`chart-${r.id}`}>
+            <PieChart width={250} height={250}>
+              <Pie data={[
+                { name: "E", value: r.environmental },
+                { name: "S", value: r.social },
+                { name: "G", value: r.governance }
+              ]} dataKey="value">
+                <Cell fill="#4CAF50"/>
+                <Cell fill="#2196F3"/>
+                <Cell fill="#FFC107"/>
+              </Pie>
+              <Legend/>
+            </PieChart>
+          </div>
 
-          return (
-            <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
-              <h3>{r.company}</h3>
-
-              <p>Score: {Math.round(r.score)}</p>
-              <p>Assessment: {getRating(r.score)}</p>
-
-              <div id={`chart-${r.id}`}>
-               <PieChart width={260} height={260}>
-  <Pie
-    data={pieData}
-    dataKey="value"
-    cx="50%"
-    cy="50%"
-    outerRadius={80}
-    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-  >
-    <Cell fill="#4CAF50" />
-    <Cell fill="#2196F3" />
-    <Cell fill="#FFC107" />
-  </Pie>
-
-  <Tooltip />
-
-  {/* LEGEND (clean + no truncation) */}
-  <Legend verticalAlign="bottom" height={36} />
-</PieChart>
-              </div>
-
-              <p><b>Ecovanta Recommendations:</b></p>
-              <p>{r.aiInsights}</p>
-
-              <button onClick={() => generatePDF(r)}>Download PDF</button>
-            </div>
-          );
-        })}
-      </div>
+          <button onClick={() => generatePDF(r)}>PDF</button>
+        </div>
+      ))}
     </div>
   );
 }
