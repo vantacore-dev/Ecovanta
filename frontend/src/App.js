@@ -131,7 +131,7 @@ function App() {
     lines.forEach((line) => {
       if (y > 270) {
         doc.addPage();
-        doc.text("AI Recommendations (continued)", 20, 20);
+        doc.text("Ecovanta Recommendations (continued)", 20, 20);
         y = 30;
       }
       doc.text(line, 20, y);
@@ -259,7 +259,7 @@ function App() {
                 </PieChart>
               </div>
 
-              <p><b>AI Recommendations:</b></p>
+              <p><b>Ecovanta Recommendations:</b></p>
               <p>{r.aiInsights}</p>
 
               <button onClick={() => generatePDF(r)}>Download PDF</button>
