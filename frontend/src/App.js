@@ -56,39 +56,27 @@ function App() {
   };
 
   const addReport = async () => {
-    if (!company) return alert("Enter company");
+  if (!company) return alert("Enter company");
 
-    const score =
-      (environmental / 3) * 40 +
-      (social / 3) * 30 +
-      (governance / 3) * 30;
+  const score =
+    (environmental / 3) * 40 +
+    (social / 3) * 30 +
+    (governance / 3) * 30;
 
-    await fetch(`${API}/reports`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        company,
-        score,
-        environmental,
-        social,
-        governance
-      })
-    });
-
-    setReports((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        company,
-        score,
-        environmental,
-        social,
-        governance
-      }
-    ]);
-
-    setCompany("");
+  const newReport = {
+    id: Date.now(),
+    company,
+    score,
+    environmental,
+    social,
+    governance
   };
+
+  // ✅ FORCE UI update (no backend dependency)
+  setReports((prev) => [...prev, newReport]);
+
+  setCompany("");
+};
 
   const generatePDF = async (r) => {
     const doc = new jsPDF();
