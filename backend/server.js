@@ -28,12 +28,10 @@ Governance: ${governance}/3
 Provide concise, actionable ESG recommendations.
 `;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "user", content: prompt }
-      ]
-    });
+   const response = await openai.chat.completions.create({
+  model: "gpt-4o-mini",
+  messages: [{ role: "user", content: prompt }]
+});
 
     const insights = response.choices[0].message.content;
 
