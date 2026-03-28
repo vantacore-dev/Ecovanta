@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import { PieChart, Pie, Cell } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip
+} from "recharts";
 
 const API = "https://ecovanta.onrender.com";
 
@@ -12,28 +23,40 @@ function App() {
   const [social, setSocial] = useState(1);
   const [governance, setGovernance] = useState(1);
 
-  // ✅ SAFE AI (no crash)
+  // 🔥 Load reports
+  useEffect(() => {
+    fetch(`${API}/reports`)
+      .then(res => res.json())
+      .then(data => setReports(data))
+      .catch(err => console.error(err));
+  }, []);
+
+  // 🔥 AI generation
   useEffect(() => {
     const generateAI = async () => {
-      const newReports = [];
+      const updated = await Promise.all(
+        reports.map(async (r) => {
+          if (r.aiInsights) return r;
 
-      for (let r of reports) {
-        if (r.aiInsights) {
-          newReports.push(r);
-        } else {
-          const ai = await getAIInsights(r);
-          newReports.push({ ...r, aiInsights: ai });
-        }
-      }
+          try {
+            const res = await fetch(`${API}/ai-insights`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(r)
+            });
 
-      const changed = newReports.some((r, i) => r !== reports[i]);
+            const data = await res.json();
+            return { ...r, aiInsights: data.insights };
+          } catch {
+            return { ...r, aiInsights: "AI unavailable" };
+          }
+        })
+      );
 
-      if (changed) {
-        setReports(newReports);
-      }
+      setReports(updated);
     };
 
-    if (reports.length > 0) generateAI();
+    if (reports.length) generateAI();
   }, [reports]);
 
   const getRating = (score) => {
@@ -43,29 +66,7 @@ function App() {
     return "D (Critical)";
   };
 
-  const getAIInsights = async (r) => {
-    try {
-      const res = await fetch(`${API}/ai-insights`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          environmental: r.environmental,
-          social: r.social,
-          governance: r.governance
-        })
-      });
-
-      const data = await res.json();
-      return data.insights;
-    } catch (err) {
-      console.error(err);
-      return "AI unavailable";
-    }
-  };
-
   const addReport = () => {
-    if (!company) return alert("Enter company");
-
     const score =
       (environmental / 3) * 40 +
       (social / 3) * 30 +
@@ -80,19 +81,33 @@ function App() {
       governance
     };
 
-    setReports((prev) => [...prev, newReport]);
+    setReports(prev => [...prev, newReport]);
     setCompany("");
   };
 
   const generatePDF = async (r) => {
     const doc = new jsPDF();
-    doc.text(`Company: ${r.company}`, 20, 20);
-    doc.text(`Score: ${Math.round(r.score)}`, 20, 30);
+
+    doc.text("Ecovanta ESG Report", 20, 20);
+    doc.text(`Company: ${r.company}`, 20, 40);
+    doc.text(`Score: ${Math.round(r.score)}`, 20, 50);
+    doc.text(`Assessment: ${getRating(r.score)}`, 20, 60);
+
+    doc.text(`Environmental: ${r.environmental}`, 20, 75);
+    doc.text(`Social: ${r.social}`, 20, 85);
+    doc.text(`Governance: ${r.governance}`, 20, 95);
+
+    const insights = r.aiInsights || "No AI insights";
+    const lines = doc.splitTextToSize(insights, 160);
+
+    doc.text("AI Recommendations:", 20, 110);
+    doc.text(lines, 20, 120);
 
     const el = document.getElementById(`chart-${r.id}`);
     if (el) {
       const canvas = await html2canvas(el);
-      doc.addImage(canvas.toDataURL(), "PNG", 20, 40, 150, 100);
+      const img = canvas.toDataURL("image/png");
+      doc.addImage(img, "PNG", 20, 150, 150, 100);
     }
 
     doc.save(`${r.company}.pdf`);
@@ -103,42 +118,40 @@ function App() {
       <h1>Ecovanta ESG Dashboard</h1>
 
       {/* INPUT */}
-      <div style={{ marginBottom: 20 }}>
-        <input
-          value={company}
-          placeholder="Company"
-          onChange={(e) => setCompany(e.target.value)}
-        />
+      <input
+        value={company}
+        placeholder="Company"
+        onChange={(e) => setCompany(e.target.value)}
+      />
 
-        <div>
-          <label>Environmental</label>
-          <select value={environmental} onChange={(e) => setEnvironmental(Number(e.target.value))}>
-            <option value="1">High Risk</option>
-            <option value="2">Moderate</option>
-            <option value="3">Best Practice</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Social</label>
-          <select value={social} onChange={(e) => setSocial(Number(e.target.value))}>
-            <option value="1">High Risk</option>
-            <option value="2">Moderate</option>
-            <option value="3">Best Practice</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Governance</label>
-          <select value={governance} onChange={(e) => setGovernance(Number(e.target.value))}>
-            <option value="1">High Risk</option>
-            <option value="2">Moderate</option>
-            <option value="3">Best Practice</option>
-          </select>
-        </div>
-
-        <button onClick={addReport}>Generate ESG</button>
+      <div>
+        <label>Environmental</label>
+        <select onChange={(e) => setEnvironmental(Number(e.target.value))}>
+          <option value="1">High Risk</option>
+          <option value="2">Moderate</option>
+          <option value="3">Best Practice</option>
+        </select>
       </div>
+
+      <div>
+        <label>Social</label>
+        <select onChange={(e) => setSocial(Number(e.target.value))}>
+          <option value="1">High Risk</option>
+          <option value="2">Moderate</option>
+          <option value="3">Best Practice</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Governance</label>
+        <select onChange={(e) => setGovernance(Number(e.target.value))}>
+          <option value="1">High Risk</option>
+          <option value="2">Moderate</option>
+          <option value="3">Best Practice</option>
+        </select>
+      </div>
+
+      <button onClick={addReport}>Generate ESG</button>
 
       {/* KPI */}
       <div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
@@ -151,64 +164,49 @@ function App() {
           <h3>Average Score</h3>
           <p>
             {reports.length
-              ? Math.round(
-                  reports.reduce((sum, r) => sum + r.score, 0) / reports.length
-                )
+              ? Math.round(reports.reduce((s, r) => s + r.score, 0) / reports.length)
               : 0}
-          </p>
-        </div>
-
-        <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
-          <h3>Top Performer</h3>
-          <p>
-            {reports.length
-              ? reports.reduce((best, r) => (r.score > best.score ? r : best)).company
-              : "-"}
-          </p>
-        </div>
-
-        <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
-          <h3>At Risk</h3>
-          <p>
-            {reports.length
-              ? reports.reduce((worst, r) => (r.score < worst.score ? r : worst)).company
-              : "-"}
           </p>
         </div>
       </div>
 
-      {/* REPORT GRID */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-          gap: 20
-        }}
-      >
+      {/* DISTRIBUTION */}
+      <BarChart width={500} height={250} data={[
+        { name: "A", value: reports.filter(r => r.score >= 80).length },
+        { name: "B", value: reports.filter(r => r.score >= 60 && r.score < 80).length },
+        { name: "C", value: reports.filter(r => r.score >= 40 && r.score < 60).length },
+        { name: "D", value: reports.filter(r => r.score < 40).length }
+      ]}>
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        <Bar dataKey="value" fill="#1976d2" />
+      </BarChart>
+
+      {/* TREND */}
+      <LineChart width={600} height={250} data={reports}>
+        <XAxis dataKey="company" />
+        <YAxis />
+        <Tooltip />
+        <Line type="monotone" dataKey="score" stroke="#1976d2" />
+      </LineChart>
+
+      {/* CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 300px)", gap: 20 }}>
         {reports.map((r) => (
-          <div
-            key={r.id}
-            style={{
-              background: "#fff",
-              padding: 20,
-              borderRadius: 10
-            }}
-          >
+          <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
             <h3>{r.company}</h3>
 
-            <p>Score: <b>{Math.round(r.score)}</b></p>
-            <p>Assessment: <b>{getRating(r.score)}</b></p>
+            <p>Score: {Math.round(r.score)}</p>
+            <p>Assessment: {getRating(r.score)}</p>
 
             <div id={`chart-${r.id}`}>
               <PieChart width={200} height={200}>
-                <Pie
-                  data={[
-                    { name: "E", value: r.environmental },
-                    { name: "S", value: r.social },
-                    { name: "G", value: r.governance }
-                  ]}
-                  dataKey="value"
-                >
+                <Pie data={[
+                  { name: "E", value: r.environmental },
+                  { name: "S", value: r.social },
+                  { name: "G", value: r.governance }
+                ]} dataKey="value">
                   <Cell fill="#4CAF50" />
                   <Cell fill="#2196F3" />
                   <Cell fill="#FFC107" />
@@ -216,11 +214,10 @@ function App() {
               </PieChart>
             </div>
 
-            <p>{r.aiInsights || "Generating AI insights..."}</p>
+            <p><b>AI Recommendations:</b></p>
+            <p>{r.aiInsights || "Generating..."}</p>
 
-            <button onClick={() => generatePDF(r)}>
-              Download PDF
-            </button>
+            <button onClick={() => generatePDF(r)}>Download PDF</button>
           </div>
         ))}
       </div>
