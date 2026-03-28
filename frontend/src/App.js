@@ -111,7 +111,7 @@ function App() {
     doc.text(`Social: ${r.social}`, 20, 90);
     doc.text(`Governance: ${r.governance}`, 20, 100);
 
-    // SAFE GAUGE (BAR)
+    // GAUGE
     const gaugeX = 20;
     const gaugeY = 115;
     const gaugeWidth = 120;
@@ -124,23 +124,38 @@ function App() {
 
     doc.text("ESG Score", gaugeX, gaugeY - 5);
 
-    // PIE CHART (RIGHT SIDE - NO OVERLAP)
+    // PIE CHART (RIGHT SIDE)
     const el = document.getElementById(`chart-${r.id}`);
     if (el) {
       try {
         const canvas = await html2canvas(el);
         const img = canvas.toDataURL("image/png");
-
         doc.addImage(img, "PNG", 140, 40, 60, 60);
       } catch {}
     }
 
-    // AI INSIGHTS
+    // ---------- AI INSIGHTS (MULTI-PAGE) ----------
     const insights = r.aiInsights || "No AI insights available";
     const lines = doc.splitTextToSize(insights, 170);
 
-    doc.text("AI Recommendations:", 20, 140);
-    doc.text(lines, 20, 150);
+    let y = 140;
+
+    doc.setFontSize(12);
+    doc.text("AI Recommendations:", 20, y);
+    y += 10;
+
+    lines.forEach((line) => {
+      if (y > 270) {
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.text("AI Recommendations (continued)", 20, 20);
+        y = 30;
+      }
+
+      doc.setFontSize(12);
+      doc.text(line, 20, y);
+      y += 8;
+    });
 
     doc.save(`${r.company}.pdf`);
   };
@@ -185,10 +200,8 @@ function App() {
       <button onClick={addReport}>Generate ESG</button>
 
       {/* KPI */}
-      <div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
-        <div style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
-          Total: {reports.length}
-        </div>
+      <div style={{ marginTop: 20 }}>
+        <p>Total Companies: {reports.length}</p>
       </div>
 
       {/* DISTRIBUTION */}
