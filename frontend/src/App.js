@@ -92,108 +92,89 @@ function App() {
     doc.save(`${r.company}.pdf`);
   };
 
-  return (
-    <div style={{ padding: 20, background: "#f5f7fa" }}>
-      <h1>Ecovanta ESG Dashboard</h1>
-<p>Reports count: {reports.length}</p>
-      {/* INPUT */}
-      <input
-        value={company}
-        placeholder="Company"
-        onChange={(e) => setCompany(e.target.value)}
-      />
+ return (
+  <div style={{ padding: 20 }}>
 
-      <div>
-        <label>Environmental</label>
-        <select
-          value={environmental}
-          onChange={(e) => setEnvironmental(Number(e.target.value))}
-        >
-          <option value="1">High Risk</option>
-          <option value="2">Moderate</option>
-          <option value="3">Best Practice</option>
-        </select>
-      </div>
+    <h1>Ecovanta ESG Dashboard</h1>
 
-      <div>
-        <label>Social</label>
-        <select
-          value={social}
-          onChange={(e) => setSocial(Number(e.target.value))}
-        >
-          <option value="1">High Risk</option>
-          <option value="2">Moderate</option>
-          <option value="3">Best Practice</option>
-        </select>
-      </div>
+    <p>Total: {reports.length}</p>
 
-      <div>
-        <label>Governance</label>
-        <select
-          value={governance}
-          onChange={(e) => setGovernance(Number(e.target.value))}
-        >
-          <option value="1">High Risk</option>
-          <option value="2">Moderate</option>
-          <option value="3">Best Practice</option>
-        </select>
-      </div>
+    {/* INPUT */}
+    <input
+      value={company}
+      placeholder="Company"
+      onChange={(e) => setCompany(e.target.value)}
+    />
 
-      <button onClick={addReport}>Generate ESG</button>
-
-      {/* KPI */}
-      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
-        <div style={{ background: "#fff", padding: 20, flex: 1 }}>
-          Total: {reports.length}
-        </div>
-        <div style={{ background: "#fff", padding: 20, flex: 1 }}>
-          Avg:{" "}
-          {reports.length
-            ? Math.round(
-                reports.reduce((s, r) => s + r.score, 0) / reports.length
-              )
-            : 0}
-        </div>
-      </div>
-
-      {/* REPORTS */}
- <div style={{ marginTop: 20 }}>
-  {reports.map((r) => (
-    <div
-      key={r.id}
-      style={{
-        background: "#ffffff",
-        padding: 20,
-        marginTop: 20,
-        borderRadius: 10,
-        border: "2px solid red" // 👈 TEMP DEBUG BORDER
-      }}
-    >
-      <h2>{r.company}</h2>
-
-      <p>Score: {Math.round(r.score)}</p>
-
-      <div id={`chart-${r.id}`}>
-        <PieChart width={200} height={200}>
-          <Pie
-            data={[
-              { name: "E", value: r.environmental },
-              { name: "S", value: r.social },
-              { name: "G", value: r.governance }
-            ]}
-            dataKey="value"
-          >
-            <Cell fill="#4CAF50" />
-            <Cell fill="#2196F3" />
-            <Cell fill="#FFC107" />
-          </Pie>
-        </PieChart>
-      </div>
-
-      <p>{r.aiInsights || "Loading AI..."}</p>
+    <div>
+      <label>Environmental</label>
+      <select value={environmental} onChange={(e) => setEnvironmental(Number(e.target.value))}>
+        <option value="1">High Risk</option>
+        <option value="2">Moderate</option>
+        <option value="3">Best Practice</option>
+      </select>
     </div>
-  ))}
-</div>  
+
+    <div>
+      <label>Social</label>
+      <select value={social} onChange={(e) => setSocial(Number(e.target.value))}>
+        <option value="1">High Risk</option>
+        <option value="2">Moderate</option>
+        <option value="3">Best Practice</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Governance</label>
+      <select value={governance} onChange={(e) => setGovernance(Number(e.target.value))}>
+        <option value="1">High Risk</option>
+        <option value="2">Moderate</option>
+        <option value="3">Best Practice</option>
+      </select>
+    </div>
+
+    <button onClick={addReport}>Generate ESG</button>
+
+    {/* REPORTS */}
+    <div style={{ marginTop: 20 }}>
+      {reports.map((r) => (
+        <div
+          key={r.id}
+          style={{
+            background: "#fff",
+            padding: 20,
+            marginTop: 20,
+            borderRadius: 10
+          }}
+        >
+          <h3>{r.company}</h3>
+
+          <p>Score: {Math.round(r.score)}</p>
+
+          <div id={`chart-${r.id}`}>
+            <PieChart width={200} height={200}>
+              <Pie
+                data={[
+                  { name: "E", value: r.environmental },
+                  { name: "S", value: r.social },
+                  { name: "G", value: r.governance }
+                ]}
+                dataKey="value"
+              >
+                <Cell fill="#4CAF50" />
+                <Cell fill="#2196F3" />
+                <Cell fill="#FFC107" />
+              </Pie>
+            </PieChart>
+          </div>
+
+          <p>{r.aiInsights || "Generating AI insights..."}</p>
+        </div>
+      ))}
+    </div>
+
+  </div>
+);
 }
 
 export default App;
