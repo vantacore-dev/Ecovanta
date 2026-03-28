@@ -95,7 +95,7 @@ function App() {
   return (
     <div style={{ padding: 20, background: "#f5f7fa" }}>
       <h1>Ecovanta ESG Dashboard</h1>
-
+<p>Reports count: {reports.length}</p>
       {/* INPUT */}
       <input
         value={company}
@@ -157,45 +157,43 @@ function App() {
       </div>
 
       {/* REPORTS */}
-      {reports.map((r) => (
-        <div
-          key={r.id}
-          style={{
-            background: "#fff",
-            padding: 20,
-            borderRadius: 10,
-            marginTop: 10
-          }}
-        >
-          <h3>{r.company}</h3>
+ <div style={{ marginTop: 20 }}>
+  {reports.map((r) => (
+    <div
+      key={r.id}
+      style={{
+        background: "#ffffff",
+        padding: 20,
+        marginTop: 20,
+        borderRadius: 10,
+        border: "2px solid red" // 👈 TEMP DEBUG BORDER
+      }}
+    >
+      <h2>{r.company}</h2>
 
-          <p>Score: {Math.round(r.score)}</p>
-          <p>{getRating(r.score)}</p>
+      <p>Score: {Math.round(r.score)}</p>
 
-          <div id={`chart-${r.id}`}>
-            <PieChart width={200} height={200}>
-              <Pie
-                data={[
-                  { name: "E", value: r.environmental },
-                  { name: "S", value: r.social },
-                  { name: "G", value: r.governance }
-                ]}
-                dataKey="value"
-              >
-                <Cell fill="#4CAF50" />
-                <Cell fill="#2196F3" />
-                <Cell fill="#FFC107" />
-              </Pie>
-            </PieChart>
-          </div>
+      <div id={`chart-${r.id}`}>
+        <PieChart width={200} height={200}>
+          <Pie
+            data={[
+              { name: "E", value: r.environmental },
+              { name: "S", value: r.social },
+              { name: "G", value: r.governance }
+            ]}
+            dataKey="value"
+          >
+            <Cell fill="#4CAF50" />
+            <Cell fill="#2196F3" />
+            <Cell fill="#FFC107" />
+          </Pie>
+        </PieChart>
+      </div>
 
-          <p>{r.aiInsights || "Generating AI insights..."}</p>
-
-          <button onClick={() => generatePDF(r)}>Download PDF</button>
-        </div>
-      ))}
+      <p>{r.aiInsights || "Loading AI..."}</p>
     </div>
-  );
+  ))}
+</div>  
 }
 
 export default App;
