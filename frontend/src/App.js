@@ -83,33 +83,45 @@ function App() {
     setCompany("");
   };
 
-  const generatePDF = async (r) => {
-    const doc = new jsPDF();
+  
+const generatePDF = async (r) => {
+  const doc = new jsPDF();
 
-    doc.text("Ecovanta ESG Report", 20, 20);
-    doc.text(`Company: ${r.company}`, 20, 40);
-    doc.text(`Score: ${Math.round(r.score || 0)}`, 20, 50);
-    doc.text(`Assessment: ${getRating(r.score)}`, 20, 60);
+  // Title
+  doc.setFontSize(18);
+  doc.text("Ecovanta ESG Report", 20, 20);
 
-    doc.text(`Environmental: ${r.environmental}`, 20, 75);
-    doc.text(`Social: ${r.social}`, 20, 85);
-    doc.text(`Governance: ${r.governance}`, 20, 95);
+  // Company info (LEFT SIDE)
+  doc.setFontSize(12);
+  doc.text(`Company: ${r.company}`, 20, 40);
+  doc.text(`Score: ${Math.round(r.score || 0)}`, 20, 50);
+  doc.text(`Assessment: ${getRating(r.score)}`, 20, 60);
 
-    const insights = r.aiInsights || "No AI insights";
-    const lines = doc.splitTextToSize(insights, 160);
+  doc.text(`Environmental: ${r.environmental}`, 20, 75);
+  doc.text(`Social: ${r.social}`, 20, 85);
+  doc.text(`Governance: ${r.governance}`, 20, 95);
 
-    doc.text("AI Recommendations:", 20, 110);
-    doc.text(lines, 20, 120);
+  // 📊 PIE CHART (TOP RIGHT — SMALLER)
+  const el = document.getElementById(`chart-${r.id}`);
 
-    const el = document.getElementById(`chart-${r.id}`);
-    if (el) {
-      const canvas = await html2canvas(el);
-      const img = canvas.toDataURL("image/png");
-      doc.addImage(img, "PNG", 20, 150, 150, 100);
-    }
+  if (el) {
+    const canvas = await html2canvas(el);
+    const img = canvas.toDataURL("image/png");
 
-    doc.save(`${r.company}.pdf`);
-  };
+    // 👉 Position top-right + smaller size
+    doc.addImage(img, "PNG", 140, 25, 50, 50);
+  }
+
+  // 🤖 AI INSIGHTS (below)
+  const insights = r.aiInsights || "No AI insights";
+  const lines = doc.splitTextToSize(insights, 170);
+
+  doc.text("AI Recommendations:", 20, 120);
+  doc.text(lines, 20, 130);
+
+  // Save
+  doc.save(`${r.company}.pdf`);
+};
 
   return (
     <div style={{ padding: 20, background: "#f5f7fa", minHeight: "100vh" }}>
