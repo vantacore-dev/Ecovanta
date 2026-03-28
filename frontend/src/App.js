@@ -125,7 +125,7 @@ function App() {
     const lines = doc.splitTextToSize(insights, 170);
 
     let y = 140;
-    doc.text("AI Recommendations:", 20, y);
+    doc.text("Ecovanta Recommendations:", 20, y);
     y += 10;
 
     lines.forEach((line) => {
