@@ -38,8 +38,16 @@ Provide concise, actionable ESG recommendations.
 
     const data = await response.json();
 
-    const insights =
-      data.choices?.[0]?.message?.content || "No AI insights available";
+// 🔍 DEBUG (important)
+console.log("OPENAI RESPONSE:", JSON.stringify(data, null, 2));
+
+let insights = "No AI insights available";
+
+if (data.choices && data.choices.length > 0) {
+  insights = data.choices[0].message?.content || insights;
+} else if (data.error) {
+  insights = "AI error: " + data.error.message;
+}
 
     res.json({ insights });
 
