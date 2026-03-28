@@ -32,32 +32,44 @@ function App() {
   }, []);
 
   // 🔥 AI generation
-  useEffect(() => {
-    const generateAI = async () => {
-      const updated = await Promise.all(
-        reports.map(async (r) => {
-          if (r.aiInsights) return r;
 
-          try {
-            const res = await fetch(`${API}/ai-insights`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(r)
-            });
+useEffect(() => {
+  const generateAI = async () => {
+    const updated = [];
 
-            const data = await res.json();
-            return { ...r, aiInsights: data.insights };
-          } catch {
-            return { ...r, aiInsights: "AI unavailable" };
-          }
-        })
-      );
+    for (let r of reports) {
+      if (r.aiInsights) {
+        updated.push(r);
+        continue;
+      }
 
+      try {
+        const res = await fetch(`${API}/ai-insights`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(r)
+        });
+
+        const data = await res.json();
+
+        updated.push({ ...r, aiInsights: data.insights });
+
+      } catch {
+        updated.push({ ...r, aiInsights: "AI unavailable" });
+      }
+    }
+
+    // ✅ Only update if something changed
+    const changed = updated.some((r, i) => r.aiInsights !== reports[i]?.aiInsights);
+
+    if (changed) {
       setReports(updated);
-    };
+    }
+  };
 
-    if (reports.length) generateAI();
-  }, [reports]);
+  if (reports.length) generateAI();
+
+}, []); // 🔥 IMPORTANT: NO [reports]
 
   const getRating = (score) => {
     if (score >= 80) return "A (Leader)";
@@ -66,20 +78,46 @@ function App() {
     return "D (Critical)";
   };
 
-  const addReport = () => {
-    const score =
-      (environmental / 3) * 40 +
-      (social / 3) * 30 +
-      (governance / 3) * 30;
+  const addReport = async () => {
+  const score =
+    (environmental / 3) * 40 +
+    (social / 3) * 30 +
+    (governance / 3) * 30;
 
-    const newReport = {
-      id: Date.now(),
-      company,
-      score,
-      environmental,
-      social,
-      governance
-    };
+  let aiInsights = "Loading AI...";
+
+  try {
+    const res = await fetch(`${API}/ai-insights`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        environmental,
+        social,
+        governance
+      })
+    });
+
+    const data = await res.json();
+    aiInsights = data.insights;
+
+  } catch {
+    aiInsights = "AI unavailable";
+  }
+
+  const newReport = {
+    id: Date.now(),
+    company,
+    score,
+    environmental,
+    social,
+    governance,
+    aiInsights
+  };
+
+  setReports(prev => [...prev, newReport]);
+};
 
     setReports(prev => [...prev, newReport]);
     setCompany("");
