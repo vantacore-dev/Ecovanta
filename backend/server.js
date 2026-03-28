@@ -1,53 +1,77 @@
+// ===============================
+// IMPORTS
+// ===============================
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+
+// ⚠️ Node 18+ already has fetch built-in
+// DO NOT install node-fetch
 
 const app = express();
 
-// ✅ Middleware
+// ===============================
+// MIDDLEWARE
+// ===============================
 app.use(cors());
 app.use(express.json());
 
-// ✅ AI ROUTE (NO OPENAI SDK → STABLE)
+// ===============================
+// CONFIG
+// ===============================
+const PORT = process.env.PORT || 3001;
+const JWT_SECRET = "secret123";
+
+// JSONBIN (your existing)
+const BIN_ID = "69c5c73cc3097a1dd5642542";
+const API_KEY = "$2a$10$PafMHhMfytGzoyF9pUsO4uwR5XgP5R0B5kN/4EuCsfnkhzd9WmutS";
+
+// ===============================
+// AUTH ROUTES
+// ===============================
+
+// LOGIN
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (email === "demo@test.com" && password === "1234") {
+    const token = jwt.sign(
+      { email, role: "admin" }, // change role if needed
+      JWT_SECRET
+    );
+
+    return res.json({ token });
+  }
+
+  res.status(401).json({ error: "Invalid credentials" });
+});
+
+// GET CURRENT USER
+app.get("/me", (req, res) => {
+  const token = req.headers.authorization;
+
+  try {
+    const user = jwt.verify(token, JWT_SECRET);
+    res.json(user);
+  } catch {
+    res.status(401).json({ error: "Unauthorized" });
+  }
+});
+
+// ===============================
+// AI INSIGHTS (SAFE MOCK VERSION)
+// ===============================
+
 app.post("/ai-insights", async (req, res) => {
   try {
     const { environmental, social, governance } = req.body;
 
-    const prompt = `
-You are a senior ESG consultant.
-
-Environmental: ${environmental}/3
-Social: ${social}/3
-Governance: ${governance}/3
-
-Provide concise, actionable ESG recommendations.
+    // ✅ fallback (no OpenAI dependency issues)
+    const insights = `
+Environmental score is ${environmental}/3: improve emissions and resource efficiency.
+Social score is ${social}/3: strengthen employee policies and diversity.
+Governance score is ${governance}/3: enhance compliance and transparency.
 `;
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "user", content: prompt }
-        ]
-      })
-    });
-
-    const data = await response.json();
-
-// 🔍 DEBUG (important)
-console.log("OPENAI RESPONSE:", JSON.stringify(data, null, 2));
-
-let insights = "No AI insights available";
-
-if (data.choices && data.choices.length > 0) {
-  insights = data.choices[0].message?.content || insights;
-} else if (data.error) {
-  insights = "AI error: " + data.error.message;
-}
 
     res.json({ insights });
 
@@ -57,11 +81,39 @@ if (data.choices && data.choices.length > 0) {
   }
 });
 
-// ✅ JSONBIN CONFIG
-const BIN_ID = "69c5c73cc3097a1dd5642542";
-const API_KEY = "$2a$10$PafMHhMfytGzoyF9pUsO4uwR5R0B5kN/4EuCsfnkhzd9WmutS";
+// ===============================
+// BENCHMARK
+// ===============================
+app.get("/benchmark/:sector", (req, res) => {
+  const benchmarks = {
+    Tech: 75,
+    Energy: 55,
+    Manufacturing: 65
+  };
 
-// ✅ GET REPORTS
+  const sector = req.params.sector;
+
+  res.json({
+    benchmark: benchmarks[sector] || 60
+  });
+});
+
+// ===============================
+// EXTERNAL ESG (MOCK)
+// ===============================
+app.get("/external-esg/:company", (req, res) => {
+  const { company } = req.params;
+
+  res.json({
+    company,
+    externalScore: Math.floor(Math.random() * 100),
+    source: "Mock ESG API"
+  });
+});
+
+// ===============================
+// REPORTS - GET
+// ===============================
 app.get("/reports", async (req, res) => {
   try {
     const response = await fetch(
@@ -72,7 +124,7 @@ app.get("/reports", async (req, res) => {
     );
 
     const data = await response.json();
-    res.json(data.record?.reports || []);
+    res.json(data.record.reports || []);
 
   } catch (err) {
     console.error(err);
@@ -80,11 +132,14 @@ app.get("/reports", async (req, res) => {
   }
 });
 
-// ✅ POST REPORT
+// ===============================
+// REPORTS - POST
+// ===============================
 app.post("/reports", async (req, res) => {
   try {
     const { company, score, environmental, social, governance } = req.body;
 
+    // Get existing
     const response = await fetch(
       `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,
       {
@@ -93,7 +148,7 @@ app.post("/reports", async (req, res) => {
     );
 
     const data = await response.json();
-    const reports = data.record?.reports || [];
+    const reports = data.record.reports || [];
 
     const newReport = {
       id: Date.now(),
@@ -106,6 +161,7 @@ app.post("/reports", async (req, res) => {
 
     reports.push(newReport);
 
+    // Save updated
     await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
       method: "PUT",
       headers: {
@@ -123,7 +179,9 @@ app.post("/reports", async (req, res) => {
   }
 });
 
-// ✅ START SERVER
-app.listen(3001, () => {
-  console.log("Backend running on port 3001");
+// ===============================
+// START SERVER
+// ===============================
+app.listen(PORT, () => {
+  console.log(`🚀 Backend running on port ${PORT}`);
 });
