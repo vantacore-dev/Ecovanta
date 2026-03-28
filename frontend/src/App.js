@@ -23,101 +23,61 @@ function App() {
   const [social, setSocial] = useState(1);
   const [governance, setGovernance] = useState(1);
 
-  // 🔥 Load reports
+  // Load reports safely
   useEffect(() => {
     fetch(`${API}/reports`)
       .then(res => res.json())
-      .then(data => setReports(data))
+      .then(data => setReports(Array.isArray(data) ? data : []))
       .catch(err => console.error(err));
   }, []);
 
-  // 🔥 AI generation
-
-useEffect(() => {
-  const generateAI = async () => {
-    const updated = [];
-
-    for (let r of reports) {
-      if (r.aiInsights) {
-        updated.push(r);
-        continue;
-      }
-
-      try {
-        const res = await fetch(`${API}/ai-insights`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(r)
-        });
-
-        const data = await res.json();
-
-        updated.push({ ...r, aiInsights: data.insights });
-
-      } catch {
-        updated.push({ ...r, aiInsights: "AI unavailable" });
-      }
-    }
-
-    // ✅ Only update if something changed
-    const changed = updated.some((r, i) => r.aiInsights !== reports[i]?.aiInsights);
-
-    if (changed) {
-      setReports(updated);
-    }
-  };
-
-  if (reports.length) generateAI();
-
-}, []); // 🔥 IMPORTANT: NO [reports]
-
-  const getRating = (score) => {
+  const getRating = (score = 0) => {
     if (score >= 80) return "A (Leader)";
     if (score >= 60) return "B (Compliant)";
     if (score >= 40) return "C (At Risk)";
     return "D (Critical)";
   };
 
+  // SAFE ADD REPORT (NO CRASH)
   const addReport = async () => {
-  const score =
-    (environmental / 3) * 40 +
-    (social / 3) * 30 +
-    (governance / 3) * 30;
+    if (!company) return alert("Enter company");
 
-  let aiInsights = "Loading AI...";
+    const score =
+      (environmental / 3) * 40 +
+      (social / 3) * 30 +
+      (governance / 3) * 30;
 
-  try {
-    const res = await fetch(`${API}/ai-insights`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        environmental,
-        social,
-        governance
-      })
-    });
+    let aiInsights = "AI unavailable";
 
-    const data = await res.json();
-    aiInsights = data.insights;
+    try {
+      const res = await fetch(`${API}/ai-insights`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          environmental,
+          social,
+          governance
+        })
+      });
 
-  } catch {
-    aiInsights = "AI unavailable";
-  }
+      const data = await res.json();
+      if (data?.insights) aiInsights = data.insights;
 
-  const newReport = {
-    id: Date.now(),
-    company,
-    score,
-    environmental,
-    social,
-    governance,
-    aiInsights
-  };
+    } catch (err) {
+      console.error(err);
+    }
 
-  setReports(prev => [...prev, newReport]);
-};
+    const newReport = {
+      id: Date.now(),
+      company,
+      score,
+      environmental,
+      social,
+      governance,
+      aiInsights
+    };
 
     setReports(prev => [...prev, newReport]);
     setCompany("");
@@ -128,7 +88,7 @@ useEffect(() => {
 
     doc.text("Ecovanta ESG Report", 20, 20);
     doc.text(`Company: ${r.company}`, 20, 40);
-    doc.text(`Score: ${Math.round(r.score)}`, 20, 50);
+    doc.text(`Score: ${Math.round(r.score || 0)}`, 20, 50);
     doc.text(`Assessment: ${getRating(r.score)}`, 20, 60);
 
     doc.text(`Environmental: ${r.environmental}`, 20, 75);
@@ -202,40 +162,44 @@ useEffect(() => {
           <h3>Average Score</h3>
           <p>
             {reports.length
-              ? Math.round(reports.reduce((s, r) => s + r.score, 0) / reports.length)
+              ? Math.round(reports.reduce((s, r) => s + (r.score || 0), 0) / reports.length)
               : 0}
           </p>
         </div>
       </div>
 
       {/* DISTRIBUTION */}
-      <BarChart width={500} height={250} data={[
-        { name: "A", value: reports.filter(r => r.score >= 80).length },
-        { name: "B", value: reports.filter(r => r.score >= 60 && r.score < 80).length },
-        { name: "C", value: reports.filter(r => r.score >= 40 && r.score < 60).length },
-        { name: "D", value: reports.filter(r => r.score < 40).length }
-      ]}>
-        <XAxis dataKey="name" />
-        <YAxis />
-        <Tooltip />
-        <Bar dataKey="value" fill="#1976d2" />
-      </BarChart>
+      {reports.length > 0 && (
+        <BarChart width={500} height={250} data={[
+          { name: "A", value: reports.filter(r => r.score >= 80).length },
+          { name: "B", value: reports.filter(r => r.score >= 60 && r.score < 80).length },
+          { name: "C", value: reports.filter(r => r.score >= 40 && r.score < 60).length },
+          { name: "D", value: reports.filter(r => r.score < 40).length }
+        ]}>
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="value" fill="#1976d2" />
+        </BarChart>
+      )}
 
       {/* TREND */}
-      <LineChart width={600} height={250} data={reports}>
-        <XAxis dataKey="company" />
-        <YAxis />
-        <Tooltip />
-        <Line type="monotone" dataKey="score" stroke="#1976d2" />
-      </LineChart>
+      {reports.length > 1 && (
+        <LineChart width={600} height={250} data={reports}>
+          <XAxis dataKey="company" />
+          <YAxis />
+          <Tooltip />
+          <Line type="monotone" dataKey="score" stroke="#1976d2" strokeWidth={3} />
+        </LineChart>
+      )}
 
       {/* CARDS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 300px)", gap: 20 }}>
-        {reports.map((r) => (
+        {Array.isArray(reports) && reports.map((r) => (
           <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
             <h3>{r.company}</h3>
 
-            <p>Score: {Math.round(r.score)}</p>
+            <p>Score: {Math.round(r.score || 0)}</p>
             <p>Assessment: {getRating(r.score)}</p>
 
             <div id={`chart-${r.id}`}>
