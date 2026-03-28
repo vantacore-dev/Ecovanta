@@ -87,7 +87,7 @@ function App() {
   
   const generatePDF = async (r) => {
   const doc = new jsPDF();
-
+doc.text("PDF VERSION V2", 20, 10);
   // ---------- COLORS ----------
   const getColor = (score = 0) => {
     if (score >= 80) return [46, 125, 50];   // green
