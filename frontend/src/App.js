@@ -138,6 +138,7 @@ function App() {
     {/* REPORTS */}
     <div style={{ marginTop: 20 }}>
       {reports.map((r) => (
+        
         <div
           key={r.id}
           style={{
@@ -148,7 +149,10 @@ function App() {
           }}
         >
           <h3>{r.company}</h3>
-
+<p>Assessment: {getRating(r.score)}</p>
+<button onClick={() => generatePDF(r)}>
+  Download PDF
+</button>
           <p>Score: {Math.round(r.score)}</p>
 
           <div id={`chart-${r.id}`}>
