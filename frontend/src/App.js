@@ -1,110 +1,292 @@
-const generatePDF = async (r) => {
-  const doc = new jsPDF();
+import React, { useEffect, useState } from "react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip
+} from "recharts";
 
-  // ---------- COLORS ----------
-  const getColor = (score = 0) => {
-    if (score >= 80) return [46, 125, 50];   // green
-    if (score >= 60) return [255, 152, 0];   // orange
-    return [211, 47, 47];                    // red
+const API = "https://ecovanta.onrender.com";
+
+function App() {
+  const [reports, setReports] = useState([]);
+  const [company, setCompany] = useState("");
+  const [environmental, setEnvironmental] = useState(1);
+  const [social, setSocial] = useState(1);
+  const [governance, setGovernance] = useState(1);
+
+  // Load reports
+  useEffect(() => {
+    fetch(`${API}/reports`)
+      .then(res => res.json())
+      .then(data => setReports(Array.isArray(data) ? data : []))
+      .catch(err => console.error(err));
+  }, []);
+
+  const getRating = (score = 0) => {
+    if (score >= 80) return "A (Leader)";
+    if (score >= 60) return "B (Compliant)";
+    if (score >= 40) return "C (At Risk)";
+    return "D (Critical)";
   };
 
-  const color = getColor(r.score);
+  // SAFE ADD REPORT
+  const addReport = async () => {
+    if (!company) return alert("Enter company");
 
-  // ---------- LOGO ----------
-  // 👉 Replace with your own logo URL
-  const logoUrl = "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg";
+    const score =
+      (environmental / 3) * 40 +
+      (social / 3) * 30 +
+      (governance / 3) * 30;
 
-  try {
-    const img = await fetch(logoUrl)
-      .then(res => res.blob())
-      .then(blob => new Promise(resolve => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
-      }));
+    let aiInsights = "AI unavailable";
 
-    doc.addImage(img, "PNG", 150, 10, 40, 15);
-  } catch {
-    console.log("Logo not loaded");
-  }
-
-  // ---------- TITLE ----------
-  doc.setFontSize(18);
-  doc.text("Ecovanta ESG Report", 20, 20);
-
-  // ---------- COMPANY ----------
-  doc.setFontSize(12);
-  doc.text(`Company: ${r.company}`, 20, 40);
-
-  // ---------- SCORE ----------
-  doc.setFontSize(16);
-  doc.setTextColor(...color);
-  doc.text(`Score: ${Math.round(r.score || 0)}`, 20, 55);
-
-  doc.setTextColor(0, 0, 0);
-  doc.text(`Assessment: ${getRating(r.score)}`, 20, 65);
-
-  // ---------- ESG BREAKDOWN ----------
-  doc.text(`Environmental: ${r.environmental}`, 20, 80);
-  doc.text(`Social: ${r.social}`, 20, 90);
-  doc.text(`Governance: ${r.governance}`, 20, 100);
-
-  // ---------- ESG GAUGE ----------
-  const centerX = 150;
-  const centerY = 65;
-  const radius = 22;
-
-  // background circle
-  doc.setDrawColor(200);
-  doc.setLineWidth(4);
-  doc.circle(centerX, centerY, radius);
-
-  // score arc
-  doc.setDrawColor(...color);
-  doc.setLineWidth(4);
-
-  const angle = ((r.score || 0) / 100) * 360;
-
-  try {
-    doc.arc(centerX, centerY, radius, radius, 0, angle);
-  } catch {
-    // fallback (arc not always supported)
-  }
-
-  // ---------- BENCHMARK ----------
-  const industryAvg = 65;
-
-  doc.setFontSize(12);
-  doc.text("Benchmark vs Industry:", 20, 120);
-
-  const diff = Math.round((r.score || 0) - industryAvg);
-
-  doc.text(`Your Score: ${Math.round(r.score || 0)}`, 20, 130);
-  doc.text(`Industry Avg: ${industryAvg}`, 20, 140);
-  doc.text(`Difference: ${diff > 0 ? "+" : ""}${diff}`, 20, 150);
-
-  // ---------- PIE CHART (TOP RIGHT SMALL) ----------
-  const el = document.getElementById(`chart-${r.id}`);
-
-  if (el) {
     try {
-      const canvas = await html2canvas(el);
-      const img = canvas.toDataURL("image/png");
+      const res = await fetch(`${API}/ai-insights`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          environmental,
+          social,
+          governance
+        })
+      });
 
-      doc.addImage(img, "PNG", 130, 85, 55, 55);
+      const data = await res.json();
+      if (data?.insights) aiInsights = data.insights;
+
     } catch (err) {
-      console.log("Chart capture failed");
+      console.error(err);
     }
-  }
 
-  // ---------- AI INSIGHTS ----------
-  const insights = r.aiInsights || "No AI insights available";
-  const lines = doc.splitTextToSize(insights, 170);
+    const newReport = {
+      id: Date.now(),
+      company,
+      score,
+      environmental,
+      social,
+      governance,
+      aiInsights
+    };
 
-  doc.setFontSize(12);
-  doc.text("AI Recommendations:", 20, 180);
-  doc.text(lines, 20, 190);
+    setReports(prev => [...prev, newReport]);
+    setCompany("");
+  };
 
-  // ---------- SAVE ----------
-  doc.save(`${r.company}_ESG_Report.pdf`);
-};
+  // CONSULTING-GRADE PDF
+  const generatePDF = async (r) => {
+    const doc = new jsPDF();
+
+    const getColor = (score = 0) => {
+      if (score >= 80) return [46, 125, 50];
+      if (score >= 60) return [255, 152, 0];
+      return [211, 47, 47];
+    };
+
+    const color = getColor(r.score);
+
+    // Logo
+    const logoUrl = "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg";
+
+    try {
+      const img = await fetch(logoUrl)
+        .then(res => res.blob())
+        .then(blob => new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        }));
+
+      doc.addImage(img, "PNG", 150, 10, 40, 15);
+    } catch {}
+
+    doc.setFontSize(18);
+    doc.text("Ecovanta ESG Report", 20, 20);
+
+    doc.setFontSize(12);
+    doc.text(`Company: ${r.company}`, 20, 40);
+
+    doc.setFontSize(16);
+    doc.setTextColor(...color);
+    doc.text(`Score: ${Math.round(r.score || 0)}`, 20, 55);
+
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Assessment: ${getRating(r.score)}`, 20, 65);
+
+    doc.text(`Environmental: ${r.environmental}`, 20, 80);
+    doc.text(`Social: ${r.social}`, 20, 90);
+    doc.text(`Governance: ${r.governance}`, 20, 100);
+
+    // Gauge
+    const centerX = 150;
+    const centerY = 65;
+    const radius = 22;
+
+    doc.setDrawColor(200);
+    doc.setLineWidth(4);
+    doc.circle(centerX, centerY, radius);
+
+    doc.setDrawColor(...color);
+    doc.setLineWidth(4);
+
+    try {
+      const angle = ((r.score || 0) / 100) * 360;
+      doc.arc(centerX, centerY, radius, radius, 0, angle);
+    } catch {}
+
+    // Benchmark
+    const industryAvg = 65;
+    const diff = Math.round((r.score || 0) - industryAvg);
+
+    doc.text("Benchmark vs Industry:", 20, 120);
+    doc.text(`Your Score: ${Math.round(r.score || 0)}`, 20, 130);
+    doc.text(`Industry Avg: ${industryAvg}`, 20, 140);
+    doc.text(`Difference: ${diff > 0 ? "+" : ""}${diff}`, 20, 150);
+
+    // Pie chart
+    const el = document.getElementById(`chart-${r.id}`);
+    if (el) {
+      try {
+        const canvas = await html2canvas(el);
+        const img = canvas.toDataURL("image/png");
+        doc.addImage(img, "PNG", 130, 85, 55, 55);
+      } catch {}
+    }
+
+    // AI insights
+    const insights = r.aiInsights || "No AI insights available";
+    const lines = doc.splitTextToSize(insights, 170);
+
+    doc.text("AI Recommendations:", 20, 180);
+    doc.text(lines, 20, 190);
+
+    doc.save(`${r.company}.pdf`);
+  };
+
+  return (
+    <div style={{ padding: 20, background: "#f5f7fa", minHeight: "100vh" }}>
+      <h1>Ecovanta ESG Dashboard</h1>
+
+      {/* INPUT */}
+      <input
+        value={company}
+        placeholder="Company"
+        onChange={(e) => setCompany(e.target.value)}
+      />
+
+      <div>
+        <label>Environmental</label>
+        <select onChange={(e) => setEnvironmental(Number(e.target.value))}>
+          <option value="1">High Risk</option>
+          <option value="2">Moderate</option>
+          <option value="3">Best Practice</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Social</label>
+        <select onChange={(e) => setSocial(Number(e.target.value))}>
+          <option value="1">High Risk</option>
+          <option value="2">Moderate</option>
+          <option value="3">Best Practice</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Governance</label>
+        <select onChange={(e) => setGovernance(Number(e.target.value))}>
+          <option value="1">High Risk</option>
+          <option value="2">Moderate</option>
+          <option value="3">Best Practice</option>
+        </select>
+      </div>
+
+      <button onClick={addReport}>Generate ESG</button>
+
+      {/* KPI */}
+      <div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
+        <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+          <h3>Total Companies</h3>
+          <p>{reports.length}</p>
+        </div>
+
+        <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
+          <h3>Average Score</h3>
+          <p>
+            {reports.length
+              ? Math.round(reports.reduce((s, r) => s + (r.score || 0), 0) / reports.length)
+              : 0}
+          </p>
+        </div>
+      </div>
+
+      {/* DISTRIBUTION */}
+      {reports.length > 0 && (
+        <BarChart width={500} height={250} data={[
+          { name: "A", value: reports.filter(r => r.score >= 80).length },
+          { name: "B", value: reports.filter(r => r.score >= 60 && r.score < 80).length },
+          { name: "C", value: reports.filter(r => r.score >= 40 && r.score < 60).length },
+          { name: "D", value: reports.filter(r => r.score < 40).length }
+        ]}>
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="value" fill="#1976d2" />
+        </BarChart>
+      )}
+
+      {/* TREND */}
+      {reports.length > 1 && (
+        <LineChart width={600} height={250} data={reports}>
+          <XAxis dataKey="company" />
+          <YAxis />
+          <Tooltip />
+          <Line type="monotone" dataKey="score" stroke="#1976d2" strokeWidth={3} />
+        </LineChart>
+      )}
+
+      {/* CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 300px)", gap: 20 }}>
+        {Array.isArray(reports) && reports.map((r) => (
+          <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
+            <h3>{r.company}</h3>
+
+            <p>Score: {Math.round(r.score || 0)}</p>
+            <p>Assessment: {getRating(r.score)}</p>
+
+            <div id={`chart-${r.id}`}>
+              <PieChart width={200} height={200}>
+                <Pie data={[
+                  { name: "E", value: r.environmental },
+                  { name: "S", value: r.social },
+                  { name: "G", value: r.governance }
+                ]} dataKey="value">
+                  <Cell fill="#4CAF50" />
+                  <Cell fill="#2196F3" />
+                  <Cell fill="#FFC107" />
+                </Pie>
+              </PieChart>
+            </div>
+
+            <p><b>AI Recommendations:</b></p>
+            <p>{r.aiInsights || "Generating..."}</p>
+
+            <button onClick={() => generatePDF(r)}>Download PDF</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default App;
