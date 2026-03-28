@@ -243,20 +243,25 @@ function App() {
               <p>Assessment: {getRating(r.score)}</p>
 
               <div id={`chart-${r.id}`}>
-                <PieChart width={250} height={250}>
-                  <Pie
-                    data={pieData}
-                    dataKey="value"
-                    outerRadius={80}
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    <Cell fill="#4CAF50" />
-                    <Cell fill="#2196F3" />
-                    <Cell fill="#FFC107" />
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
+               <PieChart width={260} height={260}>
+  <Pie
+    data={pieData}
+    dataKey="value"
+    cx="50%"
+    cy="50%"
+    outerRadius={80}
+    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+  >
+    <Cell fill="#4CAF50" />
+    <Cell fill="#2196F3" />
+    <Cell fill="#FFC107" />
+  </Pie>
+
+  <Tooltip />
+
+  {/* LEGEND (clean + no truncation) */}
+  <Legend verticalAlign="bottom" height={36} />
+</PieChart>
               </div>
 
               <p><b>Ecovanta Recommendations:</b></p>
