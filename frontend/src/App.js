@@ -1,11 +1,7 @@
 import React, { useEffect, useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import {
-  PieChart,
-  Pie,
-  Cell
-} from "recharts";
+import { PieChart, Pie, Cell } from "recharts";
 
 const API = "https://ecovanta.onrender.com";
 
@@ -16,24 +12,21 @@ function App() {
   const [social, setSocial] = useState(1);
   const [governance, setGovernance] = useState(1);
 
+  // ✅ AUTO AI
   useEffect(() => {
-  const generateAllAI = async () => {
-    const updatedReports = await Promise.all(
-      reports.map(async (r) => {
-        if (r.aiInsights) return r;
+    const generateAllAI = async () => {
+      const updatedReports = await Promise.all(
+        reports.map(async (r) => {
+          if (r.aiInsights) return r;
+          const ai = await getAIInsights(r);
+          return { ...r, aiInsights: ai };
+        })
+      );
+      setReports(updatedReports);
+    };
 
-        const ai = await getAIInsights(r);
-        return { ...r, aiInsights: ai };
-      })
-    );
-
-    setReports(updatedReports);
-  };
-
-  if (reports.length > 0) {
-    generateAllAI();
-  }
-}, [reports]);
+    if (reports.length > 0) generateAllAI();
+  }, [reports]);
 
   const getRating = (score) => {
     if (score >= 80) return "A (Leader)";
@@ -42,29 +35,11 @@ function App() {
     return "D (Critical)";
   };
 
-  const getInsights = (r) => {
-    let insights = [];
-
-    if (r.environmental <= 2)
-      insights.push("Improve environmental practices");
-    if (r.social <= 2)
-      insights.push("Strengthen social policies");
-    if (r.governance <= 2)
-      insights.push("Enhance governance");
-
-    if (insights.length === 0)
-      insights.push("Strong ESG performance");
-
-    return insights;
-  };
-
   const getAIInsights = async (r) => {
     try {
       const res = await fetch(`${API}/ai-insights`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           environmental: r.environmental,
           social: r.social,
@@ -179,97 +154,60 @@ function App() {
       <button onClick={addReport}>Generate ESG</button>
 
       {/* KPI */}
-      <h3>Total: {reports.length}</h3>
-      <h3>
-        Avg:{" "}
-        {reports.length
-          ? Math.round(
-              reports.reduce((s, r) => s + r.score, 0) / reports.length
-            )
-          : 0}
-      </h3>
+      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
+        <div style={{ background: "#fff", padding: 20, flex: 1 }}>
+          Total: {reports.length}
+        </div>
+        <div style={{ background: "#fff", padding: 20, flex: 1 }}>
+          Avg:{" "}
+          {reports.length
+            ? Math.round(
+                reports.reduce((s, r) => s + r.score, 0) / reports.length
+              )
+            : 0}
+        </div>
+      </div>
 
       {/* REPORTS */}
-
-<div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
-
-  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
-    <h3>Total Companies</h3>
-    <p>{reports.length}</p>
-  </div>
-
-  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
-    <h3>Average Score</h3>
-    <p>
-      {reports.length
-        ? Math.round(
-            reports.reduce((sum, r) => sum + r.score, 0) / reports.length
-          )
-        : 0}
-    </p>
-  </div>
-
-  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
-    <h3>Top Performer</h3>
-    <p>
-      {reports.length
-        ? reports.reduce((best, r) =>
-            r.score > best.score ? r : best
-          ).company
-        : "-"}
-    </p>
-  </div>
-
-  <div style={{ background: "#fff", padding: 20, borderRadius: 10, flex: 1 }}>
-    <h3>At Risk</h3>
-    <p>
-      {reports.length
-        ? reports.reduce((worst, r) =>
-            r.score < worst.score ? r : worst
-          ).company
-        : "-"}
-    </p>
-  </div>
-
-</div>
-
- {reports.map((r) => (
-  <div
-    key={r.id}
-    style={{
-      background: "#fff",
-      padding: 20,
-      borderRadius: 10,
-      marginTop: 10
-    }}
-  >
-    <h3>{r.company}</h3>
-
-    <p>Score: <b>{Math.round(r.score)}</b></p>
-    <p>Assessment: <b>{getRating(r.score)}</b></p>
-
-    <div id={`chart-${r.id}`}>
-      <PieChart width={200} height={200}>
-        <Pie
-          data={[
-            { name: "E", value: r.environmental },
-            { name: "S", value: r.social },
-            { name: "G", value: r.governance }
-          ]}
-          dataKey="value"
+      {reports.map((r) => (
+        <div
+          key={r.id}
+          style={{
+            background: "#fff",
+            padding: 20,
+            borderRadius: 10,
+            marginTop: 10
+          }}
         >
-          <Cell fill="#4CAF50" />
-          <Cell fill="#2196F3" />
-          <Cell fill="#FFC107" />
-        </Pie>
-      </PieChart>
-    </div>
+          <h3>{r.company}</h3>
 
-    <div style={{ marginTop: 10 }}>
-      <b>AI Recommendations:</b>
-      <p>{r.aiInsights || "Generating AI insights..."}</p>
-    </div>
+          <p>Score: {Math.round(r.score)}</p>
+          <p>{getRating(r.score)}</p>
 
-  </div>
-))}
+          <div id={`chart-${r.id}`}>
+            <PieChart width={200} height={200}>
+              <Pie
+                data={[
+                  { name: "E", value: r.environmental },
+                  { name: "S", value: r.social },
+                  { name: "G", value: r.governance }
+                ]}
+                dataKey="value"
+              >
+                <Cell fill="#4CAF50" />
+                <Cell fill="#2196F3" />
+                <Cell fill="#FFC107" />
+              </Pie>
+            </PieChart>
+          </div>
+
+          <p>{r.aiInsights || "Generating AI insights..."}</p>
+
+          <button onClick={() => generatePDF(r)}>Download PDF</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default App;
