@@ -11,7 +11,8 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip
+  Tooltip,
+  Legend
 } from "recharts";
 
 const API = "https://ecovanta.onrender.com";
@@ -50,14 +51,8 @@ function App() {
     try {
       const res = await fetch(`${API}/ai-insights`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          environmental,
-          social,
-          governance
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ environmental, social, governance })
       });
 
       const data = await res.json();
@@ -91,11 +86,9 @@ function App() {
 
     const color = getColor(r.score);
 
-    // HEADER
     doc.setFontSize(18);
     doc.text("Ecovanta ESG Report", 20, 20);
 
-    // COMPANY INFO
     doc.setFontSize(12);
     doc.text(`Company: ${r.company}`, 20, 40);
 
@@ -106,53 +99,41 @@ function App() {
     doc.setTextColor(0, 0, 0);
     doc.text(`Assessment: ${getRating(r.score)}`, 20, 65);
 
-    // ESG DETAILS
     doc.text(`Environmental: ${r.environmental}`, 20, 80);
     doc.text(`Social: ${r.social}`, 20, 90);
     doc.text(`Governance: ${r.governance}`, 20, 100);
 
-    // GAUGE
-    const gaugeX = 20;
-    const gaugeY = 115;
-    const gaugeWidth = 120;
-
+    // Gauge
     doc.setFillColor(220);
-    doc.rect(gaugeX, gaugeY, gaugeWidth, 10, "F");
+    doc.rect(20, 115, 120, 10, "F");
 
     doc.setFillColor(...color);
-    doc.rect(gaugeX, gaugeY, (r.score / 100) * gaugeWidth, 10, "F");
+    doc.rect(20, 115, (r.score / 100) * 120, 10, "F");
 
-    doc.text("ESG Score", gaugeX, gaugeY - 5);
+    doc.text("ESG Score", 20, 110);
 
-    // PIE CHART (RIGHT SIDE)
+    // Pie chart
     const el = document.getElementById(`chart-${r.id}`);
     if (el) {
-      try {
-        const canvas = await html2canvas(el);
-        const img = canvas.toDataURL("image/png");
-        doc.addImage(img, "PNG", 140, 40, 60, 60);
-      } catch {}
+      const canvas = await html2canvas(el);
+      const img = canvas.toDataURL("image/png");
+      doc.addImage(img, "PNG", 140, 40, 60, 60);
     }
 
-    // ---------- AI INSIGHTS (MULTI-PAGE) ----------
+    // AI (multi-page)
     const insights = r.aiInsights || "No AI insights available";
     const lines = doc.splitTextToSize(insights, 170);
 
     let y = 140;
-
-    doc.setFontSize(12);
     doc.text("AI Recommendations:", 20, y);
     y += 10;
 
     lines.forEach((line) => {
       if (y > 270) {
         doc.addPage();
-        doc.setFontSize(14);
         doc.text("AI Recommendations (continued)", 20, 20);
         y = 30;
       }
-
-      doc.setFontSize(12);
       doc.text(line, 20, y);
       y += 8;
     });
@@ -160,10 +141,20 @@ function App() {
     doc.save(`${r.company}.pdf`);
   };
 
+  // KPI CALCULATIONS
+  const averageScore =
+    reports.length > 0
+      ? Math.round(
+          reports.reduce((sum, r) => sum + (r.score || 0), 0) /
+            reports.length
+        )
+      : 0;
+
   return (
-    <div style={{ padding: 20, background: "#f5f7fa", minHeight: "100vh" }}>
+    <div style={{ padding: 20, background: "#f5f7fa" }}>
       <h1>Ecovanta ESG Dashboard</h1>
 
+      {/* INPUT */}
       <input
         value={company}
         placeholder="Company"
@@ -200,8 +191,14 @@ function App() {
       <button onClick={addReport}>Generate ESG</button>
 
       {/* KPI */}
-      <div style={{ marginTop: 20 }}>
-        <p>Total Companies: {reports.length}</p>
+      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
+        <div style={{ background: "#fff", padding: 15, borderRadius: 10 }}>
+          <b>Total Companies:</b> {reports.length}
+        </div>
+
+        <div style={{ background: "#fff", padding: 15, borderRadius: 10 }}>
+          <b>Average Score:</b> {averageScore}
+        </div>
       </div>
 
       {/* DISTRIBUTION */}
@@ -231,33 +228,44 @@ function App() {
 
       {/* CARDS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 300px)", gap: 20 }}>
-        {reports.map((r) => (
-          <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
-            <h3>{r.company}</h3>
+        {reports.map((r) => {
+          const pieData = [
+            { name: "Environmental", value: r.environmental },
+            { name: "Social", value: r.social },
+            { name: "Governance", value: r.governance }
+          ];
 
-            <p>Score: {Math.round(r.score)}</p>
-            <p>Assessment: {getRating(r.score)}</p>
+          return (
+            <div key={r.id} style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
+              <h3>{r.company}</h3>
 
-            <div id={`chart-${r.id}`}>
-              <PieChart width={200} height={200}>
-                <Pie data={[
-                  { name: "E", value: r.environmental },
-                  { name: "S", value: r.social },
-                  { name: "G", value: r.governance }
-                ]} dataKey="value">
-                  <Cell fill="#4CAF50" />
-                  <Cell fill="#2196F3" />
-                  <Cell fill="#FFC107" />
-                </Pie>
-              </PieChart>
+              <p>Score: {Math.round(r.score)}</p>
+              <p>Assessment: {getRating(r.score)}</p>
+
+              <div id={`chart-${r.id}`}>
+                <PieChart width={250} height={250}>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    outerRadius={80}
+                    label={({ name, value }) => `${name}: ${value}`}
+                  >
+                    <Cell fill="#4CAF50" />
+                    <Cell fill="#2196F3" />
+                    <Cell fill="#FFC107" />
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </div>
+
+              <p><b>AI Recommendations:</b></p>
+              <p>{r.aiInsights}</p>
+
+              <button onClick={() => generatePDF(r)}>Download PDF</button>
             </div>
-
-            <p><b>AI Recommendations:</b></p>
-            <p>{r.aiInsights}</p>
-
-            <button onClick={() => generatePDF(r)}>Download PDF</button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
