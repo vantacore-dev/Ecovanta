@@ -11,6 +11,18 @@ app.get("/test", (req, res) => {
 });
 
 app.get("/benchmark/:sector", (req, res) => {
+  const benchmarks = {
+    Technology: 75,
+    Energy: 55,
+    Manufacturing: 65
+  };
+
+  res.json({
+    benchmark: benchmarks[req.params.sector] || 60
+  });
+});
+
+app.get("/benchmark/:sector", (req, res) => {
   res.json({ benchmark: 75 });
 });
 
