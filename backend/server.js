@@ -30,13 +30,15 @@ app.get("/test", (req, res) => {
 // ===============================
 app.get("/benchmark/:sector", (req, res) => {
   const benchmarks = {
-    Technology: 75,
-    Energy: 55,
-    Manufacturing: 65
+    tech: 75,
+    energy: 55,
+    manufacturing: 65
   };
 
+  const sector = req.params.sector.toLowerCase().trim();
+
   res.json({
-    benchmark: benchmarks[req.params.sector] || 60
+    benchmark: benchmarks[sector] || 60
   });
 });
 
