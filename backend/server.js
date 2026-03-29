@@ -1,3 +1,12 @@
+const express = require("express");
+const cors = require("cors");
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// ✅ TEST ROUTE (AFTER app is defined)
 app.get("/test", (req, res) => {
   res.send("TEST OK");
 });
