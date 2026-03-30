@@ -4,6 +4,7 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const OpenAI = require("openai");
 
 // ===============================
 // INIT
@@ -11,6 +12,10 @@ const jwt = require("jsonwebtoken");
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = "secret123";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 // ===============================
 // MIDDLEWARE
@@ -21,6 +26,10 @@ app.use(express.json());
 // ===============================
 // HEALTH CHECK
 // ===============================
+app.get("/", (req, res) => {
+  res.send("Ecovanta backend running 🚀");
+});
+
 app.get("/test", (req, res) => {
   res.send("TEST OK");
 });
@@ -48,7 +57,6 @@ app.get("/benchmark/:sector", (req, res) => {
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
 
-  // demo user
   if (email === "demo@test.com" && password === "1234") {
     const token = jwt.sign(
       { email, role: "admin" },
@@ -62,23 +70,29 @@ app.post("/login", (req, res) => {
   res.status(401).json({ error: "Invalid credentials" });
 });
 
-app.post("/ai-insights", async (req, res) => {
+// ===============================
+// AUTH - CURRENT USER
+// ===============================
+app.get("/me", (req, res) => {
+  const token = req.headers.authorization;
+
   try {
-    const { environmental, social, governance } = req.body;
-
-    // OPENAI ROUTE
-    const OpenAI = require("openai");
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+    const user = jwt.verify(token, JWT_SECRET);
+    res.json(user);
+  } catch {
+    res.status(401).json({ error: "Unauthorized" });
+  }
 });
 
+// ===============================
+// AI INSIGHTS (REAL AI)
+// ===============================
 app.post("/ai-insights", async (req, res) => {
   try {
     const { environmental, social, governance } = req.body;
 
     const prompt = `
-You are an ESG consultant.
+You are a senior ESG consultant.
 
 Provide professional ESG recommendations based on:
 
@@ -86,11 +100,11 @@ Environmental score: ${environmental} (1=High Risk, 3=Best Practice)
 Social score: ${social}
 Governance score: ${governance}
 
-Write:
-- Clear recommendations
-- Business tone
-- Actionable insights
-- 5-8 bullet points
+Include:
+- Risk analysis
+- Key improvement areas
+- 5–8 actionable recommendations
+- Business tone (consulting style)
 `;
 
     const response = await openai.chat.completions.create({
@@ -104,7 +118,25 @@ Write:
     res.json({ insights });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "AI failed" });
+    console.error("AI ERROR:", err);
+    res.status(500).json({ error: "AI generation failed" });
   }
+});
+
+// ===============================
+// EXTERNAL ESG (MOCK)
+// ===============================
+app.get("/external-esg/:company", (req, res) => {
+  res.json({
+    company: req.params.company,
+    externalScore: Math.floor(Math.random() * 100),
+    source: "Mock ESG API"
+  });
+});
+
+// ===============================
+// START SERVER
+// ===============================
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
