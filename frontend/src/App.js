@@ -110,6 +110,8 @@ function App() {
 const generatePDF = async (r) => {
   const doc = new jsPDF();
 
+doc.text("PDF VERSION V2 - NEW", 20, 10);
+
   // =========================
   // HEADER
   // =========================
