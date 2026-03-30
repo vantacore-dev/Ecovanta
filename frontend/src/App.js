@@ -194,7 +194,7 @@ const generatePDF = (r) => {
   // AI TEXT
   // =========================
   doc.setFontSize(14);
-  doc.text("AI Recommendations", 20, 130);
+  doc.text("Ecovanta Recommendations", 20, 130);
 
   doc.setFontSize(10);
 
@@ -204,7 +204,7 @@ const generatePDF = (r) => {
   lines.forEach(line => {
     if (y > 280) {
       doc.addPage();
-      doc.text("AI Recommendations (continued)", 20, 20);
+      doc.text("Ecovanta Recommendations (continued)", 20, 20);
       y = 30;
     }
     doc.text(line, 20, y);
