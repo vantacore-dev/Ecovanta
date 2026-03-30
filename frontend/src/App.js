@@ -193,7 +193,7 @@ const generatePDF = async (r) => {
   doc.addImage(img, "PNG", 140, 30, 60, 60);
 
   // =========================
-  // AI RECOMMENDATIONS
+  // Ecovanta RECOMMENDATIONS
   // =========================
   doc.setFontSize(14);
   doc.text("AI Recommendations", 20, 120);
@@ -207,7 +207,7 @@ const generatePDF = async (r) => {
     if (y > 280) {
       doc.addPage();
       doc.setFontSize(14);
-      doc.text("AI Recommendations (continued)", 20, 20);
+      doc.text("Ecovanta Recommendations (continued)", 20, 20);
       doc.setFontSize(10);
       y = 30;
     }
