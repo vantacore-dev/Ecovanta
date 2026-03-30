@@ -66,32 +66,40 @@ app.post("/ai-insights", async (req, res) => {
   try {
     const { environmental, social, governance } = req.body;
 
-    // SIMPLE SMART LOGIC (works without OpenAI key)
-    let insights = "";
+    // OPENAI ROUTE
+    const OpenAI = require("openai");
 
-    if (environmental === 1) {
-      insights += "Environmental risk is high. Improve emissions reduction and energy efficiency.\n";
-    } else if (environmental === 2) {
-      insights += "Environmental performance is moderate. Consider renewable energy adoption.\n";
-    } else {
-      insights += "Environmental practices are strong. Maintain leadership in sustainability.\n";
-    }
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
-    if (social === 1) {
-      insights += "Social risk is high. Improve labor conditions and diversity policies.\n";
-    } else if (social === 2) {
-      insights += "Social performance is moderate. Strengthen employee engagement.\n";
-    } else {
-      insights += "Social practices are strong. Continue investing in workforce wellbeing.\n";
-    }
+app.post("/ai-insights", async (req, res) => {
+  try {
+    const { environmental, social, governance } = req.body;
 
-    if (governance === 1) {
-      insights += "Governance risk is high. Improve compliance and transparency.\n";
-    } else if (governance === 2) {
-      insights += "Governance is moderate. Strengthen internal controls.\n";
-    } else {
-      insights += "Governance is strong. Maintain high accountability standards.\n";
-    }
+    const prompt = `
+You are an ESG consultant.
+
+Provide professional ESG recommendations based on:
+
+Environmental score: ${environmental} (1=High Risk, 3=Best Practice)
+Social score: ${social}
+Governance score: ${governance}
+
+Write:
+- Clear recommendations
+- Business tone
+- Actionable insights
+- 5-8 bullet points
+`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7
+    });
+
+    const insights = response.choices[0].message.content;
 
     res.json({ insights });
 
@@ -99,37 +107,4 @@ app.post("/ai-insights", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "AI failed" });
   }
-});
-
-
-// ===============================
-// AUTH - CURRENT USER
-// ===============================
-app.get("/me", (req, res) => {
-  const token = req.headers.authorization;
-
-  try {
-    const user = jwt.verify(token, JWT_SECRET);
-    res.json(user);
-  } catch {
-    res.status(401).json({ error: "Unauthorized" });
-  }
-});
-
-// ===============================
-// EXTERNAL ESG (MOCK)
-// ===============================
-app.get("/external-esg/:company", (req, res) => {
-  res.json({
-    company: req.params.company,
-    externalScore: Math.floor(Math.random() * 100),
-    source: "Mock ESG API"
-  });
-});
-
-// ===============================
-// START SERVER
-// ===============================
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
 });
