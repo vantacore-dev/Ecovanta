@@ -62,6 +62,46 @@ app.post("/login", (req, res) => {
   res.status(401).json({ error: "Invalid credentials" });
 });
 
+app.post("/ai-insights", async (req, res) => {
+  try {
+    const { environmental, social, governance } = req.body;
+
+    // SIMPLE SMART LOGIC (works without OpenAI key)
+    let insights = "";
+
+    if (environmental === 1) {
+      insights += "Environmental risk is high. Improve emissions reduction and energy efficiency.\n";
+    } else if (environmental === 2) {
+      insights += "Environmental performance is moderate. Consider renewable energy adoption.\n";
+    } else {
+      insights += "Environmental practices are strong. Maintain leadership in sustainability.\n";
+    }
+
+    if (social === 1) {
+      insights += "Social risk is high. Improve labor conditions and diversity policies.\n";
+    } else if (social === 2) {
+      insights += "Social performance is moderate. Strengthen employee engagement.\n";
+    } else {
+      insights += "Social practices are strong. Continue investing in workforce wellbeing.\n";
+    }
+
+    if (governance === 1) {
+      insights += "Governance risk is high. Improve compliance and transparency.\n";
+    } else if (governance === 2) {
+      insights += "Governance is moderate. Strengthen internal controls.\n";
+    } else {
+      insights += "Governance is strong. Maintain high accountability standards.\n";
+    }
+
+    res.json({ insights });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "AI failed" });
+  }
+});
+
+
 // ===============================
 // AUTH - CURRENT USER
 // ===============================
