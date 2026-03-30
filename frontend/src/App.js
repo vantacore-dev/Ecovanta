@@ -106,53 +106,121 @@ function App() {
   // =========================
   // PDF EXPORT
   // =========================
-  const generatePDF = async (r) => {
-    const doc = new jsPDF();
+  
+const generatePDF = async (r) => {
+  const doc = new jsPDF();
 
-    doc.setFontSize(18);
-    doc.text("Ecovanta ESG Report", 20, 20);
+  // =========================
+  // HEADER
+  // =========================
+  doc.setFontSize(18);
+  doc.text("Ecovanta ESG Report", 20, 20);
 
-    doc.setFontSize(12);
-    doc.text(`Company: ${r.company}`, 20, 40);
-    doc.text(`Score: ${r.score}`, 20, 50);
-    doc.text(`Benchmark: ${benchmark}`, 20, 60);
-    doc.text(`Gap: ${r.score - benchmark}`, 20, 70);
+  doc.setFontSize(12);
+  doc.text(`Company: ${r.company}`, 20, 40);
+  doc.text(`Score: ${r.score}`, 20, 50);
+  doc.text(`Assessment: ${getRating(r.score)}`, 20, 60);
+  doc.text(`Benchmark: ${benchmark}`, 20, 70);
+  doc.text(`Gap: ${r.score - benchmark}`, 20, 80);
 
-    // Gauge
-    doc.setFillColor(220);
-    doc.rect(20, 80, 120, 10, "F");
+  // =========================
+  // GAUGE (COLOR)
+  // =========================
+  const color = getScoreColor(r.score);
+  const rgb =
+    color === "#2e7d32"
+      ? [46, 125, 50]
+      : color === "#f57c00"
+      ? [245, 124, 0]
+      : [211, 47, 47];
 
-    const color = getScoreColor(r.score);
-    const rgb = color === "#2e7d32" ? [46,125,50]
-              : color === "#f57c00" ? [245,124,0]
-              : [211,47,47];
+  doc.setFillColor(220);
+  doc.rect(20, 95, 120, 10, "F");
 
-    doc.setFillColor(...rgb);
-    doc.rect(20, 80, (r.score / 100) * 120, 10, "F");
+  doc.setFillColor(...rgb);
+  doc.rect(20, 95, (r.score / 100) * 120, 10, "F");
 
-    // Chart capture
-    const el = document.getElementById(`chart-${r.id}`);
-    if (el) {
-      const canvas = await html2canvas(el);
-      const img = canvas.toDataURL("image/png");
-      doc.addImage(img, "PNG", 140, 40, 60, 60);
+  doc.setFontSize(10);
+  doc.text("ESG Score", 20, 92);
+
+  // =========================
+  // PIE CHART (TOP RIGHT)
+  // =========================
+  const canvas = document.createElement("canvas");
+  canvas.width = 200;
+  canvas.height = 200;
+  const ctx = canvas.getContext("2d");
+
+  const total = r.environmental + r.social + r.governance;
+
+  const data = [
+    { label: "E", value: r.environmental, color: "#4CAF50" },
+    { label: "S", value: r.social, color: "#2196F3" },
+    { label: "G", value: r.governance, color: "#FFC107" }
+  ];
+
+  let startAngle = 0;
+
+  data.forEach(d => {
+    const slice = (d.value / total) * 2 * Math.PI;
+
+    ctx.beginPath();
+    ctx.moveTo(100, 100);
+    ctx.arc(100, 100, 80, startAngle, startAngle + slice);
+    ctx.closePath();
+    ctx.fillStyle = d.color;
+    ctx.fill();
+
+    // LABELS + %
+    const midAngle = startAngle + slice / 2;
+    const x = 100 + Math.cos(midAngle) * 50;
+    const y = 100 + Math.sin(midAngle) * 50;
+
+    ctx.fillStyle = "#000";
+    ctx.font = "12px Arial";
+    ctx.fillText(
+      `${d.label} ${Math.round((d.value / total) * 100)}%`,
+      x - 20,
+      y
+    );
+
+    startAngle += slice;
+  });
+
+  const img = canvas.toDataURL("image/png");
+
+  // Position TOP RIGHT (no overlap)
+  doc.addImage(img, "PNG", 140, 30, 60, 60);
+
+  // =========================
+  // AI RECOMMENDATIONS
+  // =========================
+  doc.setFontSize(14);
+  doc.text("AI Recommendations", 20, 120);
+
+  doc.setFontSize(10);
+  const lines = doc.splitTextToSize(r.aiInsights, 170);
+
+  let y = 130;
+
+  lines.forEach(line => {
+    if (y > 280) {
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.text("AI Recommendations (continued)", 20, 20);
+      doc.setFontSize(10);
+      y = 30;
     }
 
-    // AI multi-page
-    const lines = doc.splitTextToSize(r.aiInsights, 170);
-    let y = 120;
+    doc.text(line, 20, y);
+    y += 6;
+  });
 
-    lines.forEach(line => {
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.text(line, 20, y);
-      y += 8;
-    });
-
-    doc.save(`${r.company}.pdf`);
-  };
+  // =========================
+  // SAVE
+  // =========================
+  doc.save(`${r.company}_ESG_Report.pdf`);
+};
 
   // =========================
   // KPI
