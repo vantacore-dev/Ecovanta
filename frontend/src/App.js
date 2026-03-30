@@ -107,10 +107,8 @@ function App() {
   // PDF EXPORT
   // =========================
   
-const generatePDF = async (r) => {
+const generatePDF = (r) => {
   const doc = new jsPDF();
-
-doc.text("PDF VERSION V2 - NEW", 20, 10);
 
   // =========================
   // HEADER
@@ -126,101 +124,93 @@ doc.text("PDF VERSION V2 - NEW", 20, 10);
   doc.text(`Gap: ${r.score - benchmark}`, 20, 80);
 
   // =========================
-  // GAUGE (COLOR)
+  // GAUGE
   // =========================
-  const color = getScoreColor(r.score);
-  const rgb =
-    color === "#2e7d32"
-      ? [46, 125, 50]
-      : color === "#f57c00"
-      ? [245, 124, 0]
-      : [211, 47, 47];
-
   doc.setFillColor(220);
   doc.rect(20, 95, 120, 10, "F");
 
-  doc.setFillColor(...rgb);
+  const color =
+    r.score >= 80 ? [46,125,50] :
+    r.score >= 60 ? [245,124,0] :
+    [211,47,47];
+
+  doc.setFillColor(...color);
   doc.rect(20, 95, (r.score / 100) * 120, 10, "F");
 
-  doc.setFontSize(10);
   doc.text("ESG Score", 20, 92);
 
   // =========================
-  // PIE CHART (TOP RIGHT)
+  // PIE CHART (FIXED POSITION)
   // =========================
   const canvas = document.createElement("canvas");
-  canvas.width = 200;
-  canvas.height = 200;
+  canvas.width = 220;
+  canvas.height = 220;
   const ctx = canvas.getContext("2d");
 
-  const total = r.environmental + r.social + r.governance;
-
-  const data = [
-    { label: "E", value: r.environmental, color: "#4CAF50" },
-    { label: "S", value: r.social, color: "#2196F3" },
-    { label: "G", value: r.governance, color: "#FFC107" }
+  const values = [
+    r.environmental,
+    r.social,
+    r.governance
   ];
+
+  const labels = ["E", "S", "G"];
+  const colors = ["#4CAF50", "#2196F3", "#FFC107"];
+
+  const total = values.reduce((a, b) => a + b, 0);
 
   let startAngle = 0;
 
-  data.forEach(d => {
-    const slice = (d.value / total) * 2 * Math.PI;
+  values.forEach((val, i) => {
+    const slice = (val / total) * 2 * Math.PI;
 
+    // Draw slice
     ctx.beginPath();
-    ctx.moveTo(100, 100);
-    ctx.arc(100, 100, 80, startAngle, startAngle + slice);
+    ctx.moveTo(110, 110);
+    ctx.arc(110, 110, 90, startAngle, startAngle + slice);
     ctx.closePath();
-    ctx.fillStyle = d.color;
+    ctx.fillStyle = colors[i];
     ctx.fill();
 
-    // LABELS + %
+    // Label positioning
     const midAngle = startAngle + slice / 2;
-    const x = 100 + Math.cos(midAngle) * 50;
-    const y = 100 + Math.sin(midAngle) * 50;
+    const x = 110 + Math.cos(midAngle) * 55;
+    const y = 110 + Math.sin(midAngle) * 55;
+
+    const percent = Math.round((val / total) * 100);
 
     ctx.fillStyle = "#000";
-    ctx.font = "12px Arial";
-    ctx.fillText(
-      `${d.label} ${Math.round((d.value / total) * 100)}%`,
-      x - 20,
-      y
-    );
+    ctx.font = "bold 12px Arial";
+    ctx.fillText(`${labels[i]} ${percent}%`, x - 20, y);
 
     startAngle += slice;
   });
 
   const img = canvas.toDataURL("image/png");
 
-  // Position TOP RIGHT (no overlap)
-  doc.addImage(img, "PNG", 140, 30, 60, 60);
+  // Top-right position (NO OVERLAP)
+  doc.addImage(img, "PNG", 135, 30, 65, 65);
 
   // =========================
-  // Ecovanta RECOMMENDATIONS
+  // AI TEXT
   // =========================
   doc.setFontSize(14);
-  doc.text("AI Recommendations", 20, 120);
+  doc.text("AI Recommendations", 20, 130);
 
   doc.setFontSize(10);
-  const lines = doc.splitTextToSize(r.aiInsights, 170);
 
-  let y = 130;
+  const lines = doc.splitTextToSize(r.aiInsights, 170);
+  let y = 140;
 
   lines.forEach(line => {
     if (y > 280) {
       doc.addPage();
-      doc.setFontSize(14);
-      doc.text("Ecovanta Recommendations (continued)", 20, 20);
-      doc.setFontSize(10);
+      doc.text("AI Recommendations (continued)", 20, 20);
       y = 30;
     }
-
     doc.text(line, 20, y);
     y += 6;
   });
 
-  // =========================
-  // SAVE
-  // =========================
   doc.save(`${r.company}_ESG_Report.pdf`);
 };
 
