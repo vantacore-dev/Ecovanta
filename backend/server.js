@@ -91,20 +91,37 @@ app.post("/ai-insights", async (req, res) => {
   try {
     const { environmental, social, governance } = req.body;
 
-    const prompt = `
-You are a senior ESG consultant.
+const prompt = `
+You are a senior ESG consultant advising companies.
 
-Provide professional ESG recommendations based on:
+Context:
+- Environmental score: ${environmental} (1=High Risk, 3=Best Practice)
+- Social score: ${social}
+- Governance score: ${governance}
 
-Environmental score: ${environmental} (1=High Risk, 3=Best Practice)
-Social score: ${social}
-Governance score: ${governance}
+Industry benchmark: ${req.body.benchmark || "unknown"}
 
-Include:
-- Risk analysis
-- Key improvement areas
-- 5–8 actionable recommendations
-- Business tone (consulting style)
+Your task:
+
+1. Assess overall ESG risk level (High / Moderate / Low)
+2. Compare performance vs benchmark (above / below / aligned)
+3. Identify key weaknesses
+4. Provide PRIORITY ACTIONS (most important first)
+5. Provide TIMELINE:
+   - Short-term (0–6 months)
+   - Medium-term (6–18 months)
+
+Output format:
+
+- Risk Level:
+- Benchmark Position:
+- Key Issues:
+- Priority Actions:
+- Short-term Actions:
+- Medium-term Actions:
+
+Write in a professional consulting tone.
+Be concise but insightful.
 `;
 
     const response = await openai.chat.completions.create({
