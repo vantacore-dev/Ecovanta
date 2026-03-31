@@ -91,34 +91,50 @@ app.post("/ai-insights", async (req, res) => {
   try {
     const { environmental, social, governance } = req.body;
 
+const score =
+  Math.round(
+    (environmental / 3) * 40 +
+    (social / 3) * 30 +
+    (governance / 3) * 30
+  );
+
 const prompt = `
-You are a senior ESG consultant advising companies.
+You are a senior ESG consultant.
 
-Context:
-- Environmental score: ${environmental} (1=High Risk, 3=Best Practice)
-- Social score: ${social}
-- Governance score: ${governance}
+Company ESG Score: ${score}
+Industry Benchmark: ${req.body.benchmark}
 
-Industry benchmark: ${req.body.benchmark || "unknown"}
+Environmental: ${environmental}
+Social: ${social}
+Governance: ${governance}
 
-Your task:
+Your tasks:
 
-1. Assess overall ESG risk level (High / Moderate / Low)
-2. Compare performance vs benchmark (above / below / aligned)
+1. Determine ESG Risk Level:
+   - High Risk (score < 60)
+   - Moderate Risk (60–79)
+   - Low Risk (80+)
+
+2. Benchmark Comparison:
+   - Clearly state:
+     "The company score (${score}) is ABOVE / BELOW / IN LINE with the benchmark (${req.body.benchmark})"
+
 3. Identify key weaknesses
-4. Provide PRIORITY ACTIONS (most important first)
+
+4. Provide PRIORITY ACTIONS (ranked)
+
 5. Provide TIMELINE:
    - Short-term (0–6 months)
    - Medium-term (6–18 months)
 
-Output format:
+Output STRICTLY in this format:
 
-- Risk Level:
-- Benchmark Position:
-- Key Issues:
-- Priority Actions:
-- Short-term Actions:
-- Medium-term Actions:
+Risk Level:
+Benchmark Position:
+Key Issues:
+Priority Actions:
+Short-term Actions:
+Medium-term Actions:
 
 Write in a professional consulting tone.
 Be concise but insightful.
