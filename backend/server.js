@@ -89,15 +89,15 @@ app.get("/me", (req, res) => {
 // ===============================
 app.post("/ai-insights", async (req, res) => {
   try {
-    const { environmental, social, governance } = req.body;
+    const { environmental, social, governance, benchmark } = req.body;
 
-const score = Math.round(
-  (environmental / 3) * 40 +
-  (social / 3) * 30 +
-  (governance / 3) * 30
-);
+    const score = Math.round(
+      (environmental / 3) * 40 +
+      (social / 3) * 30 +
+      (governance / 3) * 30
+    );
 
-const prompt = `
+    const prompt = `
 You are a senior ESG consultant.
 
 Company ESG Score: ${score}
@@ -134,9 +134,6 @@ Key Issues:
 Priority Actions:
 Short-term Actions:
 Medium-term Actions:
-
-Write in a professional consulting tone.
-Be concise but insightful.
 `;
 
     const response = await openai.chat.completions.create({
@@ -145,13 +142,22 @@ Be concise but insightful.
       temperature: 0.7
     });
 
-    const insights = response.choices[0].message.content;
+    const insights = response?.choices?.[0]?.message?.content;
+
+    if (!insights) {
+      return res.json({
+        insights: "AI returned no content. Please try again."
+      });
+    }
 
     res.json({ insights });
-
   } catch (err) {
     console.error("AI ERROR:", err);
-    res.status(500).json({ error: "AI generation failed" });
+
+    res.json({
+      insights:
+        "AI is temporarily unavailable. Please check the backend logs and OPENAI_API_KEY."
+    });
   }
 });
 
