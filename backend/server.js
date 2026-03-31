@@ -1,14 +1,8 @@
-// ===============================
-// IMPORTS
-// ===============================
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const OpenAI = require("openai");
 
-// ===============================
-// INIT
-// ===============================
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = "secret123";
@@ -17,17 +11,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// ===============================
-// MIDDLEWARE
-// ===============================
 app.use(cors());
 app.use(express.json());
 
 // ===============================
-// HEALTH CHECK
+// HEALTH
 // ===============================
 app.get("/", (req, res) => {
-  res.send("Ecovanta backend running 🚀");
+  res.send("Ecovanta backend running");
 });
 
 app.get("/test", (req, res) => {
@@ -44,7 +35,7 @@ app.get("/benchmark/:sector", (req, res) => {
     manufacturing: 65
   };
 
-  const sector = req.params.sector.toLowerCase().trim();
+  const sector = (req.params.sector || "").toLowerCase().trim();
 
   res.json({
     benchmark: benchmarks[sector] || 60
@@ -52,7 +43,7 @@ app.get("/benchmark/:sector", (req, res) => {
 });
 
 // ===============================
-// AUTH - LOGIN
+// AUTH
 // ===============================
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
@@ -70,61 +61,62 @@ app.post("/login", (req, res) => {
   res.status(401).json({ error: "Invalid credentials" });
 });
 
-// ===============================
-// AUTH - CURRENT USER
-// ===============================
 app.get("/me", (req, res) => {
   const token = req.headers.authorization;
 
   try {
     const user = jwt.verify(token, JWT_SECRET);
     res.json(user);
-  } catch {
+  } catch (err) {
     res.status(401).json({ error: "Unauthorized" });
   }
 });
 
 // ===============================
-// AI INSIGHTS (REAL AI)
+// AI INSIGHTS
 // ===============================
 app.post("/ai-insights", async (req, res) => {
   try {
     const { environmental, social, governance, benchmark } = req.body;
 
+    console.log("AI BODY:", req.body);
+    console.log("Benchmark received:", benchmark);
+
     const score = Math.round(
-      (environmental / 3) * 40 +
-      (social / 3) * 30 +
-      (governance / 3) * 30
+      (Number(environmental) / 3) * 40 +
+      (Number(social) / 3) * 30 +
+      (Number(governance) / 3) * 30
     );
+
+    const safeBenchmark =
+      benchmark !== undefined && benchmark !== null ? Number(benchmark) : 60;
 
     const prompt = `
 You are a senior ESG consultant.
 
 Company ESG Score: ${score}
-Industry Benchmark: ${benchmark}
+Industry Benchmark: ${safeBenchmark}
 
-Environmental: ${environmental}
-Social: ${social}
-Governance: ${governance}
+Environmental score: ${environmental} (1 = High Risk, 3 = Best Practice)
+Social score: ${social} (1 = High Risk, 3 = Best Practice)
+Governance score: ${governance} (1 = High Risk, 3 = Best Practice)
 
-Your tasks:
+Tasks:
+1. Determine the overall ESG risk level:
+   - High Risk if score < 60
+   - Moderate Risk if score is 60–79
+   - Low Risk if score >= 80
 
-1. Determine ESG Risk Level:
-   - High Risk (score < 60)
-   - Moderate Risk (60–79)
-   - Low Risk (80+)
+2. Benchmark comparison:
+   Clearly state whether the company score (${score}) is ABOVE, BELOW, or IN LINE with the benchmark (${safeBenchmark}).
 
-2. Benchmark Comparison:
-   - Clearly state:
-     "The company score (${score}) is ABOVE / BELOW / IN LINE with the benchmark (${benchmark})"
+3. Identify key weaknesses.
 
-3. Identify key weaknesses
+4. Provide priority actions, ranked from most important to least important.
 
-4. Provide PRIORITY ACTIONS (ranked)
-
-5. Provide TIMELINE:
-   - Short-term (0–6 months)
-   - Medium-term (6–18 months)
+5. Provide a timeline:
+   - Short-term actions (0–6 months)
+   - Medium-term actions (6–18 months)
 
 Output STRICTLY in this format:
 
@@ -134,6 +126,9 @@ Key Issues:
 Priority Actions:
 Short-term Actions:
 Medium-term Actions:
+
+Write in a professional consulting tone.
+Use concise bullet points where helpful.
 `;
 
     const response = await openai.chat.completions.create({
@@ -153,16 +148,16 @@ Medium-term Actions:
     res.json({ insights });
   } catch (err) {
     console.error("AI ERROR:", err);
-
-    res.json({
+    res.status(500).json({
+      error: "AI generation failed",
       insights:
-        "AI is temporarily unavailable. Please check the backend logs and OPENAI_API_KEY."
+        "AI is temporarily unavailable. Please check backend logs and OPENAI_API_KEY."
     });
   }
 });
 
 // ===============================
-// EXTERNAL ESG (MOCK)
+// EXTERNAL ESG MOCK
 // ===============================
 app.get("/external-esg/:company", (req, res) => {
   res.json({
@@ -176,5 +171,9 @@ app.get("/external-esg/:company", (req, res) => {
 // START SERVER
 // ===============================
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
+
+
+  
 });
+
