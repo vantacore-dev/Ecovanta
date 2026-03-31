@@ -91,18 +91,17 @@ app.post("/ai-insights", async (req, res) => {
   try {
     const { environmental, social, governance } = req.body;
 
-const score =
-  Math.round(
-    (environmental / 3) * 40 +
-    (social / 3) * 30 +
-    (governance / 3) * 30
-  );
+const score = Math.round(
+  (environmental / 3) * 40 +
+  (social / 3) * 30 +
+  (governance / 3) * 30
+);
 
 const prompt = `
 You are a senior ESG consultant.
 
 Company ESG Score: ${score}
-Industry Benchmark: ${req.body.benchmark}
+Industry Benchmark: ${benchmark}
 
 Environmental: ${environmental}
 Social: ${social}
@@ -117,7 +116,7 @@ Your tasks:
 
 2. Benchmark Comparison:
    - Clearly state:
-     "The company score (${score}) is ABOVE / BELOW / IN LINE with the benchmark (${req.body.benchmark})"
+     "The company score (${score}) is ABOVE / BELOW / IN LINE with the benchmark (${benchmark})"
 
 3. Identify key weaknesses
 
