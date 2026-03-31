@@ -89,9 +89,11 @@ function App() {
 })
       });
 
-      const data = await res.json();
-      if (data?.insights) aiInsights = data.insights;
-    } catch {}
+     const data = await res.json();
+  if (data?.insights) aiInsights = data.insights;
+} catch (err) {
+  console.error(err);
+  }
 
     const newReport = {
       id: Date.now(),
