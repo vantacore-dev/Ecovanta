@@ -81,7 +81,12 @@ function App() {
       const res = await fetch(`${API}/ai-insights`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ environmental, social, governance })
+       body: JSON.stringify({
+  environmental,
+  social,
+  governance,
+  benchmark
+})
       });
 
       const data = await res.json();
