@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from "react";
-import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import {
-  PieChart, Pie, Cell,
-  BarChart, Bar,
-  LineChart, Line,
-  XAxis, YAxis, Tooltip, Legend
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid
 } from "recharts";
 
 const API = "https://ecovanta.onrender.com";
@@ -19,11 +26,9 @@ function App() {
   const [social, setSocial] = useState(1);
   const [governance, setGovernance] = useState(1);
 
-  const [benchmark, setBenchmark] = useState(0);
+  const [benchmark, setBenchmark] = useState(60);
+  const [loading, setLoading] = useState(false);
 
-  // =========================
-  // COLOR HELPERS
-  // =========================
   const getColor = (value) => {
     if (value === 1) return "#d32f2f";
     if (value === 2) return "#f57c00";
@@ -36,30 +41,12 @@ function App() {
     return "#d32f2f";
   };
 
-  // =========================
-  // BENCHMARK
-  // =========================
-  useEffect(() => {
-    fetch(`${API}/benchmark/${sector}`)
-      .then(res => res.json())
-      .then(data => setBenchmark(data.benchmark))
-      .catch(console.error);
-  }, [sector]);
-
-  // =========================
-  // SCORE
-  // =========================
-  const calculateScore = () => {
-    return Math.round(
-      (environmental / 3) * 40 +
-      (social / 3) * 30 +
-      (governance / 3) * 30
-    );
+  const getScoreRgb = (score) => {
+    if (score >= 80) return [46, 125, 50];
+    if (score >= 60) return [245, 124, 0];
+    return [211, 47, 47];
   };
 
-  // =========================
-  // RATING
-  // =========================
   const getRating = (score) => {
     if (score >= 80) return "A (Leader)";
     if (score >= 60) return "B (Compliant)";
@@ -67,273 +54,417 @@ function App() {
     return "D (Critical)";
   };
 
-  // =========================
-  // ADD REPORT + AI
-  // =========================
+  const calculateScore = (e, s, g) => {
+    return Math.round((e / 3) * 40 + (s / 3) * 30 + (g / 3) * 30);
+  };
+
+  useEffect(() => {
+    fetch(`${API}/benchmark/${sector}`)
+      .then((res) => res.json())
+      .then((data) => setBenchmark(Number(data.benchmark || 60)))
+      .catch((err) => {
+        console.error(err);
+        setBenchmark(60);
+      });
+  }, [sector]);
+
+  useEffect(() => {
+    fetch(`${API}/reports`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to load reports");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setReports(data);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }, []);
+
   const addReport = async () => {
-    if (!company) return alert("Enter company");
+    if (!company.trim()) {
+      alert("Please enter a company name.");
+      return;
+    }
 
-    const score = calculateScore();
+    setLoading(true);
 
-    let aiInsights = "No AI insights available";
+    const score = calculateScore(environmental, social, governance);
+    let aiInsights = "No AI insights available.";
 
     try {
-      const res = await fetch(`${API}/ai-insights`, {
+      const aiRes = await fetch(`${API}/ai-insights`, {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-       body: JSON.stringify({
-  environmental,
-  social,
-  governance,
-  benchmark
-})
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          environmental,
+          social,
+          governance,
+          benchmark
+        })
       });
 
-     const data = await res.json();
-  if (data?.insights) aiInsights = data.insights;
-} catch (err) {
-  console.error(err);
-  }
+      const aiData = await aiRes.json();
+      if (aiData?.insights) {
+        aiInsights = aiData.insights;
+      }
+    } catch (err) {
+      console.error("AI fetch failed:", err);
+    }
 
     const newReport = {
       id: Date.now(),
-      company,
+      company: company.trim(),
       sector,
-      score,
       environmental,
       social,
       governance,
-      aiInsights
+      score,
+      benchmark,
+      aiInsights,
+      createdAt: new Date().toISOString()
     };
 
-    setReports(prev => [...prev, newReport]);
+    try {
+      const saveRes = await fetch(`${API}/reports`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newReport)
+      });
+
+      if (saveRes.ok) {
+        const saved = await saveRes.json();
+        if (Array.isArray(saved)) {
+          setReports(saved);
+        } else {
+          setReports((prev) => [...prev, newReport]);
+        }
+      } else {
+        setReports((prev) => [...prev, newReport]);
+      }
+    } catch (err) {
+      console.error("Save failed:", err);
+      setReports((prev) => [...prev, newReport]);
+    }
+
     setCompany("");
+    setEnvironmental(1);
+    setSocial(1);
+    setGovernance(1);
+    setLoading(false);
   };
 
-  // =========================
-  // PDF EXPORT
-  // =========================
-  
-const generatePDF = (r) => {
-  const doc = new jsPDF();
+  const generatePDF = (r) => {
+    const doc = new jsPDF();
 
-  // =========================
-  // HEADER
-  // =========================
-  doc.setFontSize(18);
-  doc.text("Ecovanta ESG Report", 20, 20);
+    doc.setFontSize(18);
+    doc.text("Ecovanta ESG Report", 20, 20);
 
-  doc.setFontSize(12);
-  doc.text(`Company: ${r.company}`, 20, 40);
-  doc.text(`Score: ${r.score}`, 20, 50);
-  doc.text(`Assessment: ${getRating(r.score)}`, 20, 60);
-  doc.text(`Benchmark: ${benchmark}`, 20, 70);
-  doc.text(`Gap: ${r.score - benchmark}`, 20, 80);
+    doc.setFontSize(12);
+    doc.text(`Company: ${r.company}`, 20, 38);
+    doc.text(`Sector: ${r.sector || "N/A"}`, 20, 46);
+    doc.text(`Score: ${r.score}`, 20, 54);
+    doc.text(`Assessment: ${getRating(r.score)}`, 20, 62);
+    doc.text(`Benchmark: ${r.benchmark ?? benchmark}`, 20, 70);
+    doc.text(`Gap: ${r.score - (r.benchmark ?? benchmark)}`, 20, 78);
 
-  // =========================
-  // GAUGE
-  // =========================
-  doc.setFillColor(220);
-  doc.rect(20, 95, 120, 10, "F");
+    const gaugeRgb = getScoreRgb(r.score);
+    doc.setFontSize(10);
+    doc.text("ESG Score", 20, 90);
+    doc.setFillColor(220);
+    doc.rect(20, 94, 120, 10, "F");
+    doc.setFillColor(...gaugeRgb);
+    doc.rect(20, 94, (r.score / 100) * 120, 10, "F");
 
-  const color =
-    r.score >= 80 ? [46,125,50] :
-    r.score >= 60 ? [245,124,0] :
-    [211,47,47];
+    const canvas = document.createElement("canvas");
+    const size = 220;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
 
-  doc.setFillColor(...color);
-  doc.rect(20, 95, (r.score / 100) * 120, 10, "F");
+    const values = [r.environmental, r.social, r.governance];
+    const labels = ["E", "S", "G"];
+    const colors = ["#4CAF50", "#2196F3", "#FFC107"];
+    const total = values.reduce((sum, value) => sum + value, 0);
 
-  doc.text("ESG Score", 20, 92);
+    let startAngle = 0;
+    values.forEach((value, index) => {
+      const slice = (value / total) * 2 * Math.PI;
 
-  // =========================
-  // PIE CHART (FIXED POSITION)
-  // =========================
-  const canvas = document.createElement("canvas");
-  canvas.width = 220;
-  canvas.height = 220;
-  const ctx = canvas.getContext("2d");
+      ctx.beginPath();
+      ctx.moveTo(size / 2, size / 2);
+      ctx.arc(size / 2, size / 2, 85, startAngle, startAngle + slice);
+      ctx.closePath();
+      ctx.fillStyle = colors[index];
+      ctx.fill();
 
-  const values = [
-    r.environmental,
-    r.social,
-    r.governance
-  ];
+      const midAngle = startAngle + slice / 2;
+      const x = size / 2 + Math.cos(midAngle) * 50;
+      const y = size / 2 + Math.sin(midAngle) * 50;
+      const percent = Math.round((value / total) * 100);
 
-  const labels = ["E", "S", "G"];
-  const colors = ["#4CAF50", "#2196F3", "#FFC107"];
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 12px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(`${labels[index]} ${percent}%`, x, y);
 
-  const total = values.reduce((a, b) => a + b, 0);
+      startAngle += slice;
+    });
 
-  let startAngle = 0;
+    const pieImage = canvas.toDataURL("image/png");
+    doc.addImage(pieImage, "PNG", 135, 25, 60, 60);
 
-  values.forEach((val, i) => {
-    const slice = (val / total) * 2 * Math.PI;
+    doc.setFontSize(11);
+    doc.text("AI Recommendations", 20, 120);
 
-    // Draw slice
-    ctx.beginPath();
-    ctx.moveTo(110, 110);
-    ctx.arc(110, 110, 90, startAngle, startAngle + slice);
-    ctx.closePath();
-    ctx.fillStyle = colors[i];
-    ctx.fill();
+    const aiText = r.aiInsights || "No AI insights available.";
+    const lines = doc.splitTextToSize(aiText, 170);
+    let y = 130;
 
-    // Label positioning
-    const midAngle = startAngle + slice / 2;
-    const x = 110 + Math.cos(midAngle) * 55;
-    const y = 110 + Math.sin(midAngle) * 55;
+    lines.forEach((line) => {
+      if (y > 280) {
+        doc.addPage();
+        doc.setFontSize(11);
+        doc.text("AI Recommendations (continued)", 20, 20);
+        y = 30;
+      }
+      doc.setFontSize(10);
+      doc.text(line, 20, y);
+      y += 6;
+    });
 
-    const percent = Math.round((val / total) * 100);
+    doc.save(`${r.company}_ESG_Report.pdf`);
+  };
 
-    ctx.fillStyle = "#000";
-    ctx.font = "bold 12px Arial";
-    ctx.fillText(`${labels[i]} ${percent}%`, x - 20, y);
-
-    startAngle += slice;
-  });
-
-  const img = canvas.toDataURL("image/png");
-
-  // Top-right position (NO OVERLAP)
-  doc.addImage(img, "PNG", 135, 30, 65, 65);
-
-  // =========================
-  // AI TEXT
-  // =========================
-  doc.setFontSize(14);
-  doc.text("Ecovanta Recommendations", 20, 130);
-
-  doc.setFontSize(10);
-
-  const lines = doc.splitTextToSize(r.aiInsights, 170);
-  let y = 140;
-
-  lines.forEach(line => {
-    if (y > 280) {
-      doc.addPage();
-      doc.text("Ecovanta Recommendations (continued)", 20, 20);
-      y = 30;
-    }
-    doc.text(line, 20, y);
-    y += 6;
-  });
-
-  doc.save(`${r.company}_ESG_Report.pdf`);
-};
-
-  // =========================
-  // KPI
-  // =========================
-  const avg =
+  const averageScore =
     reports.length > 0
-      ? Math.round(reports.reduce((s, r) => s + r.score, 0) / reports.length)
+      ? Math.round(
+          reports.reduce((sum, report) => sum + Number(report.score || 0), 0) /
+            reports.length
+        )
       : 0;
 
-  // =========================
-  // DISTRIBUTION
-  // =========================
-  const distData = [
-    { name: "A", value: reports.filter(r => r.score >= 80).length },
-    { name: "B", value: reports.filter(r => r.score >= 60 && r.score < 80).length },
-    { name: "C", value: reports.filter(r => r.score >= 40 && r.score < 60).length },
-    { name: "D", value: reports.filter(r => r.score < 40).length }
+  const distributionData = [
+    { name: "A", value: reports.filter((r) => r.score >= 80).length },
+    {
+      name: "B",
+      value: reports.filter((r) => r.score >= 60 && r.score < 80).length
+    },
+    {
+      name: "C",
+      value: reports.filter((r) => r.score >= 40 && r.score < 60).length
+    },
+    { name: "D", value: reports.filter((r) => r.score < 40).length }
   ];
 
   return (
-    <div style={{ padding: 20, background: "#f5f7fa" }}>
-      <h1>Ecovanta ESG Dashboard</h1>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f5f7fa",
+        padding: 24,
+        fontFamily: "Arial, sans-serif"
+      }}
+    >
+      <h1 style={{ marginBottom: 20 }}>Ecovanta ESG Dashboard</h1>
 
-      {/* LEGEND */}
-      <div style={{ marginBottom: 10 }}>
+      <div
+        style={{
+          marginBottom: 16,
+          background: "#fff",
+          padding: 16,
+          borderRadius: 10
+        }}
+      >
         <strong>ESG Scale:</strong>
-        <span style={{ marginLeft: 10, color: "#d32f2f" }}>🔴 High Risk</span>
-        <span style={{ marginLeft: 10, color: "#f57c00" }}>🟠 Moderate</span>
-        <span style={{ marginLeft: 10, color: "#2e7d32" }}>🟢 Best Practice</span>
+        <span style={{ marginLeft: 12, color: "#d32f2f" }}>🔴 High Risk</span>
+        <span style={{ marginLeft: 12, color: "#f57c00" }}>🟠 Moderate Risk</span>
+        <span style={{ marginLeft: 12, color: "#2e7d32" }}>🟢 Best Practice</span>
       </div>
 
-      {/* INPUT */}
-      <div style={{ background: "#fff", padding: 20, borderRadius: 10 }}>
-        <input
-          placeholder="Company"
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-        />
+      <div
+        style={{
+          background: "#fff",
+          padding: 20,
+          borderRadius: 12,
+          marginBottom: 20,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+        }}
+      >
+        <div style={{ display: "grid", gap: 12, maxWidth: 520 }}>
+          <input
+            placeholder="Company"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            style={{
+              padding: 10,
+              borderRadius: 8,
+              border: "1px solid #ccc"
+            }}
+          />
 
-        <select onChange={(e) => setSector(e.target.value)}>
-          <option>Tech</option>
-          <option>Energy</option>
-          <option>Manufacturing</option>
-        </select>
-
-        {[
-          ["Environmental", environmental, setEnvironmental],
-          ["Social", social, setSocial],
-          ["Governance", governance, setGovernance]
-        ].map(([label, value, setter]) => (
-          <div key={label} style={{ marginTop: 10 }}>
-            <label>{label}:</label>
+          <div>
+            <label style={{ marginRight: 10 }}>Sector:</label>
             <select
-              value={value}
-              onChange={(e) => setter(Number(e.target.value))}
-              style={{
-                marginLeft: 10,
-                padding: 6,
-                backgroundColor: getColor(value),
-                color: "#fff",
-                borderRadius: 6
-              }}
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+              style={{ padding: 8, borderRadius: 8 }}
             >
-              <option value="1">🔴 High Risk</option>
-              <option value="2">🟠 Moderate Risk</option>
-              <option value="3">🟢 Best Practice</option>
+              <option value="Tech">Tech</option>
+              <option value="Energy">Energy</option>
+              <option value="Manufacturing">Manufacturing</option>
             </select>
           </div>
-        ))}
 
-        <button onClick={addReport}>Generate ESG</button>
+          {[
+            ["Environmental", environmental, setEnvironmental],
+            ["Social", social, setSocial],
+            ["Governance", governance, setGovernance]
+          ].map(([label, value, setter]) => (
+            <div key={label}>
+              <label style={{ display: "inline-block", width: 110 }}>
+                {label}:
+              </label>
+              <select
+                value={value}
+                onChange={(e) => setter(Number(e.target.value))}
+                style={{
+                  padding: 8,
+                  borderRadius: 8,
+                  background: getColor(value),
+                  color: "#fff",
+                  border: "none",
+                  minWidth: 180,
+                  fontWeight: "bold"
+                }}
+              >
+                <option value="1">🔴 High Risk</option>
+                <option value="2">🟠 Moderate Risk</option>
+                <option value="3">🟢 Best Practice</option>
+              </select>
+            </div>
+          ))}
+
+          <div style={{ marginTop: 8 }}>
+            <button
+              onClick={addReport}
+              disabled={loading}
+              style={{
+                background: "#1976d2",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "10px 16px",
+                cursor: "pointer"
+              }}
+            >
+              {loading ? "Generating..." : "Generate ESG"}
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* KPI */}
-      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
-        <div style={{ background: "#fff", padding: 10 }}>Total: {reports.length}</div>
-        <div style={{ background: "#fff", padding: 10 }}>Average: {avg}</div>
+      <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
+        <div
+          style={{
+            background: "#fff",
+            padding: 16,
+            borderRadius: 10,
+            minWidth: 180,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+          }}
+        >
+          <strong>Total Companies</strong>
+          <div style={{ fontSize: 24, marginTop: 8 }}>{reports.length}</div>
+        </div>
+
+        <div
+          style={{
+            background: "#fff",
+            padding: 16,
+            borderRadius: 10,
+            minWidth: 180,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+          }}
+        >
+          <strong>Average Score</strong>
+          <div style={{ fontSize: 24, marginTop: 8 }}>{averageScore}</div>
+        </div>
+
+        <div
+          style={{
+            background: "#fff",
+            padding: 16,
+            borderRadius: 10,
+            minWidth: 220,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+          }}
+        >
+          <strong>Benchmark ({sector})</strong>
+          <div style={{ fontSize: 24, marginTop: 8 }}>{benchmark}</div>
+        </div>
       </div>
 
-      <p>Benchmark ({sector}): {benchmark}</p>
-
-      {/* DISTRIBUTION */}
       {reports.length > 0 && (
-        <BarChart width={500} height={250} data={distData}>
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Bar dataKey="value" fill="#1976d2" />
-        </BarChart>
+        <div
+          style={{
+            background: "#fff",
+            padding: 20,
+            borderRadius: 12,
+            marginBottom: 20,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+          }}
+        >
+          <h3>Assessment Distribution</h3>
+          <BarChart width={520} height={260} data={distributionData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis allowDecimals={false} />
+            <Tooltip />
+            <Bar dataKey="value" fill="#1976d2" />
+          </BarChart>
+        </div>
       )}
 
-      {/* TREND */}
       {reports.length > 1 && (
-        <LineChart width={600} height={250} data={reports}>
-          <XAxis dataKey="company" />
-          <YAxis />
-          <Tooltip />
-          <Line dataKey="score" stroke="#1976d2" />
-        </LineChart>
+        <div
+          style={{
+            background: "#fff",
+            padding: 20,
+            borderRadius: 12,
+            marginBottom: 20,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+          }}
+        >
+          <h3>Trend</h3>
+          <LineChart width={700} height={280} data={reports}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="company" />
+            <YAxis />
+            <Tooltip />
+            <Line type="monotone" dataKey="score" stroke="#1976d2" strokeWidth={3} />
+          </LineChart>
+        </div>
       )}
 
-      {/* REPORTS */}
-      {reports.map(r => (
+      {reports.map((r) => (
         <div
           key={r.id}
           style={{
             background: "#fff",
-            marginTop: 20,
+            marginBottom: 20,
             padding: 20,
-            borderRadius: 10,
-            borderLeft: `8px solid ${getScoreColor(r.score)}`
+            borderRadius: 12,
+            borderLeft: `8px solid ${getScoreColor(r.score)}`,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
           }}
         >
-          <h3>{r.company}</h3>
+          <h3 style={{ marginTop: 0 }}>{r.company}</h3>
 
           <p>
             Score:
@@ -343,43 +474,88 @@ const generatePDF = (r) => {
                 padding: "4px 10px",
                 borderRadius: 6,
                 background: getScoreColor(r.score),
-                color: "#fff"
+                color: "#fff",
+                fontWeight: "bold"
               }}
             >
               {r.score}
             </span>
           </p>
 
-          <p>Rating: {getRating(r.score)}</p>
-          <p>Gap: {r.score - benchmark}</p>
+          <p>Assessment: {getRating(r.score)}</p>
+          <p>Sector: {r.sector || sector}</p>
+          <p>Benchmark: {r.benchmark ?? benchmark}</p>
+          <p>Gap vs Benchmark: {r.score - (r.benchmark ?? benchmark)}</p>
 
           <p>
             E:
-            <span style={{ color: getColor(r.environmental) }}> {r.environmental}</span> |
-            S:
-            <span style={{ color: getColor(r.social) }}> {r.social}</span> |
-            G:
-            <span style={{ color: getColor(r.governance) }}> {r.governance}</span>
+            <span style={{ color: getColor(r.environmental), fontWeight: "bold" }}>
+              {" "}
+              {r.environmental}
+            </span>
+            {" | "}S:
+            <span style={{ color: getColor(r.social), fontWeight: "bold" }}>
+              {" "}
+              {r.social}
+            </span>
+            {" | "}G:
+            <span style={{ color: getColor(r.governance), fontWeight: "bold" }}>
+              {" "}
+              {r.governance}
+            </span>
           </p>
 
           <div id={`chart-${r.id}`}>
-            <PieChart width={250} height={250}>
-              <Pie data={[
-                { name: "E", value: r.environmental },
-                { name: "S", value: r.social },
-                { name: "G", value: r.governance }
-              ]} dataKey="value">
-                <Cell fill="#4CAF50"/>
-                <Cell fill="#2196F3"/>
-                <Cell fill="#FFC107"/>
+            <PieChart width={280} height={260}>
+              <Pie
+                data={[
+                  { name: "Environmental", value: r.environmental },
+                  { name: "Social", value: r.social },
+                  { name: "Governance", value: r.governance }
+                ]}
+                dataKey="value"
+                cx="50%"
+                cy="45%"
+                outerRadius={80}
+                label={({ name, percent }) =>
+                  `${name[0]} ${Math.round(percent * 100)}%`
+                }
+              >
+                <Cell fill="#4CAF50" />
+                <Cell fill="#2196F3" />
+                <Cell fill="#FFC107" />
               </Pie>
-              <Legend/>
+              <Tooltip />
+              <Legend />
             </PieChart>
           </div>
 
-          <p><b>AI:</b> {r.aiInsights}</p>
+          <div
+            style={{
+              whiteSpace: "pre-wrap",
+              background: "#fafafa",
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 12
+            }}
+          >
+            <strong>AI Recommendations</strong>
+            <div style={{ marginTop: 8 }}>{r.aiInsights}</div>
+          </div>
 
-          <button onClick={() => generatePDF(r)}>Download PDF</button>
+          <button
+            onClick={() => generatePDF(r)}
+            style={{
+              background: "#1976d2",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 16px",
+              cursor: "pointer"
+            }}
+          >
+            Download PDF
+          </button>
         </div>
       ))}
     </div>
