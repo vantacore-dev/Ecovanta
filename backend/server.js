@@ -10,6 +10,24 @@ const JWT_SECRET = "secret123";
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+let report = [];
+
+app.post("/reports", (req, res) => {
+  const report = {
+    id: Date.now(),
+    ...req.body,
+    createdAt: new Date()
+  };
+
+  reports.push(report);
+  res.json(report);
+});
+
+
+app.get("/reports", (req, res) => {
+  res.json(reports);
+});
+
 
 app.use(cors());
 app.use(express.json());
@@ -172,8 +190,6 @@ app.get("/external-esg/:company", (req, res) => {
 // ===============================
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-
-
-  
+ 
 });
 
