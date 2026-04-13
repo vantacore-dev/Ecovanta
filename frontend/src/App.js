@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 
+
 const API = "https://ecovanta.onrender.com";
+
 
 function App(){
 
@@ -20,94 +22,152 @@ function App(){
   // =====================
   // LOGIN
   // =====================
-  const login = async ()=>{
-    const res = await fetch(`${API}/login`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        email:"demo@test.com",
-        password:"1234"
+const login = async () => {
+  try {
+    const res = await fetch(`${API}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "demo@test.com",
+        password: "1234"
       })
     });
 
     const data = await res.json();
-    setToken(data.token);
-  };
+
+    if (data?.token) {
+      setToken(data.token);
+      localStorage.setItem("token", data.token);
+    } else {
+      console.error("Login failed:", data);
+    }
+  } catch (err) {
+    console.error("Login error:", err);
+  }
+};
 
   // =====================
   // LOAD
   // =====================
-  useEffect(()=>{login()},[]);
+useEffect(() => {
+  const savedToken = localStorage.getItem("token");
+  if (savedToken) {
+    setToken(savedToken);
+  } else {
+    login();
+  }
+}, []);
 
-  useEffect(()=>{
-    if(!token) return;
+useEffect(() => {
+  if (!token) return;
 
-    fetch(`${API}/reports`,{
-      headers:{Authorization:token}
+  fetch(`${API}/reports`, {
+    headers: { Authorization: token }
+  })
+    .then((r) => {
+      if (!r.ok) throw new Error("Failed to load reports");
+      return r.json();
     })
-    .then(r=>r.json())
-    .then(setReports);
-
-    fetch(`${API}/analytics/overview`,{
-      headers:{Authorization:token}
+    .then((data) => {
+      if (Array.isArray(data)) setReports(data);
     })
-    .then(r=>r.json())
-    .then(setAnalytics);
+    .catch((err) => console.error("Reports load error:", err));
 
-  },[token]);
-
-  useEffect(()=>{
-    fetch(`${API}/benchmark/${sector}`)
-      .then(r=>r.json())
-      .then(d=>setBenchmark(d.benchmark));
-  },[sector]);
+  fetch(`${API}/analytics/overview`, {
+    headers: { Authorization: token }
+  })
+    .then((r) => {
+      if (!r.ok) throw new Error("Failed to load analytics");
+      return r.json();
+    })
+    .then((data) => setAnalytics(data))
+    .catch((err) => console.error("Analytics load error:", err));
+}, [token]);
 
   // =====================
   // ADD REPORT
   // =====================
-  const addReport = async ()=>{
+  const addReport = async () => {
+  if (!company.trim()) {
+    alert("Please enter a company name");
+    return;
+  }
 
-    const score = Math.round((e/3)*40+(s/3)*30+(g/3)*30);
+  if (!token) {
+    alert("Login not ready yet. Please try again in a second.");
+    return;
+  }
 
-    let aiInsights = "";
+  const score = Math.round((e / 3) * 40 + (s / 3) * 30 + (g / 3) * 30);
 
-    try{
-      const ai = await fetch(`${API}/ai-insights`,{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          environmental:e,
-          social:s,
-          governance:g,
-          benchmark
-        })
-      });
+  let aiInsights = "No AI insights available";
 
-      const data = await ai.json();
-      aiInsights = data.insights;
-    }catch{}
-
-    const newReport = {
-      company,sector,
-      environmental:e,
-      social:s,
-      governance:g,
-      score,
-      benchmark,
-      aiInsights
-    };
-
-    await fetch(`${API}/reports`,{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        Authorization:token
-      },
-      body:JSON.stringify(newReport)
+  try {
+    const ai = await fetch(`${API}/ai-insights`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        environmental: e,
+        social: s,
+        governance: g,
+        benchmark
+      })
     });
 
-    window.location.reload();
+    const aiData = await ai.json();
+    if (aiData?.insights) {
+      aiInsights = aiData.insights;
+    }
+  } catch (err) {
+    console.error("AI error:", err);
+  }
+
+  const newReport = {
+    company: company.trim(),
+    sector,
+    environmental: e,
+    social: s,
+    governance: g,
+    score,
+    benchmark,
+    aiInsights
   };
+
+  try {
+    const save = await fetch(`${API}/reports`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token
+      },
+      body: JSON.stringify(newReport)
+    });
+
+    if (!save.ok) {
+      const errText = await save.text();
+      console.error("Save failed:", errText);
+      alert("Report save failed. Check backend auth or logs.");
+      return;
+    }
+
+    const savedReport = await save.json();
+
+    setReports((prev) => [savedReport, ...prev]);
+
+    setAnalytics((prev) => ({
+      ...prev,
+      total: (prev.total || 0) + 1
+    }));
+
+    setCompany("");
+    setE(1);
+    setS(1);
+    setG(1);
+  } catch (err) {
+    console.error("Report creation error:", err);
+    alert("Could not create report.");
+  }
+};
 
   // =====================
   // UI
