@@ -1,195 +1,165 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const OpenAI = require("openai");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = "secret123";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-let report = [];
-
-app.post("/reports", (req, res) => {
-  const report = {
-    id: Date.now(),
-    ...req.body,
-    createdAt: new Date()
-  };
-
-  reports.push(report);
-  res.json(report);
-});
-
-
-app.get("/reports", (req, res) => {
-  res.json(reports);
-});
-
 
 app.use(cors());
 app.use(express.json());
 
-// ===============================
+// =======================
+// ENV
+// =======================
+const JWT_SECRET = process.env.JWT_SECRET || "secret123";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// =======================
+// MONGODB
+// =======================
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error(err));
+
+// =======================
+// MODEL
+// =======================
+const Report = mongoose.model("Report", new mongoose.Schema({
+  userId: String,
+  company: String,
+  sector: String,
+  environmental: Number,
+  social: Number,
+  governance: Number,
+  score: Number,
+  benchmark: Number,
+  aiInsights: String
+}, { timestamps: true }));
+
+// =======================
+// HELPERS
+// =======================
+const calculateScore = (e,s,g) =>
+  Math.round((e/3)*40 + (s/3)*30 + (g/3)*30);
+
+const auth = (req,res,next)=>{
+  const token = req.headers.authorization;
+  if(!token) return res.status(401).json({error:"No token"});
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({error:"Invalid token"});
+  }
+};
+
+// =======================
 // HEALTH
-// ===============================
-app.get("/", (req, res) => {
-  res.send("Ecovanta backend running");
+// =======================
+app.get("/", (req,res)=>res.send("Ecovanta v2 running"));
+
+// =======================
+// LOGIN
+// =======================
+app.post("/login", (req,res)=>{
+  const {email,password} = req.body;
+
+  if(email==="demo@test.com" && password==="1234"){
+    const token = jwt.sign({userId:"demo"}, JWT_SECRET);
+    return res.json({token});
+  }
+
+  res.status(401).json({error:"Invalid"});
 });
 
-app.get("/test", (req, res) => {
-  res.send("TEST OK");
-});
-
-// ===============================
+// =======================
 // BENCHMARK
-// ===============================
-app.get("/benchmark/:sector", (req, res) => {
-  const benchmarks = {
-    tech: 75,
-    energy: 55,
-    manufacturing: 65
+// =======================
+app.get("/benchmark/:sector", (req,res)=>{
+  const map = {
+    tech:75,
+    energy:55,
+    manufacturing:65
   };
 
-  const sector = (req.params.sector || "").toLowerCase().trim();
-
-  res.json({
-    benchmark: benchmarks[sector] || 60
-  });
+  res.json({benchmark: map[req.params.sector] || 60});
 });
 
-// ===============================
-// AUTH
-// ===============================
-app.post("/login", (req, res) => {
-  const { email, password } = req.body;
-
-  if (email === "demo@test.com" && password === "1234") {
-    const token = jwt.sign(
-      { email, role: "admin" },
-      JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    return res.json({ token });
-  }
-
-  res.status(401).json({ error: "Invalid credentials" });
-});
-
-app.get("/me", (req, res) => {
-  const token = req.headers.authorization;
-
+// =======================
+// AI
+// =======================
+app.post("/ai-insights", async (req,res)=>{
   try {
-    const user = jwt.verify(token, JWT_SECRET);
-    res.json(user);
-  } catch (err) {
-    res.status(401).json({ error: "Unauthorized" });
-  }
-});
+    const {environmental,social,governance,benchmark} = req.body;
 
-// ===============================
-// AI INSIGHTS
-// ===============================
-app.post("/ai-insights", async (req, res) => {
-  try {
-    const { environmental, social, governance, benchmark } = req.body;
-
-    console.log("AI BODY:", req.body);
-    console.log("Benchmark received:", benchmark);
-
-    const score = Math.round(
-      (Number(environmental) / 3) * 40 +
-      (Number(social) / 3) * 30 +
-      (Number(governance) / 3) * 30
-    );
-
-    const safeBenchmark =
-      benchmark !== undefined && benchmark !== null ? Number(benchmark) : 60;
+    const score = calculateScore(environmental,social,governance);
 
     const prompt = `
-You are a senior ESG consultant.
+Company score: ${score}
+Benchmark: ${benchmark}
 
-Company ESG Score: ${score}
-Industry Benchmark: ${safeBenchmark}
-
-Environmental score: ${environmental} (1 = High Risk, 3 = Best Practice)
-Social score: ${social} (1 = High Risk, 3 = Best Practice)
-Governance score: ${governance} (1 = High Risk, 3 = Best Practice)
-
-Tasks:
-1. Determine the overall ESG risk level:
-   - High Risk if score < 60
-   - Moderate Risk if score is 60–79
-   - Low Risk if score >= 80
-
-2. Benchmark comparison:
-   Clearly state whether the company score (${score}) is ABOVE, BELOW, or IN LINE with the benchmark (${safeBenchmark}).
-
-3. Identify key weaknesses.
-
-4. Provide priority actions, ranked from most important to least important.
-
-5. Provide a timeline:
-   - Short-term actions (0–6 months)
-   - Medium-term actions (6–18 months)
-
-Output STRICTLY in this format:
-
-Risk Level:
-Benchmark Position:
-Key Issues:
-Priority Actions:
-Short-term Actions:
-Medium-term Actions:
-
-Write in a professional consulting tone.
-Use concise bullet points where helpful.
+Provide:
+- Risk level
+- Benchmark comparison
+- Key issues
+- Priority actions
+- Short-term actions
+- Medium-term actions
 `;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7
+      model:"gpt-4o-mini",
+      messages:[{role:"user", content:prompt}]
     });
 
-    const insights = response?.choices?.[0]?.message?.content;
-
-    if (!insights) {
-      return res.json({
-        insights: "AI returned no content. Please try again."
-      });
-    }
-
-    res.json({ insights });
-  } catch (err) {
-    console.error("AI ERROR:", err);
-    res.status(500).json({
-      error: "AI generation failed",
-      insights:
-        "AI is temporarily unavailable. Please check backend logs and OPENAI_API_KEY."
+    res.json({
+      insights: response.choices[0].message.content
     });
+
+  } catch(err){
+    console.error(err);
+    res.json({insights:"AI unavailable"});
   }
 });
 
-// ===============================
-// EXTERNAL ESG MOCK
-// ===============================
-app.get("/external-esg/:company", (req, res) => {
+// =======================
+// REPORTS
+// =======================
+app.post("/reports", auth, async (req,res)=>{
+  const r = await Report.create({
+    ...req.body,
+    userId:req.user.userId
+  });
+  res.json(r);
+});
+
+app.get("/reports", auth, async (req,res)=>{
+  const data = await Report.find({userId:req.user.userId}).sort({createdAt:-1});
+  res.json(data);
+});
+
+// =======================
+// ANALYTICS
+// =======================
+app.get("/analytics/overview", auth, async (req,res)=>{
+  const data = await Report.find({userId:req.user.userId});
+
+  const avg = data.length
+    ? Math.round(data.reduce((a,r)=>a+r.score,0)/data.length)
+    : 0;
+
   res.json({
-    company: req.params.company,
-    externalScore: Math.floor(Math.random() * 100),
-    source: "Mock ESG API"
+    total:data.length,
+    average:avg,
+    high:data.filter(r=>r.score<60).length,
+    low:data.filter(r=>r.score>=80).length
   });
 });
 
-// ===============================
-// START SERVER
-// ===============================
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
- 
-});
-
+// =======================
+app.listen(PORT, ()=>console.log("Server running"));
