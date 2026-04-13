@@ -175,6 +175,10 @@ useEffect(() => {
   return(
     <div style={{padding:20,background:"#f5f7fa"}}>
 
+
+<p>Token: {token ? "OK" : "Missing"}</p>
+<p>Reports loaded: {reports.length}</p>
+
       <h1>Ecovanta Full ESG v2</h1>
 
       {/* KPI */}
