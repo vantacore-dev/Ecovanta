@@ -287,9 +287,9 @@ function App() {
           margin: "0 auto"
         }}
       >
-        <h1 style={{ marginBottom: "8px" }}>Ecovanta Full ESG v2</h1>
+        <h1 style={{ marginBottom: "8px" }}>Ecovanta Risk and Compliance</h1>
         <p style={{ marginTop: 0, color: "#6b7280" }}>
-          Investor-grade ESG intelligence platform
+          ESG intelligence platform
         </p>
 
         <div
