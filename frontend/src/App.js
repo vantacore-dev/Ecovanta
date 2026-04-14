@@ -659,7 +659,7 @@ function App() {
                     whiteSpace: "pre-wrap"
                   }}
                 >
-                  <strong>AI Recommendations</strong>
+                  <strong>Ecovanta Intelligence Recommendations</strong>
                   <div style={{ marginTop: "8px" }}>{report.aiInsights}</div>
                 </div>
 
