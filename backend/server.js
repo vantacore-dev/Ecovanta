@@ -452,7 +452,7 @@ app.get("/reports/:id/download/pdf", auth, async (req, res) => {
     doc.text(`Governance: ${report.governance}`);
     doc.moveDown();
 
-    doc.fontSize(14).text("AI Recommendations");
+    doc.fontSize(14).text("Ecovanta Intelligence Recommendations");
     doc.moveDown(0.5);
     doc.fontSize(12).text(report.aiInsights || "No AI insights available", {
       align: "left"
