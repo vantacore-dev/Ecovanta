@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -11,28 +11,36 @@ import {
 
 const API = "https://ecovanta.onrender.com";
 
+const initialAnalytics = {
+  totalCompanies: 0,
+  averageScore: 0,
+  highRisk: 0,
+  moderateRisk: 0,
+  lowRisk: 0,
+  belowBenchmark: 0
+};
+
 function App() {
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [reports, setReports] = useState([]);
   const [company, setCompany] = useState("");
   const [sector, setSector] = useState("tech");
-
-  const [e, setE] = useState(1);
-  const [s, setS] = useState(1);
-  const [g, setG] = useState(1);
-
+  const [environmental, setEnvironmental] = useState(1);
+  const [social, setSocial] = useState(1);
+  const [governance, setGovernance] = useState(1);
   const [benchmark, setBenchmark] = useState(60);
-  const [analytics, setAnalytics] = useState({
-    totalCompanies: 0,
-    averageScore: 0,
-    highRisk: 0,
-    moderateRisk: 0,
-    lowRisk: 0,
-    belowBenchmark: 0
-  });
-
+  const [analytics, setAnalytics] = useState(initialAnalytics);
   const [loading, setLoading] = useState(false);
+  const [booting, setBooting] = useState(true);
   const [statusMessage, setStatusMessage] = useState("");
+
+  const authHeaders = useMemo(() => {
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, [token]);
+
+  const calculateScore = (env, soc, gov) => {
+    return Math.round((env / 3) * 40 + (soc / 3) * 30 + (gov / 3) * 30);
+  };
 
   const getRiskColor = (score) => {
     if (score >= 80) return "#2e7d32";
@@ -46,229 +54,286 @@ function App() {
     return "High Risk";
   };
 
-  const calculateScore = (env, soc, gov) => {
-    return Math.round((env / 3) * 40 + (soc / 3) * 30 + (gov / 3) * 30);
+  const resetForm = () => {
+    setCompany("");
+    setSector("tech");
+    setEnvironmental(1);
+    setSocial(1);
+    setGovernance(1);
   };
 
   const login = async () => {
+    const res = await fetch(`${API}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "demo@test.com",
+        password: "1234"
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data?.token) {
+      throw new Error(data?.error || "Login failed");
+    }
+
+    localStorage.setItem("token", data.token);
+    setToken(data.token);
+    return data.token;
+  };
+
+  const fetchJson = async (url, options = {}) => {
+    const response = await fetch(url, options);
+    const contentType = response.headers.get("content-type") || "";
+
+    let data;
+    if (contentType.includes("application/json")) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+
+    if (!response.ok) {
+      const message =
+        typeof data === "string"
+          ? data
+          : data?.error || data?.details || "Request failed";
+      throw new Error(message);
+    }
+
+    return data;
+  };
+
+  const loadBenchmark = async (selectedSector) => {
     try {
-      const res = await fetch(`${API}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: "demo@test.com",
-          password: "1234"
-        })
+      const data = await fetchJson(`${API}/benchmark/${selectedSector}`);
+      setBenchmark(Number(data?.benchmark || 60));
+    } catch (error) {
+      console.error("Benchmark load error:", error);
+      setBenchmark(60);
+    }
+  };
+
+  const loadReports = async (currentToken) => {
+    const data = await fetchJson(`${API}/reports`, {
+      headers: {
+        ...authHeaders,
+        ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {})
+      }
+    });
+
+    setReports(Array.isArray(data) ? data : []);
+    return Array.isArray(data) ? data : [];
+  };
+
+  const normalizeAnalytics = (data, currentReports = []) => {
+    if (
+      data &&
+      (
+        "totalCompanies" in data ||
+        "averageScore" in data ||
+        "highRisk" in data ||
+        "moderateRisk" in data ||
+        "lowRisk" in data ||
+        "belowBenchmark" in data
+      )
+    ) {
+      return {
+        totalCompanies: Number(data.totalCompanies || 0),
+        averageScore: Number(data.averageScore || 0),
+        highRisk: Number(data.highRisk || 0),
+        moderateRisk: Number(data.moderateRisk || 0),
+        lowRisk: Number(data.lowRisk || 0),
+        belowBenchmark: Number(data.belowBenchmark || 0)
+      };
+    }
+
+    if (data && ("total" in data || "average" in data || "high" in data || "low" in data)) {
+      return {
+        totalCompanies: Number(data.total || 0),
+        averageScore: Number(data.average || 0),
+        highRisk: Number(data.high || 0),
+        moderateRisk: 0,
+        lowRisk: Number(data.low || 0),
+        belowBenchmark: 0
+      };
+    }
+
+    return deriveAnalyticsFromReports(currentReports);
+  };
+
+  const deriveAnalyticsFromReports = (reportList) => {
+    const totalCompanies = reportList.length;
+    const averageScore = totalCompanies
+      ? Math.round(
+          reportList.reduce((sum, report) => sum + Number(report.score || 0), 0) /
+            totalCompanies
+        )
+      : 0;
+
+    const highRisk = reportList.filter((report) => Number(report.score) < 60).length;
+    const moderateRisk = reportList.filter(
+      (report) => Number(report.score) >= 60 && Number(report.score) < 80
+    ).length;
+    const lowRisk = reportList.filter((report) => Number(report.score) >= 80).length;
+    const belowBenchmark = reportList.filter(
+      (report) => Number(report.score) < Number(report.benchmark || 0)
+    ).length;
+
+    return {
+      totalCompanies,
+      averageScore,
+      highRisk,
+      moderateRisk,
+      lowRisk,
+      belowBenchmark
+    };
+  };
+
+  const loadAnalytics = async (currentToken, currentReports = []) => {
+    try {
+      const data = await fetchJson(`${API}/analytics/overview`, {
+        headers: {
+          ...authHeaders,
+          ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {})
+        }
       });
 
-      const data = await res.json();
+      setAnalytics(normalizeAnalytics(data, currentReports));
+    } catch (error) {
+      console.error("Analytics load error:", error);
+      setAnalytics(deriveAnalyticsFromReports(currentReports));
+    }
+  };
 
-      if (data?.token) {
-        setToken(data.token);
-        localStorage.setItem("token", data.token);
-      } else {
-        console.error("Login failed:", data);
-        setStatusMessage("Login failed.");
-      }
-    } catch (err) {
-      console.error("Login error:", err);
-      setStatusMessage("Login error.");
+  const refreshDashboard = async (currentToken = token) => {
+    if (!currentToken) return;
+
+    try {
+      setStatusMessage("Refreshing dashboard...");
+      const loadedReports = await loadReports(currentToken);
+      await loadAnalytics(currentToken, loadedReports);
+      setStatusMessage("Dashboard refreshed.");
+    } catch (error) {
+      console.error("Refresh dashboard error:", error);
+      setStatusMessage(`Refresh failed: ${error.message}`);
     }
   };
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("token");
-    if (savedToken) {
-      setToken(savedToken);
-    } else {
-      login();
-    }
+    let cancelled = false;
+
+    const boot = async () => {
+      setBooting(true);
+      try {
+        let currentToken = token;
+
+        if (!currentToken) {
+          currentToken = await login();
+        }
+
+        if (cancelled) return;
+
+        await loadReports(currentToken);
+        await loadAnalytics(currentToken, []);
+      } catch (error) {
+        console.error("Startup error:", error);
+        if (!cancelled) {
+          setStatusMessage(`Startup error: ${error.message}`);
+        }
+      } finally {
+        if (!cancelled) {
+          setBooting(false);
+        }
+      }
+    };
+
+    boot();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    fetch(`${API}/benchmark/${sector}`)
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load benchmark");
-        return r.json();
-      })
-      .then((d) => setBenchmark(Number(d.benchmark || 60)))
-      .catch((err) => {
-        console.error("Benchmark error:", err);
-        setBenchmark(60);
-      });
+    loadBenchmark(sector);
   }, [sector]);
-
-  useEffect(() => {
-    if (!token) return;
-
-    fetch(`${API}/reports`, {
-      headers: { Authorization: token }
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load reports");
-        return r.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data)) setReports(data);
-      })
-      .catch((err) => console.error("Reports load error:", err));
-
-    fetch(`${API}/analytics/overview`, {
-      headers: { Authorization: token }
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load analytics");
-        return r.json();
-      })
-      .then((data) => {
-        setAnalytics({
-          totalCompanies: data.totalCompanies || 0,
-          averageScore: data.averageScore || 0,
-          highRisk: data.highRisk || 0,
-          moderateRisk: data.moderateRisk || 0,
-          lowRisk: data.lowRisk || 0,
-          belowBenchmark: data.belowBenchmark || 0
-        });
-      })
-      .catch((err) => console.error("Analytics load error:", err));
-  }, [token]);
-
-  const refreshDashboard = async () => {
-    if (!token) return;
-
-    try {
-      const reportsRes = await fetch(`${API}/reports`, {
-        headers: { Authorization: token }
-      });
-      const reportsData = await reportsRes.json();
-      if (Array.isArray(reportsData)) setReports(reportsData);
-
-      const analyticsRes = await fetch(`${API}/analytics/overview`, {
-        headers: { Authorization: token }
-      });
-      const analyticsData = await analyticsRes.json();
-      setAnalytics({
-        totalCompanies: analyticsData.totalCompanies || 0,
-        averageScore: analyticsData.averageScore || 0,
-        highRisk: analyticsData.highRisk || 0,
-        moderateRisk: analyticsData.moderateRisk || 0,
-        lowRisk: analyticsData.lowRisk || 0,
-        belowBenchmark: analyticsData.belowBenchmark || 0
-      });
-    } catch (err) {
-      console.error("Refresh error:", err);
-    }
-  };
 
   const addReport = async () => {
     if (!company.trim()) {
-      alert("Please enter a company name");
+      alert("Please enter a company name.");
       return;
     }
 
     if (!token) {
-      alert("Login not ready yet. Please try again in a second.");
+      alert("Login not ready yet. Please try again.");
       return;
     }
 
     setLoading(true);
-    setStatusMessage("");
+    setStatusMessage("Generating report...");
 
-    const score = calculateScore(e, s, g);
+    const score = calculateScore(environmental, social, governance);
     let aiInsights = "No AI insights available";
 
     try {
-      const ai = await fetch(`${API}/ai-insights`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          environmental: e,
-          social: s,
-          governance: g,
-          benchmark
-        })
-      });
+      try {
+        const aiData = await fetchJson(`${API}/ai-insights`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            environmental,
+            social,
+            governance,
+            benchmark
+          })
+        });
 
-      const aiData = await ai.json();
-      if (aiData?.insights) {
-        aiInsights = aiData.insights;
+        if (aiData?.insights) {
+          aiInsights = aiData.insights;
+        }
+      } catch (error) {
+        console.error("AI insights error:", error);
       }
-    } catch (err) {
-      console.error("AI error:", err);
-    }
 
-    const newReport = {
-      company: company.trim(),
-      sector,
-      environmental: e,
-      social: s,
-      governance: g,
-      score,
-      benchmark,
-      aiInsights
-    };
+      const newReport = {
+        company: company.trim(),
+        sector,
+        environmental: Number(environmental),
+        social: Number(social),
+        governance: Number(governance),
+        score: Number(score),
+        benchmark: Number(benchmark),
+        aiInsights
+      };
 
-    console.log("Saving report:", newReport);
-
-    try {
-      const save = await fetch(`${API}/reports`, {
+      const savedReport = await fetchJson(`${API}/reports`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: token
+          ...authHeaders
         },
         body: JSON.stringify(newReport)
       });
 
-      console.log("Save response status:", save.status);
-
-      if (!save.ok) {
-        const errText = await save.text();
-        console.error("Save failed:", errText);
-        alert("Report save failed. Check backend logs or auth.");
-        setLoading(false);
-        return;
-      }
-
-      const savedReport = await save.json();
-      console.log("Saved report:", savedReport);
-
-      setReports((prev) => [savedReport, ...prev]);
-
-      setAnalytics((prev) => {
-        const updatedTotal = (prev.totalCompanies || 0) + 1;
-        const updatedAverage = Math.round(
-          ((prev.averageScore || 0) * (updatedTotal - 1) + score) / updatedTotal
-        );
-
-        return {
-          ...prev,
-          totalCompanies: updatedTotal,
-          averageScore: updatedAverage,
-          highRisk: prev.highRisk + (score < 60 ? 1 : 0),
-          moderateRisk:
-            prev.moderateRisk + (score >= 60 && score < 80 ? 1 : 0),
-          lowRisk: prev.lowRisk + (score >= 80 ? 1 : 0),
-          belowBenchmark: prev.belowBenchmark + (score < benchmark ? 1 : 0)
-        };
-      });
-
-      setCompany("");
-      setE(1);
-      setS(1);
-      setG(1);
+      const updatedReports = [savedReport, ...reports];
+      setReports(updatedReports);
+      setAnalytics(deriveAnalyticsFromReports(updatedReports));
+      resetForm();
       setStatusMessage("Report generated successfully.");
-    } catch (err) {
-      console.error("Report creation error:", err);
-      alert("Could not create report.");
+    } catch (error) {
+      console.error("Report save error:", error);
+      alert(`Report save failed: ${error.message}`);
+      setStatusMessage(`Report save failed: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const chartData = reports.map((r) => ({
-    company: r.company,
-    score: r.score
+  const chartData = reports.map((report) => ({
+    company: report.company,
+    score: Number(report.score || 0)
   }));
 
   return (
@@ -302,10 +367,13 @@ function App() {
             border: "1px solid #e5e7eb"
           }}
         >
-          <strong>Debug:</strong>{" "}
-          <span>Token: {token ? "OK" : "Missing"}</span>
+          <strong>Debug:</strong>
+          <span style={{ marginLeft: 8 }}>Token: {token ? "OK" : "Missing"}</span>
           <span style={{ marginLeft: 16 }}>Reports loaded: {reports.length}</span>
           <span style={{ marginLeft: 16 }}>Benchmark: {benchmark}</span>
+          <span style={{ marginLeft: 16 }}>
+            App state: {booting ? "Starting..." : "Ready"}
+          </span>
         </div>
 
         {statusMessage && (
@@ -331,22 +399,12 @@ function App() {
           }}
         >
           {[
-            {
-              title: "Total Companies",
-              value: analytics.totalCompanies
-            },
-            {
-              title: "Average Score",
-              value: analytics.averageScore
-            },
-            {
-              title: "High Risk",
-              value: analytics.highRisk
-            },
-            {
-              title: "Below Benchmark",
-              value: analytics.belowBenchmark
-            }
+            { title: "Total Companies", value: analytics.totalCompanies },
+            { title: "Average Score", value: analytics.averageScore },
+            { title: "High Risk", value: analytics.highRisk },
+            { title: "Moderate Risk", value: analytics.moderateRisk },
+            { title: "Low Risk", value: analytics.lowRisk },
+            { title: "Below Benchmark", value: analytics.belowBenchmark }
           ].map((card) => (
             <div
               key={card.title}
@@ -386,7 +444,7 @@ function App() {
             <div style={{ display: "grid", gap: "12px" }}>
               <input
                 value={company}
-                onChange={(e) => setCompany(e.target.value)}
+                onChange={(event) => setCompany(event.target.value)}
                 placeholder="Company name"
                 style={{
                   padding: "12px",
@@ -397,7 +455,7 @@ function App() {
 
               <select
                 value={sector}
-                onChange={(e) => setSector(e.target.value)}
+                onChange={(event) => setSector(event.target.value)}
                 style={{
                   padding: "12px",
                   borderRadius: "10px",
@@ -421,9 +479,9 @@ function App() {
               </div>
 
               {[
-                ["Environmental", e, setE],
-                ["Social", s, setS],
-                ["Governance", g, setG]
+                ["Environmental", environmental, setEnvironmental],
+                ["Social", social, setSocial],
+                ["Governance", governance, setGovernance]
               ].map(([label, value, setter]) => (
                 <div key={label}>
                   <label
@@ -451,16 +509,16 @@ function App() {
                       fontWeight: "bold"
                     }}
                   >
-                    <option value="1">High Risk</option>
-                    <option value="2">Moderate Risk</option>
-                    <option value="3">Best Practice</option>
+                    <option value={1}>High Risk</option>
+                    <option value={2}>Moderate Risk</option>
+                    <option value={3}>Best Practice</option>
                   </select>
                 </div>
               ))}
 
               <button
                 onClick={addReport}
-                disabled={loading}
+                disabled={loading || booting}
                 style={{
                   marginTop: "8px",
                   padding: "12px 16px",
@@ -469,8 +527,8 @@ function App() {
                   background: "#1976d2",
                   color: "#ffffff",
                   fontWeight: "bold",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.7 : 1
+                  cursor: loading || booting ? "not-allowed" : "pointer",
+                  opacity: loading || booting ? 0.7 : 1
                 }}
               >
                 {loading ? "Generating..." : "Generate Report"}
@@ -523,15 +581,15 @@ function App() {
               No reports generated yet.
             </div>
           ) : (
-            reports.map((r) => (
+            reports.map((report) => (
               <div
-                key={r._id || r.id}
+                key={report._id || report.id}
                 style={{
                   background: "#ffffff",
                   borderRadius: "12px",
                   padding: "20px",
                   marginBottom: "16px",
-                  borderLeft: `8px solid ${getRiskColor(r.score)}`,
+                  borderLeft: `8px solid ${getRiskColor(Number(report.score || 0))}`,
                   boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
                 }}
               >
@@ -545,9 +603,9 @@ function App() {
                   }}
                 >
                   <div>
-                    <h3 style={{ marginTop: 0, marginBottom: "8px" }}>{r.company}</h3>
+                    <h3 style={{ marginTop: 0, marginBottom: "8px" }}>{report.company}</h3>
                     <div style={{ color: "#6b7280", marginBottom: "8px" }}>
-                      Sector: {r.sector}
+                      Sector: {report.sector}
                     </div>
                   </div>
 
@@ -555,29 +613,29 @@ function App() {
                     style={{
                       padding: "8px 12px",
                       borderRadius: "999px",
-                      background: getRiskColor(r.score),
+                      background: getRiskColor(Number(report.score || 0)),
                       color: "#ffffff",
                       fontWeight: "bold"
                     }}
                   >
-                    {r.score} — {getRiskLabel(r.score)}
+                    {report.score} — {getRiskLabel(Number(report.score || 0))}
                   </div>
                 </div>
 
                 <div style={{ marginTop: "10px", marginBottom: "10px" }}>
-                  <strong>Benchmark:</strong> {r.benchmark}
+                  <strong>Benchmark:</strong> {report.benchmark}
                   <span style={{ marginLeft: 16 }}>
-                    <strong>Gap:</strong> {r.score - r.benchmark}
+                    <strong>Gap:</strong> {Number(report.score || 0) - Number(report.benchmark || 0)}
                   </span>
                 </div>
 
                 <div style={{ marginBottom: "12px" }}>
-                  <strong>E:</strong> {r.environmental}
+                  <strong>E:</strong> {report.environmental}
                   <span style={{ marginLeft: 16 }}>
-                    <strong>S:</strong> {r.social}
+                    <strong>S:</strong> {report.social}
                   </span>
                   <span style={{ marginLeft: 16 }}>
-                    <strong>G:</strong> {r.governance}
+                    <strong>G:</strong> {report.governance}
                   </span>
                 </div>
 
@@ -591,7 +649,7 @@ function App() {
                   }}
                 >
                   <strong>AI Recommendations</strong>
-                  <div style={{ marginTop: "8px" }}>{r.aiInsights}</div>
+                  <div style={{ marginTop: "8px" }}>{report.aiInsights}</div>
                 </div>
               </div>
             ))
@@ -600,13 +658,15 @@ function App() {
 
         <div style={{ marginTop: "16px" }}>
           <button
-            onClick={refreshDashboard}
+            onClick={() => refreshDashboard()}
+            disabled={!token}
             style={{
               padding: "10px 14px",
               borderRadius: "10px",
               border: "1px solid #d1d5db",
               background: "#ffffff",
-              cursor: "pointer"
+              cursor: token ? "pointer" : "not-allowed",
+              opacity: token ? 1 : 0.6
             }}
           >
             Refresh Dashboard
