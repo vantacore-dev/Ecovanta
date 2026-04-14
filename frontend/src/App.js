@@ -13,6 +13,36 @@ import {
   Frontend build: v3-report-debug
 </p>
 
+const downloadPDF = async () => {
+  if (!token) return alert("Login required");
+
+  try {
+    const res = await fetch(`${API}/reports/download/pdf`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      return alert("Download failed: " + text);
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "ecovanta_reports.pdf");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    console.error("Download PDF error:", err);
+    alert("Download failed");
+  }
+};
+
+<button onClick={downloadPDF} style={{ marginTop: "10px" }}>
+  Download Reports as PDF
+</button>
 
 const API = "https://ecovanta.onrender.com";
 
