@@ -415,6 +415,67 @@ app.get("/analytics/overview", auth, async (req, res) => {
 });
 
 
+// Indfividual pdf report download //
+
+
+const PDFDocument = require("pdfkit");
+
+app.get("/reports/:id/download/pdf", auth, async (req, res) => {
+  try {
+    const report = await Report.findOne({
+      _id: req.params.id,
+      userId: req.user.userId
+    });
+
+    if (!report) {
+      return res.status(404).json({ error: "Report not found" });
+    }
+
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${report.company.replace(/[^a-z0-9]/gi, "_")}_report.pdf"`
+    );
+
+    doc.pipe(res);
+
+    doc.fontSize(20).text("Ecovanta ESG Report", { align: "center" });
+    doc.moveDown();
+
+    doc.fontSize(14).text(`Company: ${report.company}`);
+    doc.text(`Sector: ${report.sector}`);
+    doc.text(`Score: ${report.score}`);
+    doc.text(`Benchmark: ${report.benchmark}`);
+    doc.moveDown();
+
+    doc.text(`Environmental: ${report.environmental}`);
+    doc.text(`Social: ${report.social}`);
+    doc.text(`Governance: ${report.governance}`);
+    doc.moveDown();
+
+    doc.fontSize(14).text("AI Recommendations");
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(report.aiInsights || "No AI insights available", {
+      align: "left"
+    });
+
+    doc.moveDown();
+    doc.fontSize(10).fillColor("gray").text(
+      `Generated: ${new Date(report.createdAt).toLocaleString()}`
+    );
+
+    doc.end();
+  } catch (error) {
+    console.error("Single report PDF error:", error);
+    return res.status(500).json({
+      error: "Failed to generate report PDF",
+      details: error.message
+    });
+  }
+});
+
 const PDFDocument = require("pdfkit"); // npm install pdfkit
 
 app.get("/reports/download/pdf", auth, async (req, res) => {
