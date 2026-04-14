@@ -39,7 +39,7 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("");
 
 const downloadPDF = async () => {
-  if (!token) return alert("Login required");
+  if (!token) return alert("Login required to download reports");
 
   try {
     const res = await fetch(`${API}/reports/download/pdf`, {
@@ -65,7 +65,19 @@ const downloadPDF = async () => {
   }
 };
 
-<button onClick={downloadPDF} style={{ marginTop: "10px" }}>
+<button
+  onClick={downloadPDF}
+  style={{
+    marginTop: "10px",
+    padding: "10px 14px",
+    borderRadius: "10px",
+    border: "1px solid #1976d2",
+    background: "#1976d2",
+    color: "#fff",
+    fontWeight: "bold",
+    cursor: "pointer"
+  }}
+>
   Download Reports as PDF
 </button>
 
