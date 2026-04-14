@@ -13,6 +13,31 @@ import {
   Frontend build: v3-report-debug
 </p>
 
+const API = "https://ecovanta.onrender.com";
+
+const initialAnalytics = {
+  totalCompanies: 0,
+  averageScore: 0,
+  highRisk: 0,
+  moderateRisk: 0,
+  lowRisk: 0,
+  belowBenchmark: 0
+};
+
+function App() {
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [reports, setReports] = useState([]);
+  const [company, setCompany] = useState("");
+  const [sector, setSector] = useState("tech");
+  const [environmental, setEnvironmental] = useState(1);
+  const [social, setSocial] = useState(1);
+  const [governance, setGovernance] = useState(1);
+  const [benchmark, setBenchmark] = useState(60);
+  const [analytics, setAnalytics] = useState(initialAnalytics);
+  const [loading, setLoading] = useState(false);
+  const [booting, setBooting] = useState(true);
+  const [statusMessage, setStatusMessage] = useState("");
+
 const downloadPDF = async () => {
   if (!token) return alert("Login required");
 
@@ -44,30 +69,6 @@ const downloadPDF = async () => {
   Download Reports as PDF
 </button>
 
-const API = "https://ecovanta.onrender.com";
-
-const initialAnalytics = {
-  totalCompanies: 0,
-  averageScore: 0,
-  highRisk: 0,
-  moderateRisk: 0,
-  lowRisk: 0,
-  belowBenchmark: 0
-};
-
-function App() {
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
-  const [reports, setReports] = useState([]);
-  const [company, setCompany] = useState("");
-  const [sector, setSector] = useState("tech");
-  const [environmental, setEnvironmental] = useState(1);
-  const [social, setSocial] = useState(1);
-  const [governance, setGovernance] = useState(1);
-  const [benchmark, setBenchmark] = useState(60);
-  const [analytics, setAnalytics] = useState(initialAnalytics);
-  const [loading, setLoading] = useState(false);
-  const [booting, setBooting] = useState(true);
-  const [statusMessage, setStatusMessage] = useState("");
 
   const authHeaders = useMemo(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
