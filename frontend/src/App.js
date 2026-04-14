@@ -9,11 +9,6 @@ import {
   ResponsiveContainer
 } from "recharts";
 
-
-<p style={{ color: "red", fontSize: "20px", fontWeight: "bold" }}>
-  VERSION: PDF BUTTON TEST
-</p>
-
 const API = "https://ecovanta.onrender.com";
 
 function App() {
@@ -21,9 +16,9 @@ function App() {
   const [reports, setReports] = useState([]);
   const [company, setCompany] = useState("");
   const [sector, setSector] = useState("tech");
-  const [e, setE] = useState(1);
-  const [s, setS] = useState(1);
-  const [g, setG] = useState(1);
+  const [environmental, setEnvironmental] = useState(1);
+  const [social, setSocial] = useState(1);
+  const [governance, setGovernance] = useState(1);
   const [benchmark, setBenchmark] = useState(60);
   const [analytics, setAnalytics] = useState({
     totalCompanies: 0,
@@ -67,7 +62,9 @@ function App() {
       if (data?.token) {
         setToken(data.token);
         localStorage.setItem("token", data.token);
+        setStatusMessage("Logged in successfully.");
       } else {
+        console.error("Login failed:", data);
         setStatusMessage("Login failed.");
       }
     } catch (err) {
@@ -84,12 +81,15 @@ function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (!res.ok) throw new Error("Failed to load reports");
+      if (!res.ok) {
+        throw new Error("Failed to load reports");
+      }
 
       const data = await res.json();
       setReports(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("loadReports error:", err);
+      setStatusMessage("Could not load reports.");
     }
   }, [token]);
 
@@ -101,9 +101,12 @@ function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (!res.ok) throw new Error("Failed to load analytics");
+      if (!res.ok) {
+        throw new Error("Failed to load analytics");
+      }
 
       const data = await res.json();
+
       setAnalytics({
         totalCompanies: data.totalCompanies || 0,
         averageScore: data.averageScore || 0,
@@ -114,13 +117,18 @@ function App() {
       });
     } catch (err) {
       console.error("loadAnalytics error:", err);
+      setStatusMessage("Could not load analytics.");
     }
   }, [token]);
 
   const loadBenchmark = useCallback(async () => {
     try {
       const res = await fetch(`${API}/benchmark/${sector}`);
-      if (!res.ok) throw new Error("Failed to load benchmark");
+
+      if (!res.ok) {
+        throw new Error("Failed to load benchmark");
+      }
+
       const data = await res.json();
       setBenchmark(Number(data.benchmark || 60));
     } catch (err) {
@@ -132,6 +140,7 @@ function App() {
   const refreshDashboard = useCallback(async () => {
     await loadReports();
     await loadAnalytics();
+    setStatusMessage("Dashboard refreshed.");
   }, [loadReports, loadAnalytics]);
 
   useEffect(() => {
@@ -155,7 +164,7 @@ function App() {
 
   const addReport = async () => {
     if (!company.trim()) {
-      alert("Please enter a company name");
+      alert("Please enter a company name.");
       return;
     }
 
@@ -167,7 +176,7 @@ function App() {
     setLoading(true);
     setStatusMessage("");
 
-    const score = calculateScore(e, s, g);
+    const score = calculateScore(environmental, social, governance);
     let aiInsights = "No AI insights available";
 
     try {
@@ -175,14 +184,15 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          environmental: e,
-          social: s,
-          governance: g,
+          environmental,
+          social,
+          governance,
           benchmark
         })
       });
 
       const aiData = await ai.json();
+
       if (aiData?.insights) {
         aiInsights = aiData.insights;
       }
@@ -193,9 +203,9 @@ function App() {
     const newReport = {
       company: company.trim(),
       sector,
-      environmental: e,
-      social: s,
-      governance: g,
+      environmental,
+      social,
+      governance,
       score,
       benchmark,
       aiInsights
@@ -232,9 +242,10 @@ function App() {
 
       setReports((prev) => [responseBody, ...prev]);
       setCompany("");
-      setE(1);
-      setS(1);
-      setG(1);
+      setSector("tech");
+      setEnvironmental(1);
+      setSocial(1);
+      setGovernance(1);
       setStatusMessage("Report generated successfully.");
       await refreshDashboard();
     } catch (err) {
@@ -245,9 +256,9 @@ function App() {
     }
   };
 
-  const downloadPDF = async () => {
+  const downloadAllReportsPDF = async () => {
     if (!token) {
-      alert("Login required");
+      alert("Login required.");
       return;
     }
 
@@ -272,14 +283,47 @@ function App() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("Download PDF error:", err);
-      alert("Download failed");
+      console.error("Download all PDF error:", err);
+      alert("Failed to download all reports PDF.");
     }
   };
 
-  const chartData = reports.map((r) => ({
-    company: r.company,
-    score: r.score
+  const downloadSingleReportPDF = async (reportId, companyName) => {
+    if (!token) {
+      alert("Login required.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/reports/${reportId}/download/pdf`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        alert(`Download failed: ${text}`);
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const safeName = (companyName || "report").replace(/[^a-z0-9]/gi, "_");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${safeName}_report.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download single report PDF error:", err);
+      alert("Failed to download this report.");
+    }
+  };
+
+  const chartData = reports.map((report) => ({
+    company: report.company,
+    score: report.score
   }));
 
   return (
@@ -311,19 +355,19 @@ function App() {
           </div>
 
           <button
-            onClick={downloadPDF}
+            onClick={downloadAllReportsPDF}
             style={{
               padding: "12px 16px",
               borderRadius: "10px",
               border: "none",
               background: "#1976d2",
-              color: "#fff",
+              color: "#ffffff",
               fontWeight: "bold",
               cursor: "pointer",
               minWidth: "220px"
             }}
           >
-            Download Reports as PDF
+            Download All Reports PDF
           </button>
         </div>
 
@@ -446,9 +490,9 @@ function App() {
               </div>
 
               {[
-                ["Environmental", e, setE],
-                ["Social", s, setS],
-                ["Governance", g, setG]
+                ["Environmental", environmental, setEnvironmental],
+                ["Social", social, setSocial],
+                ["Governance", governance, setGovernance]
               ].map(([label, value, setter]) => (
                 <div key={label}>
                   <label
@@ -548,15 +592,15 @@ function App() {
               No reports generated yet.
             </div>
           ) : (
-            reports.map((r) => (
+            reports.map((report) => (
               <div
-                key={r._id || r.id}
+                key={report._id || report.id}
                 style={{
                   background: "#ffffff",
                   borderRadius: "12px",
                   padding: "20px",
                   marginBottom: "16px",
-                  borderLeft: `8px solid ${getRiskColor(r.score)}`,
+                  borderLeft: `8px solid ${getRiskColor(report.score)}`,
                   boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
                 }}
               >
@@ -570,9 +614,9 @@ function App() {
                   }}
                 >
                   <div>
-                    <h3 style={{ marginTop: 0, marginBottom: "8px" }}>{r.company}</h3>
+                    <h3 style={{ marginTop: 0, marginBottom: "8px" }}>{report.company}</h3>
                     <div style={{ color: "#6b7280", marginBottom: "8px" }}>
-                      Sector: {r.sector}
+                      Sector: {report.sector}
                     </div>
                   </div>
 
@@ -580,29 +624,29 @@ function App() {
                     style={{
                       padding: "8px 12px",
                       borderRadius: "999px",
-                      background: getRiskColor(r.score),
+                      background: getRiskColor(report.score),
                       color: "#ffffff",
                       fontWeight: "bold"
                     }}
                   >
-                    {r.score} — {getRiskLabel(r.score)}
+                    {report.score} — {getRiskLabel(report.score)}
                   </div>
                 </div>
 
                 <div style={{ marginTop: "10px", marginBottom: "10px" }}>
-                  <strong>Benchmark:</strong> {r.benchmark}
+                  <strong>Benchmark:</strong> {report.benchmark}
                   <span style={{ marginLeft: 16 }}>
-                    <strong>Gap:</strong> {r.score - r.benchmark}
+                    <strong>Gap:</strong> {report.score - report.benchmark}
                   </span>
                 </div>
 
                 <div style={{ marginBottom: "12px" }}>
-                  <strong>E:</strong> {r.environmental}
+                  <strong>E:</strong> {report.environmental}
                   <span style={{ marginLeft: 16 }}>
-                    <strong>S:</strong> {r.social}
+                    <strong>S:</strong> {report.social}
                   </span>
                   <span style={{ marginLeft: 16 }}>
-                    <strong>G:</strong> {r.governance}
+                    <strong>G:</strong> {report.governance}
                   </span>
                 </div>
 
@@ -616,8 +660,26 @@ function App() {
                   }}
                 >
                   <strong>AI Recommendations</strong>
-                  <div style={{ marginTop: "8px" }}>{r.aiInsights}</div>
+                  <div style={{ marginTop: "8px" }}>{report.aiInsights}</div>
                 </div>
+
+                <button
+                  onClick={() =>
+                    downloadSingleReportPDF(report._id || report.id, report.company)
+                  }
+                  style={{
+                    marginTop: "12px",
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    border: "none",
+                    background: "#1976d2",
+                    color: "#ffffff",
+                    fontWeight: "bold",
+                    cursor: "pointer"
+                  }}
+                >
+                  Download This Report
+                </button>
               </div>
             ))
           )}
