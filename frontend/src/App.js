@@ -270,9 +270,12 @@ function App() {
 
 
   {/* Download PDF Button */}
-        <button onClick={downloadPDF} style={{ marginBottom: "20px", padding: "12px 16px", borderRadius: "10px", border: "1px solid #1976d2", background: "#1976d2", color: "#fff", fontWeight: "bold", cursor: "pointer" }}>
-          Download Reports as PDF
-        </button>
+       
+       <div style={{ marginBottom: "12px" }}>
+  <button onClick={downloadPDF} style={{ padding: "10px 14px", borderRadius: "10px", border: "1px solid #1976d2", background: "#1976d2", color: "#fff", fontWeight: "bold", cursor: "pointer" }}>
+    Download Reports as PDF
+  </button>
+</div>
 
         {/* Analytics chart */}
         {reports.length > 0 && (
