@@ -1,8 +1,3 @@
-<p style={{ color: "red", fontSize: "20px", fontWeight: "bold" }}>
-  VERSION: PDF BUTTON TEST
-</p>
-
-
 import React, { useEffect, useState, useCallback } from "react";
 import {
   BarChart,
@@ -13,6 +8,11 @@ import {
   CartesianGrid,
   ResponsiveContainer
 } from "recharts";
+
+
+<p style={{ color: "red", fontSize: "20px", fontWeight: "bold" }}>
+  VERSION: PDF BUTTON TEST
+</p>
 
 const API = "https://ecovanta.onrender.com";
 
