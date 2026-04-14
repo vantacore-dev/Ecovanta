@@ -1,4 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
+
+
+<p style={{ color: "red", fontWeight: "bold" }}>
+  Frontend build: v3-report-debug
+</p>
+
 import {
   BarChart,
   Bar,
