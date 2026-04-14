@@ -3,6 +3,7 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const OpenAI = require("openai");
+const PDFDocument = require("pdfkit"); // npm install pdfkit
 
 if (process.env.NODE_ENV !== "production") {
   try {
@@ -415,10 +416,6 @@ app.get("/analytics/overview", auth, async (req, res) => {
 });
 
 
-// Indfividual pdf report download //
-
-
-const PDFDocument = require("pdfkit");
 
 app.get("/reports/:id/download/pdf", auth, async (req, res) => {
   try {
@@ -476,7 +473,6 @@ app.get("/reports/:id/download/pdf", auth, async (req, res) => {
   }
 });
 
-const PDFDocument = require("pdfkit"); // npm install pdfkit
 
 app.get("/reports/download/pdf", auth, async (req, res) => {
   try {
