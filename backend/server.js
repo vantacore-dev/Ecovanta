@@ -414,6 +414,54 @@ app.get("/analytics/overview", auth, async (req, res) => {
   }
 });
 
+
+const PDFDocument = require("pdfkit"); // npm install pdfkit
+
+app.get("/reports/download/pdf", auth, async (req, res) => {
+  try {
+    const reports = await Report.find({ userId: req.user.userId }).sort({
+      createdAt: -1
+    });
+
+    if (!reports.length) {
+      return res.status(404).json({ error: "No reports found" });
+    }
+
+    const doc = new PDFDocument({ margin: 30, size: "A4" });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=ecovanta_reports.pdf"
+    );
+
+    doc.pipe(res);
+
+    doc.fontSize(20).text("Ecovanta ESG Reports", { align: "center" });
+    doc.moveDown(1);
+
+    reports.forEach((r, idx) => {
+      doc
+        .fontSize(14)
+        .text(`${idx + 1}. Company: ${r.company}`, { underline: true });
+      doc.fontSize(12).text(`Sector: ${r.sector}`);
+      doc.text(`Environmental: ${r.environmental}`);
+      doc.text(`Social: ${r.social}`);
+      doc.text(`Governance: ${r.governance}`);
+      doc.text(`Score: ${r.score}`);
+      doc.text(`Benchmark: ${r.benchmark}`);
+      doc.text("AI Insights:");
+      doc.text(r.aiInsights || "No insights", { indent: 20 });
+      doc.moveDown(1);
+    });
+
+    doc.end();
+  } catch (error) {
+    console.error("PDF download error:", error);
+    res.status(500).json({ error: "Failed to generate PDF" });
+  }
+});
+
 // =======================
 // 404
 // =======================
