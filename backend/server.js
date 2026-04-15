@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-
+const aiRoutes = require("./routes/aiRoutes");
 require("dotenv").config();
 
 const authRoutes = require("./routes/authRoutes");
@@ -12,6 +12,7 @@ const webhookRoutes = require("./routes/webhookRoutes");
 const app = express();
 
 app.use(cors());
+app.use("/", aiRoutes);
 
 // Stripe webhook first
 app.use("/webhooks", webhookRoutes);
