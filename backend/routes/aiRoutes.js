@@ -1,7 +1,8 @@
 const express = require("express");
-const router = express.Router();
-const auth = require("../middleware/auth");
 const OpenAI = require("openai");
+const auth = require("../middleware/auth");
+
+const router = express.Router();
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -9,63 +10,114 @@ const openai = new OpenAI({
 
 router.post("/ai-draft", auth, async (req, res) => {
   try {
-    const { companyName, sector } = req.body;
-
     if (!process.env.OPENAI_API_KEY) {
       return res.status(500).json({
-        error: "OpenAI API key not configured"
+        error: "OPENAI_API_KEY is not configured"
+      });
+    }
+
+    const {
+      companyName,
+      sector,
+      reportingYear,
+      esrs2 = {},
+      e1 = {},
+      s1 = {},
+      g1 = {},
+      materialityTopics = []
+    } = req.body || {};
+
+    if (!companyName || !sector) {
+      return res.status(400).json({
+        error: "companyName and sector are required"
       });
     }
 
     const prompt = `
-You are an ESG expert.
+You are an ESG and CSRD reporting specialist.
 
-Generate a CSRD/ESRS-ready ESG report draft.
+Generate an ESRS-aligned draft for the following company.
 
 Company: ${companyName}
 Sector: ${sector}
+Reporting year: ${reportingYear || new Date().getFullYear()}
 
-Return STRICT JSON ONLY:
+ESRS 2
+- Governance: ${esrs2.governance || "Not provided"}
+- Strategy: ${esrs2.strategy || "Not provided"}
+- Impacts, Risks, Opportunities: ${esrs2.impactsRisksOpportunities || "Not provided"}
+- Metrics and Targets: ${esrs2.metricsTargets || "Not provided"}
+
+E1 Climate
+- Scope 1 emissions: ${e1.scope1Emissions ?? "Not provided"}
+- Scope 2 emissions: ${e1.scope2Emissions ?? "Not provided"}
+- Scope 3 emissions: ${e1.scope3Emissions ?? "Not provided"}
+- Climate policies: ${e1.climatePolicies || "Not provided"}
+
+S1 Workforce
+- Workforce policies: ${s1.workforcePolicies || "Not provided"}
+- Diversity and inclusion: ${s1.diversityInclusion || "Not provided"}
+
+G1 Business Conduct
+- Anti-corruption: ${g1.antiCorruption || "Not provided"}
+- Whistleblowing: ${g1.whistleblowing || "Not provided"}
+
+Materiality topics:
+${JSON.stringify(materialityTopics, null, 2)}
+
+Return strict JSON with exactly these keys:
 {
-  "executiveSummary": "detailed executive summary (min 150 words)",
-  "disclosureDraft": "structured ESRS disclosures",
-  "dataGaps": "list missing ESG data points"
+  "executiveSummary": "A practical executive summary of at least 120 words",
+  "disclosureDraft": "A structured CSRD/ESRS-aligned disclosure draft",
+  "dataGaps": "A practical list of missing data or weak evidence"
 }
+
+Do not return markdown.
+Do not omit keys.
 `;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       response_format: { type: "json_object" },
-      messages: [{ role: "user", content: prompt }]
+      messages: [
+        {
+          role: "system",
+          content: "You are a precise ESG reporting assistant. Always return valid JSON."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.3
     });
 
-    const raw = response.choices[0].message.content;
-
-    console.log("AI RAW:", raw); // 👈 IMPORTANT DEBUG
+    const raw = response?.choices?.[0]?.message?.content || "{}";
+    console.log("AI RAW RESPONSE:", raw);
 
     let parsed;
     try {
       parsed = JSON.parse(raw);
-    } catch (e) {
-      console.error("JSON parse failed:", raw);
+    } catch (parseError) {
+      console.error("Failed to parse AI JSON:", parseError);
       return res.status(500).json({
         error: "AI returned invalid JSON",
         raw
       });
     }
 
-    res.json({
-      executiveSummary: parsed.executiveSummary || "No summary generated",
-      disclosureDraft: parsed.disclosureDraft || "No disclosure generated",
-      dataGaps: parsed.dataGaps || "No gaps identified"
+    return res.json({
+      executiveSummary: parsed.executiveSummary || "No executive summary generated.",
+      disclosureDraft: parsed.disclosureDraft || "No disclosure draft generated.",
+      dataGaps: parsed.dataGaps || "No data gaps identified."
     });
-
   } catch (err) {
     console.error("AI draft error:", err);
-    res.status(500).json({
+    return res.status(500).json({
       error: "AI draft failed",
       details: err.message
     });
   }
 });
+
 module.exports = router;
