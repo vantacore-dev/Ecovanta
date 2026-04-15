@@ -11,6 +11,7 @@ import {
 
 const API = "https://ecovanta.onrender.com";
 
+const [user, setUser] = useState(null);
 
 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
   <div>
@@ -90,12 +91,18 @@ function App() {
   const [authMode, setAuthMode] = useState("login");
   const [user, setUser] = useState(null);
 
+
+ const logout = () => {
+    localStorage.removeItem("token");
+    setToken("");
+    setUser(null);
+  
   const [authForm, setAuthForm] = useState({
     email: "",
     password: "",
     companyName: ""
   });
-
+ 
   const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -137,12 +144,12 @@ const loadUser = useCallback(async () => {
   }
 }, [token]);
 
-
 // 4. EFFECTS (call it here)
   useEffect(() => {
     loadUser();
   }, [loadUser]);
 
+ 
   const upgradePlan = async (plan) => {
     if (!token) {
       alert("Login required.");
