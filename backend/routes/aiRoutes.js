@@ -10,6 +10,8 @@ const openai = new OpenAI({
 
 router.post("/ai-draft", auth, async (req, res) => {
   try {
+     console.log("AI draft req.body:", req.body);
+
     if (!process.env.OPENAI_API_KEY) {
       return res.status(500).json({
         error: "OPENAI_API_KEY is not configured"
@@ -27,6 +29,7 @@ router.post("/ai-draft", auth, async (req, res) => {
       materialityTopics = []
     } = req.body || {};
 
+    
     if (!companyName || !sector) {
       return res.status(400).json({
         error: "companyName and sector are required"
