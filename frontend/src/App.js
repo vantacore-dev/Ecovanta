@@ -91,12 +91,13 @@ function App() {
   const [authMode, setAuthMode] = useState("login");
   const [user, setUser] = useState(null);
 
+ 
+const logout = () => {
+  localStorage.removeItem("token");
+  setToken("");
+  setUser(null);
+};
 
- const logout = () => {
-    localStorage.removeItem("token");
-    setToken("");
-    setUser(null);
-  
   const [authForm, setAuthForm] = useState({
     email: "",
     password: "",
