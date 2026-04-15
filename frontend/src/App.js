@@ -35,8 +35,6 @@ const initialReportForm = {
   companyName: "",
   sector: "tech",
   reportingYear: new Date().getFullYear(),
-  reportingScope: "individual",
-  transitionalReliefUsed: false,
   esrs2: {
     governance: "",
     strategy: "",
@@ -44,87 +42,70 @@ const initialReportForm = {
     metricsTargets: ""
   },
   e1: {
-    climateTransitionPlan: "",
     scope1Emissions: 0,
     scope2Emissions: 0,
     scope3Emissions: 0,
-    energyConsumption: 0,
-    climatePolicies: "",
-    climateActions: "",
-    climateTargets: ""
+    climatePolicies: ""
   },
   s1: {
     workforcePolicies: "",
-    healthSafetyMetrics: "",
-    diversityInclusion: "",
-    remunerationMetrics: ""
+    diversityInclusion: ""
   },
   g1: {
-    businessConductPolicies: "",
     antiCorruption: "",
-    whistleblowing: "",
-    paymentPractices: ""
+    whistleblowing: ""
   },
-  materialityTopics: [{ ...defaultMaterialityTopic }],
-  evidence: [],
   aiDraft: {
     executiveSummary: "",
     disclosureDraft: "",
     dataGaps: ""
   },
-  taxonomyMappingNotes: "",
-  reviewStatus: "draft"
+  scorecard: {
+    benchmark: 0,
+    overallScore: 0
+  },
+  reviewStatus: "draft",
+  materialityTopics: [{ ...defaultMaterialityTopic }]
 };
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
-  const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState("login");
   const [authForm, setAuthForm] = useState({
     email: "",
     password: "",
     companyName: ""
   });
+  const [statusMessage, setStatusMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const [reports, setReports] = useState([]);
-  const [selectedReportId, setSelectedReportId] = useState("");
-  const [reportForm, setReportForm] = useState(initialReportForm);
-  const [benchmark, setBenchmark] = useState(60);
-
   const [analytics, setAnalytics] = useState({
     totalReports: 0,
     averageScore: 0,
     highRisk: 0,
     moderateRisk: 0,
-    lowRisk: 0,
-    belowBenchmark: 0,
-    approvedReports: 0,
-    materialTopicsCount: 0
+    lowRisk: 0
   });
-
-  const [loading, setLoading] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("");
+  const [benchmark, setBenchmark] = useState(60);
+  const [selectedReportId, setSelectedReportId] = useState("");
+  const [reportForm, setReportForm] = useState(initialReportForm);
 
   const authHeaders = useMemo(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
 
-  const updateNestedField = (section, field, value) => {
-    setReportForm((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value
-      }
-    }));
+  const getRiskColor = (score) => {
+    if (score >= 80) return "#2e7d32";
+    if (score >= 60) return "#f57c00";
+    return "#d32f2f";
   };
 
-  const setTopField = (field, value) => {
-    setReportForm((prev) => ({
-      ...prev,
-      [field]: value
-    }));
+  const getRiskLabel = (score) => {
+    if (score >= 80) return "Low Risk";
+    if (score >= 60) return "Moderate Risk";
+    return "High Risk";
   };
 
   const fetchJson = async (url, options = {}) => {
@@ -149,18 +130,95 @@ function App() {
     return data;
   };
 
-  const loadCurrentUser = useCallback(async () => {
-    if (!token) return;
+  const handleAuthField = (field, value) => {
+    setAuthForm((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
+  const setTopField = (field, value) => {
+    setReportForm((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const setNestedField = (section, field, value) => {
+    setReportForm((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value
+      }
+    }));
+  };
+
+  const login = useCallback(async () => {
     try {
-      const me = await fetchJson(`${API}/me`, {
-        headers: authHeaders
+      setLoading(true);
+      setStatusMessage("");
+
+      const data = await fetchJson(`${API}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: authForm.email,
+          password: authForm.password
+        })
       });
-      setUser(me);
-    } catch (error) {
-      console.error("Load current user error:", error);
+
+      setToken(data.token);
+      localStorage.setItem("token", data.token);
+      setStatusMessage("Logged in successfully.");
+    } catch (err) {
+      console.error("Login error:", err);
+      setStatusMessage(`Login failed: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
-  }, [token, authHeaders]);
+  }, [authForm.email, authForm.password]);
+
+  const register = useCallback(async () => {
+    try {
+      setLoading(true);
+      setStatusMessage("");
+
+      await fetchJson(`${API}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: authForm.email,
+          password: authForm.password,
+          companyName: authForm.companyName
+        })
+      });
+
+      setStatusMessage("Registration successful. Please log in.");
+      setAuthMode("login");
+      setAuthForm((prev) => ({
+        ...prev,
+        password: ""
+      }));
+    } catch (err) {
+      console.error("Register error:", err);
+      setStatusMessage(`Register failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [authForm.email, authForm.password, authForm.companyName]);
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    setToken("");
+    setReports([]);
+    setSelectedReportId("");
+    setStatusMessage("Logged out.");
+  };
 
   const loadReports = useCallback(async () => {
     if (!token) return;
@@ -169,10 +227,11 @@ function App() {
       const data = await fetchJson(`${API}/reports`, {
         headers: authHeaders
       });
+
       setReports(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Load reports error:", error);
-      setStatusMessage(`Could not load reports: ${error.message}`);
+    } catch (err) {
+      console.error("Load reports error:", err);
+      setStatusMessage(`Could not load reports: ${err.message}`);
     }
   }, [token, authHeaders]);
 
@@ -180,22 +239,32 @@ function App() {
     if (!token) return;
 
     try {
-      const data = await fetchJson(`${API}/analytics/overview`, {
+      const reportList = await fetchJson(`${API}/reports`, {
         headers: authHeaders
       });
+
+      const safeReports = Array.isArray(reportList) ? reportList : [];
+      const scores = safeReports.map((report) => Number(report.scorecard?.overallScore || 0));
+
+      const totalReports = safeReports.length;
+      const averageScore = totalReports
+        ? Math.round(scores.reduce((sum, value) => sum + value, 0) / totalReports)
+        : 0;
+
+      const highRisk = scores.filter((score) => score < 60).length;
+      const moderateRisk = scores.filter((score) => score >= 60 && score < 80).length;
+      const lowRisk = scores.filter((score) => score >= 80).length;
+
       setAnalytics({
-        totalReports: data.totalReports || 0,
-        averageScore: data.averageScore || 0,
-        highRisk: data.highRisk || 0,
-        moderateRisk: data.moderateRisk || 0,
-        lowRisk: data.lowRisk || 0,
-        belowBenchmark: data.belowBenchmark || 0,
-        approvedReports: data.approvedReports || 0,
-        materialTopicsCount: data.materialTopicsCount || 0
+        totalReports,
+        averageScore,
+        highRisk,
+        moderateRisk,
+        lowRisk
       });
-    } catch (error) {
-      console.error("Load analytics error:", error);
-      setStatusMessage(`Could not load analytics: ${error.message}`);
+    } catch (err) {
+      console.error("Load analytics error:", err);
+      setStatusMessage(`Could not load analytics: ${err.message}`);
     }
   }, [token, authHeaders]);
 
@@ -203,15 +272,23 @@ function App() {
     try {
       const data = await fetchJson(`${API}/benchmark/${reportForm.sector}`);
       setBenchmark(Number(data.benchmark || 60));
-    } catch (error) {
-      console.error("Load benchmark error:", error);
+    } catch (err) {
+      console.error("Load benchmark error:", err);
       setBenchmark(60);
     }
   }, [reportForm.sector]);
 
   const refreshDashboard = useCallback(async () => {
-    await Promise.all([loadCurrentUser(), loadReports(), loadAnalytics()]);
-  }, [loadCurrentUser, loadReports, loadAnalytics]);
+    await loadReports();
+    await loadAnalytics();
+  }, [loadReports, loadAnalytics]);
+
+  useEffect(() => {
+    const savedToken = localStorage.getItem("token");
+    if (savedToken) {
+      setToken(savedToken);
+    }
+  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -221,73 +298,6 @@ function App() {
   useEffect(() => {
     loadBenchmark();
   }, [loadBenchmark]);
-
-  const handleAuthChange = (field, value) => {
-    setAuthForm((prev) => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleRegister = async () => {
-    try {
-      setLoading(true);
-      setStatusMessage("");
-
-      await fetchJson(`${API}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(authForm)
-      });
-
-      setStatusMessage("Registration successful. You can now log in.");
-      setAuthMode("login");
-      setAuthForm((prev) => ({
-        ...prev,
-        password: ""
-      }));
-    } catch (error) {
-      console.error("Register error:", error);
-      setStatusMessage(`Register failed: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogin = async () => {
-    try {
-      setLoading(true);
-      setStatusMessage("");
-
-      const data = await fetchJson(`${API}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: authForm.email,
-          password: authForm.password
-        })
-      });
-
-      setToken(data.token);
-      localStorage.setItem("token", data.token);
-      setUser(data.user || null);
-      setStatusMessage("Logged in successfully.");
-    } catch (error) {
-      console.error("Login error:", error);
-      setStatusMessage(`Login failed: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken("");
-    setUser(null);
-    setReports([]);
-    setSelectedReportId("");
-    setStatusMessage("Logged out.");
-  };
 
   const addMaterialityTopic = () => {
     setReportForm((prev) => ({
@@ -308,23 +318,24 @@ function App() {
 
   const updateMaterialityTopic = (index, path, value) => {
     setReportForm((prev) => {
-      const next = [...prev.materialityTopics];
-      const topic = { ...next[index] };
+      const nextTopics = [...prev.materialityTopics];
+      const current = { ...nextTopics[index] };
 
       if (path.includes(".")) {
         const [section, field] = path.split(".");
-        topic[section] = {
-          ...topic[section],
+        current[section] = {
+          ...current[section],
           [field]: value
         };
       } else {
-        topic[path] = value;
+        current[path] = value;
       }
 
-      next[index] = topic;
+      nextTopics[index] = current;
+
       return {
         ...prev,
-        materialityTopics: next
+        materialityTopics: nextTopics
       };
     });
   };
@@ -376,9 +387,9 @@ function App() {
       }));
 
       setStatusMessage("AI draft generated.");
-    } catch (error) {
-      console.error("AI draft error:", error);
-      setStatusMessage(`AI draft failed: ${error.message}`);
+    } catch (err) {
+      console.error("AI draft error:", err);
+      setStatusMessage(`AI draft failed: ${err.message}`);
     } finally {
       setAiLoading(false);
     }
@@ -401,6 +412,10 @@ function App() {
 
       const payload = {
         ...reportForm,
+        scorecard: {
+          ...reportForm.scorecard,
+          benchmark
+        },
         materialityTopics: reportForm.materialityTopics.map((topic) => ({
           ...topic,
           stakeholdersConsulted: topic.stakeholdersConsulted
@@ -423,12 +438,12 @@ function App() {
 
       setReports((prev) => [saved, ...prev]);
       setSelectedReportId(saved._id || "");
-      setStatusMessage("Report saved successfully.");
       setReportForm(initialReportForm);
+      setStatusMessage("Report saved successfully.");
       await refreshDashboard();
-    } catch (error) {
-      console.error("Save report error:", error);
-      setStatusMessage(`Save failed: ${error.message}`);
+    } catch (err) {
+      console.error("Save report error:", err);
+      setStatusMessage(`Save failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -438,99 +453,65 @@ function App() {
     if (!reportId) return;
 
     try {
-      const data = await fetchJson(`${API}/reports/${reportId}`, {
+      const data = await fetchJson(`${API}/reports`, {
         headers: authHeaders
       });
 
+      const safeReports = Array.isArray(data) ? data : [];
+      const found = safeReports.find((item) => (item._id || item.id) === reportId);
+
+      if (!found) {
+        throw new Error("Report not found");
+      }
+
       setReportForm({
-        companyName: data.companyName || "",
-        sector: data.sector || "tech",
-        reportingYear: data.reportingYear || new Date().getFullYear(),
-        reportingScope: data.reportingScope || "individual",
-        transitionalReliefUsed: !!data.transitionalReliefUsed,
+        companyName: found.companyName || "",
+        sector: found.sector || "tech",
+        reportingYear: found.reportingYear || new Date().getFullYear(),
         esrs2: {
-          governance: data.esrs2?.governance || "",
-          strategy: data.esrs2?.strategy || "",
-          impactsRisksOpportunities:
-            data.esrs2?.impactsRisksOpportunities || "",
-          metricsTargets: data.esrs2?.metricsTargets || ""
+          governance: found.esrs2?.governance || "",
+          strategy: found.esrs2?.strategy || "",
+          impactsRisksOpportunities: found.esrs2?.impactsRisksOpportunities || "",
+          metricsTargets: found.esrs2?.metricsTargets || ""
         },
         e1: {
-          climateTransitionPlan: data.e1?.climateTransitionPlan || "",
-          scope1Emissions: data.e1?.scope1Emissions || 0,
-          scope2Emissions: data.e1?.scope2Emissions || 0,
-          scope3Emissions: data.e1?.scope3Emissions || 0,
-          energyConsumption: data.e1?.energyConsumption || 0,
-          climatePolicies: data.e1?.climatePolicies || "",
-          climateActions: data.e1?.climateActions || "",
-          climateTargets: data.e1?.climateTargets || ""
+          scope1Emissions: found.e1?.scope1Emissions || 0,
+          scope2Emissions: found.e1?.scope2Emissions || 0,
+          scope3Emissions: found.e1?.scope3Emissions || 0,
+          climatePolicies: found.e1?.climatePolicies || ""
         },
         s1: {
-          workforcePolicies: data.s1?.workforcePolicies || "",
-          healthSafetyMetrics: data.s1?.healthSafetyMetrics || "",
-          diversityInclusion: data.s1?.diversityInclusion || "",
-          remunerationMetrics: data.s1?.remunerationMetrics || ""
+          workforcePolicies: found.s1?.workforcePolicies || "",
+          diversityInclusion: found.s1?.diversityInclusion || ""
         },
         g1: {
-          businessConductPolicies: data.g1?.businessConductPolicies || "",
-          antiCorruption: data.g1?.antiCorruption || "",
-          whistleblowing: data.g1?.whistleblowing || "",
-          paymentPractices: data.g1?.paymentPractices || ""
+          antiCorruption: found.g1?.antiCorruption || "",
+          whistleblowing: found.g1?.whistleblowing || ""
         },
+        aiDraft: {
+          executiveSummary: found.aiDraft?.executiveSummary || "",
+          disclosureDraft: found.aiDraft?.disclosureDraft || "",
+          dataGaps: found.aiDraft?.dataGaps || ""
+        },
+        scorecard: {
+          benchmark: found.scorecard?.benchmark || 0,
+          overallScore: found.scorecard?.overallScore || 0
+        },
+        reviewStatus: found.reviewStatus || "draft",
         materialityTopics:
-          data.materialityTopics?.map((topic) => ({
+          found.materialityTopics?.map((topic) => ({
             ...topic,
             stakeholdersConsulted: Array.isArray(topic.stakeholdersConsulted)
               ? topic.stakeholdersConsulted.join(", ")
               : ""
-          })) || [{ ...defaultMaterialityTopic }],
-        evidence: data.evidence || [],
-        aiDraft: {
-          executiveSummary: data.aiDraft?.executiveSummary || "",
-          disclosureDraft: data.aiDraft?.disclosureDraft || "",
-          dataGaps: data.aiDraft?.dataGaps || ""
-        },
-        taxonomyMappingNotes: data.taxonomyMappingNotes || "",
-        reviewStatus: data.reviewStatus || "draft"
+          })) || [{ ...defaultMaterialityTopic }]
       });
 
-      setSelectedReportId(data._id || "");
+      setSelectedReportId(reportId);
       setStatusMessage("Report loaded into form.");
-    } catch (error) {
-      console.error("Load single report error:", error);
-      setStatusMessage(`Load failed: ${error.message}`);
-    }
-  };
-
-  const downloadAllReportsPDF = async () => {
-    if (!token) {
-      alert("Login required.");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API}/reports/download/pdf`, {
-        headers: authHeaders
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        alert(`Download failed: ${text}`);
-        return;
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "ecovanta_all_reports.pdf";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Download all PDF error:", error);
-      alert("Failed to download all reports PDF.");
+    } catch (err) {
+      console.error("Load single report error:", err);
+      setStatusMessage(`Load failed: ${err.message}`);
     }
   };
 
@@ -541,8 +522,10 @@ function App() {
     }
 
     try {
-      const res = await fetch(`${API}/reports/${reportId}/download/pdf`, {
-        headers: authHeaders
+      const res = await fetch(`${API}/reports/${reportId}/pdf`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
 
       if (!res.ok) {
@@ -556,44 +539,26 @@ function App() {
       const safeName = (companyName || "report").replace(/[^a-z0-9]/gi, "_");
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${safeName}_esrs_report.pdf`;
+      link.download = `${safeName}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Download single PDF error:", error);
-      alert("Failed to download single report PDF.");
+    } catch (err) {
+      console.error("PDF download error:", err);
+      alert("Download failed");
     }
   };
 
   const deleteReport = async (reportId) => {
-    if (!token) {
-      alert("Login required.");
-      return;
-    }
-
-    const confirmed = window.confirm("Delete this report?");
-    if (!confirmed) return;
-
-    try {
-      await fetchJson(`${API}/reports/${reportId}`, {
-        method: "DELETE",
-        headers: authHeaders
-      });
-
-      setReports((prev) => prev.filter((item) => (item._id || item.id) !== reportId));
-      setStatusMessage("Report deleted.");
-      await refreshDashboard();
-    } catch (error) {
-      console.error("Delete report error:", error);
-      setStatusMessage(`Delete failed: ${error.message}`);
-    }
+    alert(
+      `Delete route is not included in the basic modular backend yet. Add DELETE /reports/${reportId} on the backend first.`
+    );
   };
 
   const chartData = reports.map((report) => ({
     company: report.companyName,
-    score: report.scorecard?.overallScore || 0
+    score: Number(report.scorecard?.overallScore || 0)
   }));
 
   if (!token) {
@@ -612,123 +577,99 @@ function App() {
         <div
           style={{
             width: "100%",
-            maxWidth: "460px",
+            maxWidth: "420px",
             background: "#ffffff",
-            borderRadius: "16px",
+            borderRadius: "12px",
             padding: "24px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.08)"
+            boxShadow: "0 2px 10px rgba(0,0,0,0.08)"
           }}
         >
-          <h1 style={{ marginTop: 0 }}>Ecovanta CSRD-Ready Platform</h1>
-          <p style={{ color: "#6b7280" }}>
-            Create ESRS-aligned sustainability reports with double materiality,
-            AI drafting, analytics, and PDF exports.
-          </p>
+          <h2>{authMode === "login" ? "Login" : "Register"}</h2>
 
-          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-            <button
-              onClick={() => setAuthMode("login")}
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                borderRadius: "10px",
-                border: authMode === "login" ? "none" : "1px solid #d1d5db",
-                background: authMode === "login" ? "#1976d2" : "#ffffff",
-                color: authMode === "login" ? "#ffffff" : "#111827",
-                cursor: "pointer",
-                fontWeight: "bold"
-              }}
-            >
-              Login
-            </button>
-
-            <button
-              onClick={() => setAuthMode("register")}
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                borderRadius: "10px",
-                border: authMode === "register" ? "none" : "1px solid #d1d5db",
-                background: authMode === "register" ? "#1976d2" : "#ffffff",
-                color: authMode === "register" ? "#ffffff" : "#111827",
-                cursor: "pointer",
-                fontWeight: "bold"
-              }}
-            >
-              Register
-            </button>
-          </div>
-
-          <div style={{ display: "grid", gap: "12px" }}>
-            {authMode === "register" && (
-              <input
-                value={authForm.companyName}
-                onChange={(e) => handleAuthChange("companyName", e.target.value)}
-                placeholder="Company name"
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-            )}
-
+          {authMode === "register" && (
             <input
-              value={authForm.email}
-              onChange={(e) => handleAuthChange("email", e.target.value)}
-              placeholder="Email"
-              type="email"
+              value={authForm.companyName}
+              onChange={(e) => handleAuthField("companyName", e.target.value)}
+              placeholder="Company name"
               style={{
+                width: "100%",
                 padding: "12px",
+                marginBottom: "12px",
                 borderRadius: "10px",
                 border: "1px solid #d1d5db"
               }}
             />
+          )}
 
-            <input
-              value={authForm.password}
-              onChange={(e) => handleAuthChange("password", e.target.value)}
-              placeholder="Password"
-              type="password"
-              style={{
-                padding: "12px",
-                borderRadius: "10px",
-                border: "1px solid #d1d5db"
-              }}
-            />
+          <input
+            value={authForm.email}
+            onChange={(e) => handleAuthField("email", e.target.value)}
+            placeholder="Email"
+            type="email"
+            style={{
+              width: "100%",
+              padding: "12px",
+              marginBottom: "12px",
+              borderRadius: "10px",
+              border: "1px solid #d1d5db"
+            }}
+          />
 
-            <button
-              onClick={authMode === "login" ? handleLogin : handleRegister}
-              disabled={loading}
-              style={{
-                padding: "12px 16px",
-                borderRadius: "10px",
-                border: "none",
-                background: "#1976d2",
-                color: "#ffffff",
-                fontWeight: "bold",
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.7 : 1
-              }}
-            >
-              {loading
-                ? "Please wait..."
-                : authMode === "login"
-                ? "Login"
-                : "Create account"}
-            </button>
-          </div>
+          <input
+            type="password"
+            value={authForm.password}
+            onChange={(e) => handleAuthField("password", e.target.value)}
+            placeholder="Password"
+            style={{
+              width: "100%",
+              padding: "12px",
+              marginBottom: "12px",
+              borderRadius: "10px",
+              border: "1px solid #d1d5db"
+            }}
+          />
+
+          <button
+            onClick={authMode === "login" ? login : register}
+            disabled={loading}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "10px",
+              border: "none",
+              background: "#1976d2",
+              color: "#fff",
+              fontWeight: "bold",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            {loading
+              ? "Please wait..."
+              : authMode === "login"
+              ? "Login"
+              : "Register"}
+          </button>
+
+          <button
+            onClick={() =>
+              setAuthMode(authMode === "login" ? "register" : "login")
+            }
+            style={{
+              width: "100%",
+              padding: "12px",
+              marginTop: "10px",
+              borderRadius: "10px",
+              border: "1px solid #d1d5db",
+              background: "#fff",
+              cursor: "pointer"
+            }}
+          >
+            {authMode === "login" ? "Create account" : "Back to login"}
+          </button>
 
           {statusMessage && (
-            <div
-              style={{
-                marginTop: "16px",
-                padding: "12px",
-                borderRadius: "10px",
-                background: "#f9fafb",
-                border: "1px solid #e5e7eb"
-              }}
-            >
+            <div style={{ marginTop: "12px", color: "#374151" }}>
               {statusMessage}
             </div>
           )}
@@ -761,67 +702,23 @@ function App() {
           <div>
             <h1 style={{ marginBottom: "8px" }}>Ecovanta CSRD-Ready Platform</h1>
             <p style={{ marginTop: 0, color: "#6b7280" }}>
-              ESRS-aligned sustainability reporting workflow with AI-assisted drafts.
+              ESRS-aligned sustainability reporting workflow.
             </p>
           </div>
 
-          <div
+          <button
+            onClick={logout}
             style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap"
+              padding: "12px 16px",
+              borderRadius: "10px",
+              border: "1px solid #d1d5db",
+              background: "#ffffff",
+              cursor: "pointer",
+              fontWeight: "bold"
             }}
           >
-            <button
-              onClick={downloadAllReportsPDF}
-              style={{
-                padding: "12px 16px",
-                borderRadius: "10px",
-                border: "none",
-                background: "#1976d2",
-                color: "#ffffff",
-                fontWeight: "bold",
-                cursor: "pointer"
-              }}
-            >
-              Download All Reports PDF
-            </button>
-
-            <button
-              onClick={logout}
-              style={{
-                padding: "12px 16px",
-                borderRadius: "10px",
-                border: "1px solid #d1d5db",
-                background: "#ffffff",
-                cursor: "pointer",
-                fontWeight: "bold"
-              }}
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "12px 16px",
-            background: "#ffffff",
-            borderRadius: "10px",
-            border: "1px solid #e5e7eb"
-          }}
-        >
-          <strong>User:</strong> {user?.email || "Unknown"}
-          <span style={{ marginLeft: 16 }}>
-            <strong>Plan:</strong> {user?.plan || "free"}
-          </span>
-          <span style={{ marginLeft: 16 }}>
-            <strong>Reports used:</strong> {user?.reportsUsed || 0}
-          </span>
-          <span style={{ marginLeft: 16 }}>
-            <strong>Benchmark:</strong> {benchmark}
-          </span>
+            Logout
+          </button>
         </div>
 
         {statusMessage && (
@@ -840,6 +737,21 @@ function App() {
 
         <div
           style={{
+            marginBottom: "20px",
+            padding: "12px 16px",
+            background: "#ffffff",
+            borderRadius: "10px",
+            border: "1px solid #e5e7eb"
+          }}
+        >
+          <strong>Debug:</strong>
+          <span style={{ marginLeft: 8 }}>Token: {token ? "OK" : "Missing"}</span>
+          <span style={{ marginLeft: 16 }}>Reports loaded: {reports.length}</span>
+          <span style={{ marginLeft: 16 }}>Benchmark: {benchmark}</span>
+        </div>
+
+        <div
+          style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: "16px",
@@ -851,10 +763,7 @@ function App() {
             { title: "Average Score", value: analytics.averageScore },
             { title: "High Risk", value: analytics.highRisk },
             { title: "Moderate Risk", value: analytics.moderateRisk },
-            { title: "Low Risk", value: analytics.lowRisk },
-            { title: "Below Benchmark", value: analytics.belowBenchmark },
-            { title: "Approved Reports", value: analytics.approvedReports },
-            { title: "Material Topics", value: analytics.materialTopicsCount }
+            { title: "Low Risk", value: analytics.lowRisk }
           ].map((card) => (
             <div
               key={card.title}
@@ -916,17 +825,12 @@ function App() {
                   <option value="tech">Tech</option>
                   <option value="energy">Energy</option>
                   <option value="manufacturing">Manufacturing</option>
-                  <option value="finance">Finance</option>
-                  <option value="retail">Retail</option>
-                  <option value="agriculture">Agriculture</option>
                 </select>
 
                 <input
                   type="number"
                   value={reportForm.reportingYear}
-                  onChange={(e) =>
-                    setTopField("reportingYear", Number(e.target.value))
-                  }
+                  onChange={(e) => setTopField("reportingYear", Number(e.target.value))}
                   placeholder="Reporting year"
                   style={{
                     padding: "12px",
@@ -936,62 +840,10 @@ function App() {
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <select
-                  value={reportForm.reportingScope}
-                  onChange={(e) => setTopField("reportingScope", e.target.value)}
-                  style={{
-                    padding: "12px",
-                    borderRadius: "10px",
-                    border: "1px solid #d1d5db"
-                  }}
-                >
-                  <option value="individual">Individual</option>
-                  <option value="consolidated">Consolidated</option>
-                </select>
-
-                <select
-                  value={reportForm.reviewStatus}
-                  onChange={(e) => setTopField("reviewStatus", e.target.value)}
-                  style={{
-                    padding: "12px",
-                    borderRadius: "10px",
-                    border: "1px solid #d1d5db"
-                  }}
-                >
-                  <option value="draft">Draft</option>
-                  <option value="in_review">In review</option>
-                  <option value="approved">Approved</option>
-                </select>
-              </div>
-
-              <label style={{ fontSize: "14px", color: "#4b5563" }}>
-                <input
-                  type="checkbox"
-                  checked={reportForm.transitionalReliefUsed}
-                  onChange={(e) =>
-                    setTopField("transitionalReliefUsed", e.target.checked)
-                  }
-                  style={{ marginRight: "8px" }}
-                />
-                Transitional relief used
-              </label>
-
-              <div
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  background: "#f9fafb",
-                  border: "1px solid #e5e7eb"
-                }}
-              >
-                Current sector benchmark: <strong>{benchmark}</strong>
-              </div>
-
               <h3>ESRS 2</h3>
               <textarea
                 value={reportForm.esrs2.governance}
-                onChange={(e) => updateNestedField("esrs2", "governance", e.target.value)}
+                onChange={(e) => setNestedField("esrs2", "governance", e.target.value)}
                 placeholder="Governance"
                 rows={3}
                 style={{
@@ -1002,7 +854,7 @@ function App() {
               />
               <textarea
                 value={reportForm.esrs2.strategy}
-                onChange={(e) => updateNestedField("esrs2", "strategy", e.target.value)}
+                onChange={(e) => setNestedField("esrs2", "strategy", e.target.value)}
                 placeholder="Strategy"
                 rows={3}
                 style={{
@@ -1014,11 +866,7 @@ function App() {
               <textarea
                 value={reportForm.esrs2.impactsRisksOpportunities}
                 onChange={(e) =>
-                  updateNestedField(
-                    "esrs2",
-                    "impactsRisksOpportunities",
-                    e.target.value
-                  )
+                  setNestedField("esrs2", "impactsRisksOpportunities", e.target.value)
                 }
                 placeholder="Impacts, risks and opportunities"
                 rows={3}
@@ -1030,9 +878,7 @@ function App() {
               />
               <textarea
                 value={reportForm.esrs2.metricsTargets}
-                onChange={(e) =>
-                  updateNestedField("esrs2", "metricsTargets", e.target.value)
-                }
+                onChange={(e) => setNestedField("esrs2", "metricsTargets", e.target.value)}
                 placeholder="Metrics and targets"
                 rows={3}
                 style={{
@@ -1043,27 +889,11 @@ function App() {
               />
 
               <h3>E1 - Climate</h3>
-              <textarea
-                value={reportForm.e1.climateTransitionPlan}
-                onChange={(e) =>
-                  updateNestedField("e1", "climateTransitionPlan", e.target.value)
-                }
-                placeholder="Climate transition plan"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <input
                   type="number"
                   value={reportForm.e1.scope1Emissions}
-                  onChange={(e) =>
-                    updateNestedField("e1", "scope1Emissions", Number(e.target.value))
-                  }
+                  onChange={(e) => setNestedField("e1", "scope1Emissions", Number(e.target.value))}
                   placeholder="Scope 1 emissions"
                   style={{
                     padding: "12px",
@@ -1074,9 +904,7 @@ function App() {
                 <input
                   type="number"
                   value={reportForm.e1.scope2Emissions}
-                  onChange={(e) =>
-                    updateNestedField("e1", "scope2Emissions", Number(e.target.value))
-                  }
+                  onChange={(e) => setNestedField("e1", "scope2Emissions", Number(e.target.value))}
                   placeholder="Scope 2 emissions"
                   style={{
                     padding: "12px",
@@ -1085,68 +913,21 @@ function App() {
                   }}
                 />
               </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <input
-                  type="number"
-                  value={reportForm.e1.scope3Emissions}
-                  onChange={(e) =>
-                    updateNestedField("e1", "scope3Emissions", Number(e.target.value))
-                  }
-                  placeholder="Scope 3 emissions"
-                  style={{
-                    padding: "12px",
-                    borderRadius: "10px",
-                    border: "1px solid #d1d5db"
-                  }}
-                />
-                <input
-                  type="number"
-                  value={reportForm.e1.energyConsumption}
-                  onChange={(e) =>
-                    updateNestedField("e1", "energyConsumption", Number(e.target.value))
-                  }
-                  placeholder="Energy consumption"
-                  style={{
-                    padding: "12px",
-                    borderRadius: "10px",
-                    border: "1px solid #d1d5db"
-                  }}
-                />
-              </div>
-
+              <input
+                type="number"
+                value={reportForm.e1.scope3Emissions}
+                onChange={(e) => setNestedField("e1", "scope3Emissions", Number(e.target.value))}
+                placeholder="Scope 3 emissions"
+                style={{
+                  padding: "12px",
+                  borderRadius: "10px",
+                  border: "1px solid #d1d5db"
+                }}
+              />
               <textarea
                 value={reportForm.e1.climatePolicies}
-                onChange={(e) =>
-                  updateNestedField("e1", "climatePolicies", e.target.value)
-                }
+                onChange={(e) => setNestedField("e1", "climatePolicies", e.target.value)}
                 placeholder="Climate policies"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-              <textarea
-                value={reportForm.e1.climateActions}
-                onChange={(e) =>
-                  updateNestedField("e1", "climateActions", e.target.value)
-                }
-                placeholder="Climate actions"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-              <textarea
-                value={reportForm.e1.climateTargets}
-                onChange={(e) =>
-                  updateNestedField("e1", "climateTargets", e.target.value)
-                }
-                placeholder="Climate targets"
                 rows={3}
                 style={{
                   padding: "12px",
@@ -1158,9 +939,7 @@ function App() {
               <h3>S1 - Own Workforce</h3>
               <textarea
                 value={reportForm.s1.workforcePolicies}
-                onChange={(e) =>
-                  updateNestedField("s1", "workforcePolicies", e.target.value)
-                }
+                onChange={(e) => setNestedField("s1", "workforcePolicies", e.target.value)}
                 placeholder="Workforce policies"
                 rows={3}
                 style={{
@@ -1170,37 +949,9 @@ function App() {
                 }}
               />
               <textarea
-                value={reportForm.s1.healthSafetyMetrics}
-                onChange={(e) =>
-                  updateNestedField("s1", "healthSafetyMetrics", e.target.value)
-                }
-                placeholder="Health and safety metrics"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-              <textarea
                 value={reportForm.s1.diversityInclusion}
-                onChange={(e) =>
-                  updateNestedField("s1", "diversityInclusion", e.target.value)
-                }
+                onChange={(e) => setNestedField("s1", "diversityInclusion", e.target.value)}
                 placeholder="Diversity and inclusion"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-              <textarea
-                value={reportForm.s1.remunerationMetrics}
-                onChange={(e) =>
-                  updateNestedField("s1", "remunerationMetrics", e.target.value)
-                }
-                placeholder="Remuneration metrics"
                 rows={3}
                 style={{
                   padding: "12px",
@@ -1211,23 +962,8 @@ function App() {
 
               <h3>G1 - Business Conduct</h3>
               <textarea
-                value={reportForm.g1.businessConductPolicies}
-                onChange={(e) =>
-                  updateNestedField("g1", "businessConductPolicies", e.target.value)
-                }
-                placeholder="Business conduct policies"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-              <textarea
                 value={reportForm.g1.antiCorruption}
-                onChange={(e) =>
-                  updateNestedField("g1", "antiCorruption", e.target.value)
-                }
+                onChange={(e) => setNestedField("g1", "antiCorruption", e.target.value)}
                 placeholder="Anti-corruption"
                 rows={3}
                 style={{
@@ -1238,23 +974,8 @@ function App() {
               />
               <textarea
                 value={reportForm.g1.whistleblowing}
-                onChange={(e) =>
-                  updateNestedField("g1", "whistleblowing", e.target.value)
-                }
+                onChange={(e) => setNestedField("g1", "whistleblowing", e.target.value)}
                 placeholder="Whistleblowing"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-              <textarea
-                value={reportForm.g1.paymentPractices}
-                onChange={(e) =>
-                  updateNestedField("g1", "paymentPractices", e.target.value)
-                }
-                placeholder="Payment practices"
                 rows={3}
                 style={{
                   padding: "12px",
@@ -1264,7 +985,6 @@ function App() {
               />
 
               <h3>Double Materiality</h3>
-
               {reportForm.materialityTopics.map((topic, index) => (
                 <div
                   key={`topic-${index}`}
@@ -1276,13 +996,7 @@ function App() {
                   }}
                 >
                   <div style={{ display: "grid", gap: "10px" }}>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 2fr",
-                        gap: "10px"
-                      }}
-                    >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "10px" }}>
                       <input
                         value={topic.topicCode}
                         onChange={(e) =>
@@ -1415,11 +1129,7 @@ function App() {
                     <input
                       value={topic.stakeholdersConsulted}
                       onChange={(e) =>
-                        updateMaterialityTopic(
-                          index,
-                          "stakeholdersConsulted",
-                          e.target.value
-                        )
+                        updateMaterialityTopic(index, "stakeholdersConsulted", e.target.value)
                       }
                       placeholder="Stakeholders consulted (comma-separated)"
                       style={{
@@ -1490,7 +1200,6 @@ function App() {
               </button>
 
               <h3>AI Draft</h3>
-
               <button
                 onClick={generateAiDraft}
                 disabled={aiLoading}
@@ -1510,9 +1219,7 @@ function App() {
 
               <textarea
                 value={reportForm.aiDraft.executiveSummary}
-                onChange={(e) =>
-                  updateNestedField("aiDraft", "executiveSummary", e.target.value)
-                }
+                onChange={(e) => setNestedField("aiDraft", "executiveSummary", e.target.value)}
                 placeholder="AI executive summary"
                 rows={4}
                 style={{
@@ -1523,9 +1230,7 @@ function App() {
               />
               <textarea
                 value={reportForm.aiDraft.disclosureDraft}
-                onChange={(e) =>
-                  updateNestedField("aiDraft", "disclosureDraft", e.target.value)
-                }
+                onChange={(e) => setNestedField("aiDraft", "disclosureDraft", e.target.value)}
                 placeholder="AI disclosure draft"
                 rows={6}
                 style={{
@@ -1536,23 +1241,9 @@ function App() {
               />
               <textarea
                 value={reportForm.aiDraft.dataGaps}
-                onChange={(e) =>
-                  updateNestedField("aiDraft", "dataGaps", e.target.value)
-                }
+                onChange={(e) => setNestedField("aiDraft", "dataGaps", e.target.value)}
                 placeholder="AI data gaps"
                 rows={4}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-
-              <textarea
-                value={reportForm.taxonomyMappingNotes}
-                onChange={(e) => setTopField("taxonomyMappingNotes", e.target.value)}
-                placeholder="Taxonomy mapping notes"
-                rows={3}
                 style={{
                   padding: "12px",
                   borderRadius: "10px",
@@ -1690,159 +1381,134 @@ function App() {
               No reports generated yet.
             </div>
           ) : (
-            reports.map((report) => (
-              <div
-                key={report._id || report.id}
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "12px",
-                  padding: "20px",
-                  marginBottom: "16px",
-                  borderLeft: `8px solid ${
-                    (report.scorecard?.overallScore || 0) >= 80
-                      ? "#2e7d32"
-                      : (report.scorecard?.overallScore || 0) >= 60
-                      ? "#f57c00"
-                      : "#d32f2f"
-                  }`,
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
-                }}
-              >
+            reports.map((report) => {
+              const score = Number(report.scorecard?.overallScore || 0);
+
+              return (
                 <div
+                  key={report._id || report.id}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "start",
-                    gap: "16px",
-                    flexWrap: "wrap"
+                    background: "#ffffff",
+                    borderRadius: "12px",
+                    padding: "20px",
+                    marginBottom: "16px",
+                    borderLeft: `8px solid ${getRiskColor(score)}`,
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
                   }}
                 >
-                  <div>
-                    <h3 style={{ marginTop: 0, marginBottom: "8px" }}>
-                      {report.companyName}
-                    </h3>
-                    <div style={{ color: "#6b7280", marginBottom: "8px" }}>
-                      Sector: {report.sector} | Year: {report.reportingYear} | Scope:{" "}
-                      {report.reportingScope}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "start",
+                      gap: "16px",
+                      flexWrap: "wrap"
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ marginTop: 0, marginBottom: "8px" }}>
+                        {report.companyName}
+                      </h3>
+                      <div style={{ color: "#6b7280", marginBottom: "8px" }}>
+                        Sector: {report.sector} | Year: {report.reportingYear}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: "999px",
+                        background: getRiskColor(score),
+                        color: "#ffffff",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      {score} — {getRiskLabel(score)}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: "10px", marginBottom: "10px" }}>
+                    <strong>Benchmark:</strong> {report.scorecard?.benchmark || 0}
+                    <span style={{ marginLeft: 16 }}>
+                      <strong>Review:</strong> {report.reviewStatus}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#f9fafb",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "10px",
+                      padding: "14px",
+                      whiteSpace: "pre-wrap",
+                      marginBottom: "12px"
+                    }}
+                  >
+                    <strong>AI Executive Summary</strong>
+                    <div style={{ marginTop: "8px" }}>
+                      {report.aiDraft?.executiveSummary || "No AI summary"}
                     </div>
                   </div>
 
                   <div
                     style={{
-                      padding: "8px 12px",
-                      borderRadius: "999px",
-                      background:
-                        (report.scorecard?.overallScore || 0) >= 80
-                          ? "#2e7d32"
-                          : (report.scorecard?.overallScore || 0) >= 60
-                          ? "#f57c00"
-                          : "#d32f2f",
-                      color: "#ffffff",
-                      fontWeight: "bold"
+                      display: "flex",
+                      gap: "10px",
+                      flexWrap: "wrap"
                     }}
                   >
-                    {report.scorecard?.overallScore || 0}
+                    <button
+                      onClick={() =>
+                        downloadSingleReportPDF(
+                          report._id || report.id,
+                          report.companyName
+                        )
+                      }
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: "10px",
+                        border: "none",
+                        background: "#1976d2",
+                        color: "#ffffff",
+                        fontWeight: "bold",
+                        cursor: "pointer"
+                      }}
+                    >
+                      Download This Report
+                    </button>
+
+                    <button
+                      onClick={() => loadReportIntoForm(report._id || report.id)}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: "10px",
+                        border: "1px solid #d1d5db",
+                        background: "#ffffff",
+                        cursor: "pointer",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      Edit In Form
+                    </button>
+
+                    <button
+                      onClick={() => deleteReport(report._id || report.id)}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: "10px",
+                        border: "1px solid #ef4444",
+                        background: "#ffffff",
+                        color: "#ef4444",
+                        cursor: "pointer",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
-
-                <div style={{ marginTop: "10px", marginBottom: "10px" }}>
-                  <strong>Benchmark:</strong> {report.scorecard?.benchmark || 0}
-                  <span style={{ marginLeft: 16 }}>
-                    <strong>Review:</strong> {report.reviewStatus}
-                  </span>
-                  <span style={{ marginLeft: 16 }}>
-                    <strong>Material topics:</strong>{" "}
-                    {Array.isArray(report.materialityTopics)
-                      ? report.materialityTopics.filter((t) => t.isMaterial).length
-                      : 0}
-                  </span>
-                </div>
-
-                <div style={{ marginBottom: "12px" }}>
-                  <strong>Climate:</strong> {report.scorecard?.climateScore || 0}
-                  <span style={{ marginLeft: 16 }}>
-                    <strong>Social:</strong> {report.scorecard?.socialScore || 0}
-                  </span>
-                  <span style={{ marginLeft: 16 }}>
-                    <strong>Governance:</strong>{" "}
-                    {report.scorecard?.governanceScore || 0}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    background: "#f9fafb",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "10px",
-                    padding: "14px",
-                    whiteSpace: "pre-wrap",
-                    marginBottom: "12px"
-                  }}
-                >
-                  <strong>AI Executive Summary</strong>
-                  <div style={{ marginTop: "8px" }}>
-                    {report.aiDraft?.executiveSummary || "No AI summary"}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    flexWrap: "wrap"
-                  }}
-                >
-                  <button
-                    onClick={() =>
-                      downloadSingleReportPDF(
-                        report._id || report.id,
-                        report.companyName
-                      )
-                    }
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: "10px",
-                      border: "none",
-                      background: "#1976d2",
-                      color: "#ffffff",
-                      fontWeight: "bold",
-                      cursor: "pointer"
-                    }}
-                  >
-                    Download This Report
-                  </button>
-
-                  <button
-                    onClick={() => loadReportIntoForm(report._id || report.id)}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: "10px",
-                      border: "1px solid #d1d5db",
-                      background: "#ffffff",
-                      cursor: "pointer",
-                      fontWeight: "bold"
-                    }}
-                  >
-                    Edit In Form
-                  </button>
-
-                  <button
-                    onClick={() => deleteReport(report._id || report.id)}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: "10px",
-                      border: "1px solid #ef4444",
-                      background: "#ffffff",
-                      color: "#ef4444",
-                      cursor: "pointer",
-                      fontWeight: "bold"
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
