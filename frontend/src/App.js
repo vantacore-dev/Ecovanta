@@ -9,6 +9,7 @@ import {
   ResponsiveContainer
 } from "recharts";
 
+const [token, setToken] = useState(localStorage.getItem("token") || "");
 
 const upgradePlan = async (plan) => {
   if (!token) {
@@ -99,9 +100,7 @@ const initialReportForm = {
 };
 
 function App() {
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
-  const [authMode, setAuthMode] = useState("login");
-  const [authForm, setAuthForm] = useState({
+    const [authForm, setAuthForm] = useState({
     email: "",
     password: "",
     companyName: ""
