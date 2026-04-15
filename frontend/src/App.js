@@ -9,6 +9,36 @@ import {
   ResponsiveContainer
 } from "recharts";
 
+
+const upgradePlan = async (plan) => {
+  if (!token) {
+    alert("Login required.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/billing/create-checkout-session`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ plan })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to start checkout");
+    }
+
+    window.location.href = data.url;
+  } catch (err) {
+    console.error("Upgrade error:", err);
+    alert(`Upgrade failed: ${err.message}`);
+  }
+};
+
 const API = "https://ecovanta.onrender.com";
 
 const defaultMaterialityTopic = {
@@ -1365,6 +1395,39 @@ function App() {
             </div>
           </div>
         </div>
+
+<div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "20px" }}>
+  <button
+    onClick={() => upgradePlan("pro")}
+    style={{
+      padding: "12px 16px",
+      borderRadius: "10px",
+      border: "none",
+      background: "#1976d2",
+      color: "#fff",
+      fontWeight: "bold",
+      cursor: "pointer"
+    }}
+  >
+    Upgrade to Pro
+  </button>
+
+  <button
+    onClick={() => upgradePlan("enterprise")}
+    style={{
+      padding: "12px 16px",
+      borderRadius: "10px",
+      border: "none",
+      background: "#7c3aed",
+      color: "#fff",
+      fontWeight: "bold",
+      cursor: "pointer"
+    }}
+  >
+    Upgrade to Enterprise
+  </button>
+</div>
+
 
         <div style={{ marginTop: "24px" }}>
           <h2>Portfolio Reports</h2>
