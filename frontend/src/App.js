@@ -11,24 +11,6 @@ import {
 
 const API = "https://ecovanta.onrender.com";
 
-const [user, setUser] = useState(null);
-
-<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-  <div>
-    <h1>Ecovanta Risk and Compliance</h1>
-    <p style={{ marginTop: 0, color: "#6b7280" }}>
-      ESG intelligence platform
-    </p>
-  </div>
-
-  <div style={{ textAlign: "right" }}>
-    <div>
-      <strong>Plan:</strong> {user?.plan || "free"}
-    </div>
-    <button onClick={logout}>Logout</button>
-  </div>
-</div>
-
 const defaultMaterialityTopic = {
   topicCode: "E1",
   topicLabel: "Climate change",
@@ -96,7 +78,7 @@ function App() {
     password: "",
     companyName: ""
   });
- 
+
   const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -117,33 +99,39 @@ function App() {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
 
-// 3. ADD loadUser
-const loadUser = useCallback(async () => {
-  if (!token) return;
+  const logout = () => {
+    localStorage.removeItem("token");
+    setToken("");
+    setUser(null);
+    setReports([]);
+    setSelectedReportId("");
+    setStatusMessage("Logged out.");
+  };
 
-  try {
-    const res = await fetch(`${API}/auth/me`, {
-      headers: {
-        Authorization: `Bearer ${token}`
+  const loadUser = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${API}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setUser(data);
       }
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      setUser(data);
+    } catch (err) {
+      console.error("Load user error:", err);
     }
-  } catch (err) {
-    console.error("Load user error:", err);
-  }
-}, [token]);
+  }, [token]);
 
-// 4. EFFECTS (call it here)
   useEffect(() => {
     loadUser();
   }, [loadUser]);
 
- 
   const upgradePlan = async (plan) => {
     if (!token) {
       alert("Login required.");
@@ -289,14 +277,6 @@ const loadUser = useCallback(async () => {
     }
   }, [authForm.email, authForm.password, authForm.companyName]);
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken("");
-    setReports([]);
-    setSelectedReportId("");
-    setStatusMessage("Logged out.");
-  };
-
   const loadReports = useCallback(async () => {
     if (!token) return;
 
@@ -321,7 +301,9 @@ const loadUser = useCallback(async () => {
       });
 
       const safeReports = Array.isArray(reportList) ? reportList : [];
-      const scores = safeReports.map((report) => Number(report.scorecard?.overallScore || 0));
+      const scores = safeReports.map((report) =>
+        Number(report.scorecard?.overallScore || 0)
+      );
 
       const totalReports = safeReports.length;
       const averageScore = totalReports
@@ -329,7 +311,9 @@ const loadUser = useCallback(async () => {
         : 0;
 
       const highRisk = scores.filter((score) => score < 60).length;
-      const moderateRisk = scores.filter((score) => score >= 60 && score < 80).length;
+      const moderateRisk = scores.filter(
+        (score) => score >= 60 && score < 80
+      ).length;
       const lowRisk = scores.filter((score) => score >= 80).length;
 
       setAnalytics({
@@ -535,7 +519,9 @@ const loadUser = useCallback(async () => {
       });
 
       const safeReports = Array.isArray(data) ? data : [];
-      const found = safeReports.find((item) => (item._id || item.id) === reportId);
+      const found = safeReports.find(
+        (item) => (item._id || item.id) === reportId
+      );
 
       if (!found) {
         throw new Error("Report not found");
@@ -548,7 +534,8 @@ const loadUser = useCallback(async () => {
         esrs2: {
           governance: found.esrs2?.governance || "",
           strategy: found.esrs2?.strategy || "",
-          impactsRisksOpportunities: found.esrs2?.impactsRisksOpportunities || "",
+          impactsRisksOpportunities:
+            found.esrs2?.impactsRisksOpportunities || "",
           metricsTargets: found.esrs2?.metricsTargets || ""
         },
         e1: {
@@ -627,9 +614,9 @@ const loadUser = useCallback(async () => {
     }
   };
 
-  const deleteReport = async (reportId) => {
+  const deleteReport = async () => {
     alert(
-      `Delete route is not included in the basic modular backend yet. Add DELETE /reports/${reportId} on the backend first.`
+      "Delete route is not included in the basic modular backend yet. Add DELETE /reports/:id on the backend first."
     );
   };
 
@@ -783,19 +770,61 @@ const loadUser = useCallback(async () => {
             </p>
           </div>
 
-          <button
-            onClick={logout}
-            style={{
-              padding: "12px 16px",
-              borderRadius: "10px",
-              border: "1px solid #d1d5db",
-              background: "#ffffff",
-              cursor: "pointer",
-              fontWeight: "bold"
-            }}
-          >
-            Logout
-          </button>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ marginBottom: "8px" }}>
+              <strong>Plan:</strong> {user?.plan || "free"}
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {user?.plan === "free" && (
+                <button
+                  onClick={() => upgradePlan("pro")}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    border: "none",
+                    background: "#1976d2",
+                    color: "#fff",
+                    fontWeight: "bold",
+                    cursor: "pointer"
+                  }}
+                >
+                  Upgrade to Pro
+                </button>
+              )}
+
+              {user?.plan === "pro" && (
+                <button
+                  onClick={() => upgradePlan("enterprise")}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    border: "none",
+                    background: "#7c3aed",
+                    color: "#fff",
+                    fontWeight: "bold",
+                    cursor: "pointer"
+                  }}
+                >
+                  Upgrade to Enterprise
+                </button>
+              )}
+
+              <button
+                onClick={logout}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid #d1d5db",
+                  background: "#ffffff",
+                  cursor: "pointer",
+                  fontWeight: "bold"
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
         </div>
 
         {statusMessage && (
@@ -907,7 +936,9 @@ const loadUser = useCallback(async () => {
                 <input
                   type="number"
                   value={reportForm.reportingYear}
-                  onChange={(e) => setTopField("reportingYear", Number(e.target.value))}
+                  onChange={(e) =>
+                    setTopField("reportingYear", Number(e.target.value))
+                  }
                   placeholder="Reporting year"
                   style={{
                     padding: "12px",
@@ -943,7 +974,11 @@ const loadUser = useCallback(async () => {
               <textarea
                 value={reportForm.esrs2.impactsRisksOpportunities}
                 onChange={(e) =>
-                  setNestedField("esrs2", "impactsRisksOpportunities", e.target.value)
+                  setNestedField(
+                    "esrs2",
+                    "impactsRisksOpportunities",
+                    e.target.value
+                  )
                 }
                 placeholder="Impacts, risks and opportunities"
                 rows={3}
@@ -955,7 +990,9 @@ const loadUser = useCallback(async () => {
               />
               <textarea
                 value={reportForm.esrs2.metricsTargets}
-                onChange={(e) => setNestedField("esrs2", "metricsTargets", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("esrs2", "metricsTargets", e.target.value)
+                }
                 placeholder="Metrics and targets"
                 rows={3}
                 style={{
@@ -970,7 +1007,9 @@ const loadUser = useCallback(async () => {
                 <input
                   type="number"
                   value={reportForm.e1.scope1Emissions}
-                  onChange={(e) => setNestedField("e1", "scope1Emissions", Number(e.target.value))}
+                  onChange={(e) =>
+                    setNestedField("e1", "scope1Emissions", Number(e.target.value))
+                  }
                   placeholder="Scope 1 emissions"
                   style={{
                     padding: "12px",
@@ -981,7 +1020,9 @@ const loadUser = useCallback(async () => {
                 <input
                   type="number"
                   value={reportForm.e1.scope2Emissions}
-                  onChange={(e) => setNestedField("e1", "scope2Emissions", Number(e.target.value))}
+                  onChange={(e) =>
+                    setNestedField("e1", "scope2Emissions", Number(e.target.value))
+                  }
                   placeholder="Scope 2 emissions"
                   style={{
                     padding: "12px",
@@ -993,7 +1034,9 @@ const loadUser = useCallback(async () => {
               <input
                 type="number"
                 value={reportForm.e1.scope3Emissions}
-                onChange={(e) => setNestedField("e1", "scope3Emissions", Number(e.target.value))}
+                onChange={(e) =>
+                  setNestedField("e1", "scope3Emissions", Number(e.target.value))
+                }
                 placeholder="Scope 3 emissions"
                 style={{
                   padding: "12px",
@@ -1003,7 +1046,9 @@ const loadUser = useCallback(async () => {
               />
               <textarea
                 value={reportForm.e1.climatePolicies}
-                onChange={(e) => setNestedField("e1", "climatePolicies", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("e1", "climatePolicies", e.target.value)
+                }
                 placeholder="Climate policies"
                 rows={3}
                 style={{
@@ -1016,7 +1061,9 @@ const loadUser = useCallback(async () => {
               <h3>S1 - Own Workforce</h3>
               <textarea
                 value={reportForm.s1.workforcePolicies}
-                onChange={(e) => setNestedField("s1", "workforcePolicies", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("s1", "workforcePolicies", e.target.value)
+                }
                 placeholder="Workforce policies"
                 rows={3}
                 style={{
@@ -1027,7 +1074,9 @@ const loadUser = useCallback(async () => {
               />
               <textarea
                 value={reportForm.s1.diversityInclusion}
-                onChange={(e) => setNestedField("s1", "diversityInclusion", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("s1", "diversityInclusion", e.target.value)
+                }
                 placeholder="Diversity and inclusion"
                 rows={3}
                 style={{
@@ -1040,7 +1089,9 @@ const loadUser = useCallback(async () => {
               <h3>G1 - Business Conduct</h3>
               <textarea
                 value={reportForm.g1.antiCorruption}
-                onChange={(e) => setNestedField("g1", "antiCorruption", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("g1", "antiCorruption", e.target.value)
+                }
                 placeholder="Anti-corruption"
                 rows={3}
                 style={{
@@ -1051,7 +1102,9 @@ const loadUser = useCallback(async () => {
               />
               <textarea
                 value={reportForm.g1.whistleblowing}
-                onChange={(e) => setNestedField("g1", "whistleblowing", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("g1", "whistleblowing", e.target.value)
+                }
                 placeholder="Whistleblowing"
                 rows={3}
                 style={{
@@ -1073,7 +1126,13 @@ const loadUser = useCallback(async () => {
                   }}
                 >
                   <div style={{ display: "grid", gap: "10px" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "10px" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 2fr",
+                        gap: "10px"
+                      }}
+                    >
                       <input
                         value={topic.topicCode}
                         onChange={(e) =>
@@ -1100,7 +1159,13 @@ const loadUser = useCallback(async () => {
                       />
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "8px" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(5, 1fr)",
+                        gap: "8px"
+                      }}
+                    >
                       {[
                         ["severity", "Severity"],
                         ["scale", "Scale"],
@@ -1109,7 +1174,9 @@ const loadUser = useCallback(async () => {
                         ["likelihood", "Impact Likelihood"]
                       ].map(([field, label]) => (
                         <div key={field}>
-                          <div style={{ fontSize: "12px", marginBottom: "4px" }}>{label}</div>
+                          <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                            {label}
+                          </div>
                           <input
                             type="number"
                             min="1"
@@ -1133,9 +1200,17 @@ const loadUser = useCallback(async () => {
                       ))}
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr 1fr",
+                        gap: "8px"
+                      }}
+                    >
                       <div>
-                        <div style={{ fontSize: "12px", marginBottom: "4px" }}>Magnitude</div>
+                        <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                          Magnitude
+                        </div>
                         <input
                           type="number"
                           min="1"
@@ -1157,7 +1232,9 @@ const loadUser = useCallback(async () => {
                         />
                       </div>
                       <div>
-                        <div style={{ fontSize: "12px", marginBottom: "4px" }}>Likelihood</div>
+                        <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                          Likelihood
+                        </div>
                         <input
                           type="number"
                           min="1"
@@ -1179,7 +1256,9 @@ const loadUser = useCallback(async () => {
                         />
                       </div>
                       <div>
-                        <div style={{ fontSize: "12px", marginBottom: "4px" }}>Time horizon</div>
+                        <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                          Time horizon
+                        </div>
                         <select
                           value={topic.financialMateriality.timeHorizon}
                           onChange={(e) =>
@@ -1206,7 +1285,11 @@ const loadUser = useCallback(async () => {
                     <input
                       value={topic.stakeholdersConsulted}
                       onChange={(e) =>
-                        updateMaterialityTopic(index, "stakeholdersConsulted", e.target.value)
+                        updateMaterialityTopic(
+                          index,
+                          "stakeholdersConsulted",
+                          e.target.value
+                        )
                       }
                       placeholder="Stakeholders consulted (comma-separated)"
                       style={{
@@ -1296,7 +1379,9 @@ const loadUser = useCallback(async () => {
 
               <textarea
                 value={reportForm.aiDraft.executiveSummary}
-                onChange={(e) => setNestedField("aiDraft", "executiveSummary", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("aiDraft", "executiveSummary", e.target.value)
+                }
                 placeholder="AI executive summary"
                 rows={4}
                 style={{
@@ -1307,7 +1392,9 @@ const loadUser = useCallback(async () => {
               />
               <textarea
                 value={reportForm.aiDraft.disclosureDraft}
-                onChange={(e) => setNestedField("aiDraft", "disclosureDraft", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("aiDraft", "disclosureDraft", e.target.value)
+                }
                 placeholder="AI disclosure draft"
                 rows={6}
                 style={{
@@ -1318,7 +1405,9 @@ const loadUser = useCallback(async () => {
               />
               <textarea
                 value={reportForm.aiDraft.dataGaps}
-                onChange={(e) => setNestedField("aiDraft", "dataGaps", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("aiDraft", "dataGaps", e.target.value)
+                }
                 placeholder="AI data gaps"
                 rows={4}
                 style={{
@@ -1442,39 +1531,6 @@ const loadUser = useCallback(async () => {
             </div>
           </div>
         </div>
-
-<div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "20px" }}>
-  <button
-    onClick={() => upgradePlan("pro")}
-    style={{
-      padding: "12px 16px",
-      borderRadius: "10px",
-      border: "none",
-      background: "#1976d2",
-      color: "#fff",
-      fontWeight: "bold",
-      cursor: "pointer"
-    }}
-  >
-    Upgrade to Pro
-  </button>
-
-  <button
-    onClick={() => upgradePlan("enterprise")}
-    style={{
-      padding: "12px 16px",
-      borderRadius: "10px",
-      border: "none",
-      background: "#7c3aed",
-      color: "#fff",
-      fontWeight: "bold",
-      cursor: "pointer"
-    }}
-  >
-    Upgrade to Enterprise
-  </button>
-</div>
-
 
         <div style={{ marginTop: "24px" }}>
           <h2>Portfolio Reports</h2>
