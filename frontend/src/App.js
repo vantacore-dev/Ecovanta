@@ -11,6 +11,23 @@ import {
 
 const API = "https://ecovanta.onrender.com";
 
+
+<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+  <div>
+    <h1>Ecovanta Risk and Compliance</h1>
+    <p style={{ marginTop: 0, color: "#6b7280" }}>
+      ESG intelligence platform
+    </p>
+  </div>
+
+  <div style={{ textAlign: "right" }}>
+    <div>
+      <strong>Plan:</strong> {user?.plan || "free"}
+    </div>
+    <button onClick={logout}>Logout</button>
+  </div>
+</div>
+
 const defaultMaterialityTopic = {
   topicCode: "E1",
   topicLabel: "Climate change",
@@ -71,6 +88,7 @@ const initialReportForm = {
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [authMode, setAuthMode] = useState("login");
+  const [user, setUser] = useState(null);
 
   const [authForm, setAuthForm] = useState({
     email: "",
@@ -97,6 +115,33 @@ function App() {
   const authHeaders = useMemo(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
+
+// 3. ADD loadUser
+const loadUser = useCallback(async () => {
+  if (!token) return;
+
+  try {
+    const res = await fetch(`${API}/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setUser(data);
+    }
+  } catch (err) {
+    console.error("Load user error:", err);
+  }
+}, [token]);
+
+
+// 4. EFFECTS (call it here)
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
 
   const upgradePlan = async (plan) => {
     if (!token) {
