@@ -29,6 +29,18 @@ const userSchema = new mongoose.Schema(
     reportsUsed: {
       type: Number,
       default: 0
+    },
+    stripeCustomerId: {
+      type: String,
+      default: ""
+    },
+    stripeSubscriptionId: {
+      type: String,
+      default: ""
+    },
+    subscriptionStatus: {
+      type: String,
+      default: ""
     }
   },
   { timestamps: true }
