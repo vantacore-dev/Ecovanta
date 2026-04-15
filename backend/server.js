@@ -8,7 +8,7 @@ const authRoutes = require("./routes/authRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const billingRoutes = require("./routes/billingRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
-
+const aiRoutes = require("./routes/aiRoutes");
 const app = express();
 
 app.use(cors());
