@@ -9,37 +9,6 @@ import {
   ResponsiveContainer
 } from "recharts";
 
-const [token, setToken] = useState(localStorage.getItem("token") || "");
-
-const upgradePlan = async (plan) => {
-  if (!token) {
-    alert("Login required.");
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API}/billing/create-checkout-session`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ plan })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to start checkout");
-    }
-
-    window.location.href = data.url;
-  } catch (err) {
-    console.error("Upgrade error:", err);
-    alert(`Upgrade failed: ${err.message}`);
-  }
-};
-
 const API = "https://ecovanta.onrender.com";
 
 const defaultMaterialityTopic = {
@@ -100,11 +69,15 @@ const initialReportForm = {
 };
 
 function App() {
-    const [authForm, setAuthForm] = useState({
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [authMode, setAuthMode] = useState("login");
+
+  const [authForm, setAuthForm] = useState({
     email: "",
     password: "",
     companyName: ""
   });
+
   const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -124,6 +97,35 @@ function App() {
   const authHeaders = useMemo(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
+
+  const upgradePlan = async (plan) => {
+    if (!token) {
+      alert("Login required.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/billing/create-checkout-session`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ plan })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to start checkout");
+      }
+
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("Upgrade error:", err);
+      alert(`Upgrade failed: ${err.message}`);
+    }
+  };
 
   const getRiskColor = (score) => {
     if (score >= 80) return "#2e7d32";
