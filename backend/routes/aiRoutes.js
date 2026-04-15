@@ -68,3 +68,4 @@ Return STRICT JSON ONLY:
     });
   }
 });
+module.exports = router;
