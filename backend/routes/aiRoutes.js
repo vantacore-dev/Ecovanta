@@ -8,15 +8,25 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-router.post("/ai-draft", auth, async (req, res) => {
-  try {
-     console.log("AI draft req.body:", req.body);
+//router.post("/ai-draft", auth, async (req, res) => {
+  ///try {
+     //console.log("AI draft req.body:", req.body);
 
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({
-        error: "OPENAI_API_KEY is not configured"
-      });
-    }
+   // if (!process.env.OPENAI_API_KEY) {
+     // return res.status(500).json({
+       // error: "OPENAI_API_KEY is not configured"
+      //});
+    //}
+
+
+router.post("/ai-draft", auth, async (req, res) => {
+  console.log("NEW AI ROUTE HIT");
+  return res.status(200).json({
+    executiveSummary: "TEST SUMMARY FROM NEW ROUTE",
+    disclosureDraft: "TEST DISCLOSURE",
+    dataGaps: "TEST GAPS"
+  });
+});
 
     const {
       companyName,
