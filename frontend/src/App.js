@@ -429,6 +429,8 @@ function App() {
         }))
       };
 
+console.log("AI payload being sent:", payload);
+
       const data = await fetchJson(`${API}/ai-draft`, {
         method: "POST",
         headers: {
@@ -437,7 +439,7 @@ function App() {
         },
         body: JSON.stringify(payload)
       });
-      
+
 console.log("AI draft response:", data); // log to be removed later
 
       setReportForm((prev) => ({
