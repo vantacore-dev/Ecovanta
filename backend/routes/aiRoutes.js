@@ -75,13 +75,15 @@ ${JSON.stringify(materialityTopics, null, 2)}
 
 Return strict JSON with exactly these keys:
 {
-  "executiveSummary": "A practical executive summary of at least 120 words",
-  "disclosureDraft": "A structured CSRD/ESRS-aligned disclosure draft. You may use plain text or a structured object.",
-  "dataGaps": "A practical list of missing data or weak evidence. You may use plain text or an array."
+  "executiveSummary": "A practical executive summary of at least 120 words in plain text.",
+  "disclosureDraft": "A human-readable CSRD/ESRS-aligned disclosure draft in plain text with section headings for Governance, Strategy, Impacts/Risks/Opportunities, Metrics & Targets, Climate, Workforce, Business Conduct, and Materiality Topics.",
+  "dataGaps": "A practical list of missing data or weak evidence in plain text."
 }
 
 Do not return markdown.
 Do not omit keys.
+disclosureDraft must be plain text, not an object or array.
+dataGaps should be plain text, not an array.
 `;
 
     const response = await openai.chat.completions.create({
