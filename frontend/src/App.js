@@ -402,6 +402,9 @@ function App() {
   };
 
   const generateAiDraft = async () => {
+
+ console.log("Generate AI Draft clicked");
+
     if (!token) {
       alert("Login required.");
       return;
