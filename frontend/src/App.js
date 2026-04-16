@@ -1178,6 +1178,124 @@ setReportForm((prev) => ({
                       />
                     </div>
 
+
+                    <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(5, 1fr)",
+    gap: "8px"
+  }}
+>
+  {[
+    ["severity", "Severity"],
+    ["scale", "Scale"],
+    ["scope", "Scope"],
+    ["irremediability", "Irrem."],
+    ["likelihood", "Impact Likelihood"]
+  ].map(([field, label]) => (
+    <div key={field}>
+      <div style={{ fontSize: "12px", marginBottom: "4px" }}>{label}</div>
+      <input
+        type="number"
+        min="1"
+        max="5"
+        value={topic.impactMateriality[field]}
+        onChange={(e) =>
+          updateMaterialityTopic(
+            index,
+            `impactMateriality.${field}`,
+            Number(e.target.value)
+          )
+        }
+        style={{
+          width: "100%",
+          padding: "10px",
+          borderRadius: "10px",
+          border: "1px solid #d1d5db"
+        }}
+      />
+    </div>
+  ))}
+</div>
+
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr 1fr",
+    gap: "8px"
+  }}
+>
+  <div>
+    <div style={{ fontSize: "12px", marginBottom: "4px" }}>Magnitude</div>
+    <input
+      type="number"
+      min="1"
+      max="5"
+      value={topic.financialMateriality.magnitude}
+      onChange={(e) =>
+        updateMaterialityTopic(
+          index,
+          "financialMateriality.magnitude",
+          Number(e.target.value)
+        )
+      }
+      style={{
+        width: "100%",
+        padding: "10px",
+        borderRadius: "10px",
+        border: "1px solid #d1d5db"
+      }}
+    />
+  </div>
+
+  <div>
+    <div style={{ fontSize: "12px", marginBottom: "4px" }}>Likelihood</div>
+    <input
+      type="number"
+      min="1"
+      max="5"
+      value={topic.financialMateriality.likelihood}
+      onChange={(e) =>
+        updateMaterialityTopic(
+          index,
+          "financialMateriality.likelihood",
+          Number(e.target.value)
+        )
+      }
+      style={{
+        width: "100%",
+        padding: "10px",
+        borderRadius: "10px",
+        border: "1px solid #d1d5db"
+      }}
+    />
+  </div>
+
+  <div>
+    <div style={{ fontSize: "12px", marginBottom: "4px" }}>Time horizon</div>
+    <select
+      value={topic.financialMateriality.timeHorizon}
+      onChange={(e) =>
+        updateMaterialityTopic(
+          index,
+          "financialMateriality.timeHorizon",
+          e.target.value
+        )
+      }
+      style={{
+        width: "100%",
+        padding: "10px",
+        borderRadius: "10px",
+        border: "1px solid #d1d5db"
+      }}
+    >
+      <option value="short">Short</option>
+      <option value="medium">Medium</option>
+      <option value="long">Long</option>
+    </select>
+  </div>
+</div>
+
                     <input
                       value={topic.stakeholdersConsulted}
                       onChange={(e) =>
