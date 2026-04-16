@@ -76,8 +76,8 @@ ${JSON.stringify(materialityTopics, null, 2)}
 Return strict JSON with exactly these keys:
 {
   "executiveSummary": "A practical executive summary of at least 120 words",
-  "disclosureDraft": "A structured CSRD/ESRS-aligned disclosure draft",
-  "dataGaps": "A practical list of missing data or weak evidence"
+  "disclosureDraft": "A structured CSRD/ESRS-aligned disclosure draft. You may use plain text or a structured object.",
+  "dataGaps": "A practical list of missing data or weak evidence. You may use plain text or an array."
 }
 
 Do not return markdown.
@@ -90,7 +90,8 @@ Do not omit keys.
       messages: [
         {
           role: "system",
-          content: "You are a precise ESG reporting assistant. Always return valid JSON."
+          content:
+            "You are a precise ESG reporting assistant. Always return valid JSON."
         },
         {
           role: "user",
@@ -114,10 +115,27 @@ Do not omit keys.
       });
     }
 
+    const executiveSummary =
+      typeof parsed.executiveSummary === "string"
+        ? parsed.executiveSummary
+        : JSON.stringify(parsed.executiveSummary, null, 2);
+
+    const disclosureDraft =
+      typeof parsed.disclosureDraft === "string"
+        ? parsed.disclosureDraft
+        : JSON.stringify(parsed.disclosureDraft, null, 2);
+
+    const dataGaps =
+      typeof parsed.dataGaps === "string"
+        ? parsed.dataGaps
+        : Array.isArray(parsed.dataGaps)
+        ? parsed.dataGaps.join("\n- ")
+        : JSON.stringify(parsed.dataGaps, null, 2);
+
     return res.json({
-      executiveSummary: parsed.executiveSummary || "No executive summary generated.",
-      disclosureDraft: parsed.disclosureDraft || "No disclosure draft generated.",
-      dataGaps: parsed.dataGaps || "No data gaps identified."
+      executiveSummary: executiveSummary || "No executive summary generated.",
+      disclosureDraft: disclosureDraft || "No disclosure draft generated.",
+      dataGaps: dataGaps || "No data gaps identified."
     });
   } catch (err) {
     console.error("AI draft error:", err);
