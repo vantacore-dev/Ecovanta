@@ -408,14 +408,37 @@ function App() {
 
       console.log("AI draft response:", data);
 
-      setReportForm((prev) => ({
-        ...prev,
-        aiDraft: {
-          executiveSummary: data.executiveSummary || "",
-          disclosureDraft: data.disclosureDraft || "",
-          dataGaps: data.dataGaps || ""
-        }
-      }));
+      //setReportForm((prev) => ({
+        //...prev,
+        //aiDraft: {
+          //executiveSummary: data.executiveSummary || "",
+          //disclosureDraft: data.disclosureDraft || "",
+          //dataGaps: data.dataGaps || ""
+        //}
+      //}));
+
+setReportForm((prev) => ({
+  ...prev,
+  aiDraft: {
+    executiveSummary:
+      typeof data.executiveSummary === "string"
+        ? data.executiveSummary
+        : JSON.stringify(data.executiveSummary, null, 2),
+
+    disclosureDraft:
+      typeof data.disclosureDraft === "string"
+        ? data.disclosureDraft
+        : JSON.stringify(data.disclosureDraft, null, 2),
+
+    dataGaps:
+      typeof data.dataGaps === "string"
+        ? data.dataGaps
+        : Array.isArray(data.dataGaps)
+        ? data.dataGaps.join("\n- ")
+        : JSON.stringify(data.dataGaps, null, 2)
+  }
+}));
+
 
       setStatusMessage("AI draft generated.");
     } catch (err) {
