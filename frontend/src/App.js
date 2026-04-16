@@ -396,7 +396,8 @@ function App() {
       setAiLoading(true);
       setStatusMessage("");
 
-      const data = await fetchJson(`${API}/ai-draft`, {
+      //const data = await fetchJson(`${API}/ai-draft`, {
+      const data = await fetchJson(`${API}/ai/ai-draft`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
