@@ -10,11 +10,17 @@ router.post("/", auth, async (req, res) => {
   try {
     const report = await ESRSReport.create({
       ...req.body,
-      userId: req.user.userId
+      userId: req.user.userId,
+      aiDraft: {
+        executiveSummary: String(req.body?.aiDraft?.executiveSummary || ""),
+        disclosureDraft: String(req.body?.aiDraft?.disclosureDraft || ""),
+        dataGaps: String(req.body?.aiDraft?.dataGaps || "")
+      }
     });
 
     res.json(report);
   } catch (err) {
+    console.error("Save report error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -30,34 +36,125 @@ router.get("/", auth, async (req, res) => {
 
 // DOWNLOAD PDF (single)
 router.get("/:id/pdf", auth, async (req, res) => {
-  const report = await ESRSReport.findOne({
-    _id: req.params.id,
-    userId: req.user.userId
-  });
+  try {
+    const report = await ESRSReport.findOne({
+      _id: req.params.id,
+      userId: req.user.userId
+    });
 
-  if (!report) return res.status(404).json({ error: "Not found" });
+    if (!report) {
+      return res.status(404).json({ error: "Report not found" });
+    }
 
-  const doc = new PDFDocument();
+    const doc = new PDFDocument({ margin: 50 });
 
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename=${report.companyName}.pdf`
-  );
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=${(report.companyName || "report").replace(/[^a-z0-9]/gi, "_")}.pdf`
+    );
 
-  doc.pipe(res);
+    doc.pipe(res);
 
-  doc.fontSize(18).text("ESRS Report", { align: "center" });
-  doc.moveDown();
+    // Title
+    doc.fontSize(20).text("ESRS Report", { align: "center" });
+    doc.moveDown();
 
-  doc.text(`Company: ${report.companyName}`);
-  doc.text(`Sector: ${report.sector}`);
-  doc.text(`Score: ${report.scorecard?.overallScore}`);
+    // Basic info
+    doc.fontSize(12).text(`Company: ${report.companyName || ""}`);
+    doc.text(`Sector: ${report.sector || ""}`);
+    doc.text(`Reporting Year: ${report.reportingYear || ""}`);
+    doc.text(`Benchmark: ${report.scorecard?.benchmark ?? ""}`);
+    doc.text(`Overall Score: ${report.scorecard?.overallScore ?? ""}`);
+    doc.text(`Review Status: ${report.reviewStatus || ""}`);
+    doc.moveDown();
 
-  doc.moveDown();
-  doc.text(report.aiDraft?.executiveSummary || "");
+    // ESRS 2
+    doc.fontSize(16).text("ESRS 2");
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Governance: ${report.esrs2?.governance || ""}`);
+    doc.moveDown(0.5);
+    doc.text(`Strategy: ${report.esrs2?.strategy || ""}`);
+    doc.moveDown(0.5);
+    doc.text(
+      `Impacts, Risks & Opportunities: ${
+        report.esrs2?.impactsRisksOpportunities || ""
+      }`
+    );
+    doc.moveDown(0.5);
+    doc.text(`Metrics & Targets: ${report.esrs2?.metricsTargets || ""}`);
+    doc.moveDown();
 
-  doc.end();
+    // Climate
+    doc.fontSize(16).text("E1 - Climate");
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Scope 1 Emissions: ${report.e1?.scope1Emissions ?? ""}`);
+    doc.text(`Scope 2 Emissions: ${report.e1?.scope2Emissions ?? ""}`);
+    doc.text(`Scope 3 Emissions: ${report.e1?.scope3Emissions ?? ""}`);
+    doc.moveDown(0.5);
+    doc.text(`Climate Policies: ${report.e1?.climatePolicies || ""}`);
+    doc.moveDown();
+
+    // Workforce
+    doc.fontSize(16).text("S1 - Workforce");
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(
+      `Workforce Policies: ${report.s1?.workforcePolicies || ""}`
+    );
+    doc.moveDown(0.5);
+    doc.text(`Diversity & Inclusion: ${report.s1?.diversityInclusion || ""}`);
+    doc.moveDown();
+
+    // Business conduct
+    doc.fontSize(16).text("G1 - Business Conduct");
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Anti-Corruption: ${report.g1?.antiCorruption || ""}`);
+    doc.moveDown(0.5);
+    doc.text(`Whistleblowing: ${report.g1?.whistleblowing || ""}`);
+    doc.moveDown();
+
+    // AI Executive Summary
+    doc.fontSize(16).text("AI Executive Summary");
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(report.aiDraft?.executiveSummary || "No AI summary");
+    doc.moveDown();
+
+    // AI Disclosure Draft
+    doc.fontSize(16).text("AI Disclosure Draft");
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(
+      report.aiDraft?.disclosureDraft || "No AI disclosure draft"
+    );
+    doc.moveDown();
+
+    // AI Data Gaps
+    doc.fontSize(16).text("AI Data Gaps");
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(
+      report.aiDraft?.dataGaps || "No AI data gaps"
+    );
+    doc.moveDown();
+
+    // Materiality topics
+    if (Array.isArray(report.materialityTopics) && report.materialityTopics.length > 0) {
+      doc.fontSize(16).text("Materiality Topics");
+      doc.moveDown(0.5);
+
+      report.materialityTopics.forEach((topic, index) => {
+        doc.fontSize(12).text(
+          `${index + 1}. ${topic.topicCode || ""} - ${topic.topicLabel || ""}`
+        );
+        doc.text(`Material: ${topic.isMaterial ? "Yes" : "No"}`);
+        doc.text(`Rationale: ${topic.rationale || ""}`);
+        doc.moveDown(0.5);
+      });
+    }
+
+    doc.end();
+  } catch (err) {
+    console.error("PDF generation error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
