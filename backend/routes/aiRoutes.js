@@ -8,29 +8,31 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-//router.post("/ai-draft", auth, async (req, res) => {
-  ///try {
-     //console.log("AI draft req.body:", req.body);
-
-   // if (!process.env.OPENAI_API_KEY) {
-     // return res.status(500).json({
-       // error: "OPENAI_API_KEY is not configured"
-      //});
-    //}
-
-
 router.post("/ai-draft", auth, async (req, res) => {
-  console.log("NEW AI ROUTE HIT");
-  return res.status(200).json({
-    executiveSummary: "TEST SUMMARY FROM NEW ROUTE",
-    disclosureDraft: "TEST DISCLOSURE",
-    dataGaps: "TEST GAPS"
-  });
-});
+  try {
+    console.log("AI draft req.body:", req.body);
+
+    const companyName = String(req.body?.companyName || "").trim();
+    const sector = String(req.body?.sector || "").trim();
+
+    if (!companyName || !sector) {
+      return res.status(400).json({
+        error: "companyName and sector are required",
+        received: {
+          companyName,
+          sector,
+          body: req.body
+        }
+      });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({
+        error: "OPENAI_API_KEY is not configured"
+      });
+    }
 
     const {
-      companyName,
-      sector,
       reportingYear,
       esrs2 = {},
       e1 = {},
@@ -38,13 +40,6 @@ router.post("/ai-draft", auth, async (req, res) => {
       g1 = {},
       materialityTopics = []
     } = req.body || {};
-
-    
-    if (!companyName || !sector) {
-      return res.status(400).json({
-        error: "companyName and sector are required"
-      });
-    }
 
     const prompt = `
 You are an ESG and CSRD reporting specialist.

@@ -1,22 +1,22 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const aiRoutes = require("./routes/aiRoutes");
 require("dotenv").config();
 
+const aiRoutes = require("./routes/aiRoutes");
 const authRoutes = require("./routes/authRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const billingRoutes = require("./routes/billingRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
+
 const app = express();
 
 app.use(cors());
-app.use("/", aiRoutes);
 
-// Stripe webhook first
+// Stripe webhook FIRST (before JSON parsing)
 app.use("/webhooks", webhookRoutes);
 
-// Normal JSON parsing after webhooks
+// Then JSON parsing
 app.use(express.json());
 
 // DB
@@ -29,6 +29,7 @@ mongoose
 app.use("/auth", authRoutes);
 app.use("/reports", reportRoutes);
 app.use("/billing", billingRoutes);
+app.use("/ai", aiRoutes); // ✅ FIXED
 
 // HEALTH
 app.get("/", (req, res) => {
