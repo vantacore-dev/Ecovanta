@@ -1505,6 +1505,39 @@ setReportForm((prev) => ({
                     </div>
                   </div>
 
+<div
+  style={{
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: "10px",
+    padding: "14px",
+    whiteSpace: "pre-wrap",
+    marginBottom: "12px"
+  }}
+>
+  <strong>AI Disclosure Draft</strong>
+  <div style={{ marginTop: "8px" }}>
+    {report.aiDraft?.disclosureDraft || "No AI disclosure draft"}
+  </div>
+</div>
+
+<div
+  style={{
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: "10px",
+    padding: "14px",
+    whiteSpace: "pre-wrap",
+    marginBottom: "12px"
+  }}
+>
+  <strong>AI Data Gaps</strong>
+  <div style={{ marginTop: "8px" }}>
+    {report.aiDraft?.dataGaps || "No AI data gaps"}
+  </div>
+</div>
+
+
                   <div
                     style={{
                       display: "flex",
