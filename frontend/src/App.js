@@ -28,7 +28,10 @@ const defaultMaterialityTopic = {
   },
   stakeholdersConsulted: "",
   isMaterial: true,
-  rationale: ""
+  rationale: "",
+  impactScore100: 0,
+  financialScore100: 0,
+  overallMaterialityScore: 0
 };
 
 const initialReportForm = {
@@ -68,8 +71,6 @@ const initialReportForm = {
   materialityTopics: [{ ...defaultMaterialityTopic }]
 };
 
-// Double meteriality automatic ascore calculation
-
 const getTimeHorizonScore = (timeHorizon) => {
   if (timeHorizon === "short") return 5;
   if (timeHorizon === "medium") return 3;
@@ -78,24 +79,27 @@ const getTimeHorizonScore = (timeHorizon) => {
 };
 
 const calculateMaterialityScores = (topic) => {
-  const impact = topic.impactMateriality || {};
-  const financial = topic.financialMateriality || {};
+  const impact = topic?.impactMateriality || {};
+  const financial = topic?.financialMateriality || {};
 
   const impactRaw =
-    (Number(impact.severity || 0) * 0.3) +
-    (Number(impact.scale || 0) * 0.2) +
-    (Number(impact.scope || 0) * 0.2) +
-    (Number(impact.irremediability || 0) * 0.15) +
-    (Number(impact.likelihood || 0) * 0.15);
+    Number(impact.severity || 0) * 0.3 +
+    Number(impact.scale || 0) * 0.2 +
+    Number(impact.scope || 0) * 0.2 +
+    Number(impact.irremediability || 0) * 0.15 +
+    Number(impact.likelihood || 0) * 0.15;
 
   const financialRaw =
-    (Number(financial.magnitude || 0) * 0.5) +
-    (Number(financial.likelihood || 0) * 0.3) +
-    (getTimeHorizonScore(financial.timeHorizon) * 0.2);
+    Number(financial.magnitude || 0) * 0.5 +
+    Number(financial.likelihood || 0) * 0.3 +
+    getTimeHorizonScore(financial.timeHorizon) * 0.2;
 
   const impactScore100 = Math.round((impactRaw / 5) * 100);
   const financialScore100 = Math.round((financialRaw / 5) * 100);
-  const overallMaterialityScore = Math.max(impactScore100, financialScore100);
+  const overallMaterialityScore = Math.max(
+    impactScore100,
+    financialScore100
+  );
   const isMaterial = overallMaterialityScore >= 60;
 
   return {
@@ -105,7 +109,6 @@ const calculateMaterialityScores = (topic) => {
     isMaterial
   };
 };
-
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -160,6 +163,27 @@ function App() {
     return data;
   }, []);
 
+  const normalizeAiDraft = useCallback((aiDraft) => {
+    return {
+      executiveSummary:
+        typeof aiDraft?.executiveSummary === "string"
+          ? aiDraft.executiveSummary
+          : JSON.stringify(aiDraft?.executiveSummary ?? "", null, 2),
+
+      disclosureDraft:
+        typeof aiDraft?.disclosureDraft === "string"
+          ? aiDraft.disclosureDraft
+          : JSON.stringify(aiDraft?.disclosureDraft ?? "", null, 2),
+
+      dataGaps:
+        typeof aiDraft?.dataGaps === "string"
+          ? aiDraft.dataGaps
+          : Array.isArray(aiDraft?.dataGaps)
+          ? aiDraft.dataGaps.join("\n- ")
+          : JSON.stringify(aiDraft?.dataGaps ?? "", null, 2)
+    };
+  }, []);
+
   const loadUser = useCallback(async () => {
     if (!token) return;
 
@@ -180,8 +204,7 @@ function App() {
       const data = await fetchJson(`${API}/reports`, {
         headers: authHeaders
       });
-      const safeReports = Array.isArray(data) ? data : [];
-      setReports(safeReports);
+      setReports(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Load reports error:", err);
       setStatusMessage(`Could not load reports: ${err.message}`);
@@ -388,7 +411,15 @@ function App() {
         current[path] = value;
       }
 
-      nextTopics[index] = current;
+      const scores = calculateMaterialityScores(current);
+
+      nextTopics[index] = {
+        ...current,
+        impactScore100: scores.impactScore100,
+        financialScore100: scores.financialScore100,
+        overallMaterialityScore: scores.overallMaterialityScore,
+        isMaterial: scores.isMaterial
+      };
 
       return {
         ...prev,
@@ -413,15 +444,23 @@ function App() {
       e1: reportForm.e1,
       s1: reportForm.s1,
       g1: reportForm.g1,
-      materialityTopics: reportForm.materialityTopics.map((topic) => ({
-        ...topic,
-        stakeholdersConsulted: topic.stakeholdersConsulted
-          ? topic.stakeholdersConsulted
-              .split(",")
-              .map((item) => item.trim())
-              .filter(Boolean)
-          : []
-      }))
+      materialityTopics: reportForm.materialityTopics.map((topic) => {
+        const scores = calculateMaterialityScores(topic);
+
+        return {
+          ...topic,
+          stakeholdersConsulted: topic.stakeholdersConsulted
+            ? topic.stakeholdersConsulted
+                .split(",")
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [],
+          impactScore100: scores.impactScore100,
+          financialScore100: scores.financialScore100,
+          overallMaterialityScore: scores.overallMaterialityScore,
+          isMaterial: scores.isMaterial
+        };
+      })
     };
 
     console.log("AI payload being sent:", payload);
@@ -435,7 +474,6 @@ function App() {
       setAiLoading(true);
       setStatusMessage("");
 
-      //const data = await fetchJson(`${API}/ai-draft`, {
       const data = await fetchJson(`${API}/ai/ai-draft`, {
         method: "POST",
         headers: {
@@ -447,37 +485,10 @@ function App() {
 
       console.log("AI draft response:", data);
 
-      //setReportForm((prev) => ({
-        //...prev,
-        //aiDraft: {
-          //executiveSummary: data.executiveSummary || "",
-          //disclosureDraft: data.disclosureDraft || "",
-          //dataGaps: data.dataGaps || ""
-        //}
-      //}));
-
-setReportForm((prev) => ({
-  ...prev,
-  aiDraft: {
-    executiveSummary:
-      typeof data.executiveSummary === "string"
-        ? data.executiveSummary
-        : JSON.stringify(data.executiveSummary, null, 2),
-
-    disclosureDraft:
-      typeof data.disclosureDraft === "string"
-        ? data.disclosureDraft
-        : JSON.stringify(data.disclosureDraft, null, 2),
-
-    dataGaps:
-      typeof data.dataGaps === "string"
-        ? data.dataGaps
-        : Array.isArray(data.dataGaps)
-        ? data.dataGaps.join("\n- ")
-        : JSON.stringify(data.dataGaps, null, 2)
-  }
-}));
-
+      setReportForm((prev) => ({
+        ...prev,
+        aiDraft: normalizeAiDraft(data)
+      }));
 
       setStatusMessage("AI draft generated.");
     } catch (err) {
@@ -505,30 +516,31 @@ setReportForm((prev) => ({
 
       const payload = {
         ...reportForm,
+        aiDraft: normalizeAiDraft(reportForm.aiDraft),
         scorecard: {
           ...reportForm.scorecard,
           benchmark
         },
-   
-// Materiality auto-update
+        materialityTopics: reportForm.materialityTopics.map((topic) => {
+          const scores = calculateMaterialityScores(topic);
 
-materialityTopics: reportForm.materialityTopics.map((topic) => {
-  const scores = calculateMaterialityScores(topic);
+          return {
+            ...topic,
+            stakeholdersConsulted: topic.stakeholdersConsulted
+              ? topic.stakeholdersConsulted
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter(Boolean)
+              : [],
+            impactScore100: scores.impactScore100,
+            financialScore100: scores.financialScore100,
+            overallMaterialityScore: scores.overallMaterialityScore,
+            isMaterial: scores.isMaterial
+          };
+        })
+      };
 
-  return {
-    ...topic,
-    stakeholdersConsulted: topic.stakeholdersConsulted
-      ? topic.stakeholdersConsulted
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean)
-      : [],
-    isMaterial: scores.isMaterial,
-    impactScore100: scores.impactScore100,
-    financialScore100: scores.financialScore100,
-    overallMaterialityScore: scores.overallMaterialityScore
-  };
-}),
+      console.log("Saving payload:", payload);
 
       const saved = await fetchJson(`${API}/reports`, {
         method: "POST",
@@ -586,11 +598,7 @@ materialityTopics: reportForm.materialityTopics.map((topic) => {
         antiCorruption: found.g1?.antiCorruption || "",
         whistleblowing: found.g1?.whistleblowing || ""
       },
-      aiDraft: {
-        executiveSummary: found.aiDraft?.executiveSummary || "",
-        disclosureDraft: found.aiDraft?.disclosureDraft || "",
-        dataGaps: found.aiDraft?.dataGaps || ""
-      },
+      aiDraft: normalizeAiDraft(found.aiDraft),
       scorecard: {
         benchmark: found.scorecard?.benchmark || 0,
         overallScore: found.scorecard?.overallScore || 0
@@ -601,7 +609,10 @@ materialityTopics: reportForm.materialityTopics.map((topic) => {
           ...topic,
           stakeholdersConsulted: Array.isArray(topic.stakeholdersConsulted)
             ? topic.stakeholdersConsulted.join(", ")
-            : ""
+            : "",
+          impactScore100: topic.impactScore100 || 0,
+          financialScore100: topic.financialScore100 || 0,
+          overallMaterialityScore: topic.overallMaterialityScore || 0
         })) || [{ ...defaultMaterialityTopic }]
     });
 
@@ -1183,258 +1194,267 @@ materialityTopics: reportForm.materialityTopics.map((topic) => {
               />
 
               <h3>Double Materiality</h3>
-              {reportForm.materialityTopics.map((topic, index) => (
-                <div
-                  key={`topic-${index}`}
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "12px",
-                    padding: "14px",
-                    background: "#fafafa"
-                  }}
-                >
-                  <div style={{ display: "grid", gap: "10px" }}>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 2fr",
-                        gap: "10px"
-                      }}
-                    >
-                      <input
-                        value={topic.topicCode}
-                        onChange={(e) =>
-                          updateMaterialityTopic(index, "topicCode", e.target.value)
-                        }
-                        placeholder="Topic code"
+              {reportForm.materialityTopics.map((topic, index) => {
+                const scores = calculateMaterialityScores(topic);
+
+                return (
+                  <div
+                    key={`topic-${index}`}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "12px",
+                      padding: "14px",
+                      background: "#fafafa"
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: "10px" }}>
+                      <div
                         style={{
-                          padding: "10px",
-                          borderRadius: "10px",
-                          border: "1px solid #d1d5db"
-                        }}
-                      />
-                      <input
-                        value={topic.topicLabel}
-                        onChange={(e) =>
-                          updateMaterialityTopic(index, "topicLabel", e.target.value)
-                        }
-                        placeholder="Topic label"
-                        style={{
-                          padding: "10px",
-                          borderRadius: "10px",
-                          border: "1px solid #d1d5db"
-                        }}
-                      />
-                    </div>
-
-
-                    <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
-    gap: "8px"
-  }}
->
-  {[
-    ["severity", "Severity"],
-    ["scale", "Scale"],
-    ["scope", "Scope"],
-    ["irremediability", "Irrem."],
-    ["likelihood", "Impact Likelihood"]
-  ].map(([field, label]) => (
-    <div key={field}>
-      <div style={{ fontSize: "12px", marginBottom: "4px" }}>{label}</div>
-      <input
-        type="number"
-        min="1"
-        max="5"
-        value={topic.impactMateriality[field]}
-        onChange={(e) =>
-          updateMaterialityTopic(
-            index,
-            `impactMateriality.${field}`,
-            Number(e.target.value)
-          )
-        }
-        style={{
-          width: "100%",
-          padding: "10px",
-          borderRadius: "10px",
-          border: "1px solid #d1d5db"
-        }}
-      />
-    </div>
-  ))}
-</div>
-
-<div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: "8px"
-  }}
->
-  <div>
-    <div style={{ fontSize: "12px", marginBottom: "4px" }}>Magnitude</div>
-    <input
-      type="number"
-      min="1"
-      max="5"
-      value={topic.financialMateriality.magnitude}
-      onChange={(e) =>
-        updateMaterialityTopic(
-          index,
-          "financialMateriality.magnitude",
-          Number(e.target.value)
-        )
-      }
-      style={{
-        width: "100%",
-        padding: "10px",
-        borderRadius: "10px",
-        border: "1px solid #d1d5db"
-      }}
-    />
-  </div>
-
-  <div>
-    <div style={{ fontSize: "12px", marginBottom: "4px" }}>Likelihood</div>
-    <input
-      type="number"
-      min="1"
-      max="5"
-      value={topic.financialMateriality.likelihood}
-      onChange={(e) =>
-        updateMaterialityTopic(
-          index,
-          "financialMateriality.likelihood",
-          Number(e.target.value)
-        )
-      }
-      style={{
-        width: "100%",
-        padding: "10px",
-        borderRadius: "10px",
-        border: "1px solid #d1d5db"
-      }}
-    />
-  </div>
-
-  <div>
-    <div style={{ fontSize: "12px", marginBottom: "4px" }}>Time horizon</div>
-    <select
-      value={topic.financialMateriality.timeHorizon}
-      onChange={(e) =>
-        updateMaterialityTopic(
-          index,
-          "financialMateriality.timeHorizon",
-          e.target.value
-        )
-      }
-      style={{
-        width: "100%",
-        padding: "10px",
-        borderRadius: "10px",
-        border: "1px solid #d1d5db"
-      }}
-    >
-      <option value="short">Short</option>
-      <option value="medium">Medium</option>
-      <option value="long">Long</option>
-    </select>
-  </div>
-</div>
-
-                    <input
-                      value={topic.stakeholdersConsulted}
-                      onChange={(e) =>
-                        updateMaterialityTopic(index, "stakeholdersConsulted", e.target.value)
-                      }
-                      placeholder="Stakeholders consulted (comma-separated)"
-                      style={{
-                        padding: "10px",
-                        borderRadius: "10px",
-                        border: "1px solid #d1d5db"
-                      }}
-                    />
-
-                    <label style={{ fontSize: "14px", color: "#4b5563" }}>
-                      <input
-                        type="checkbox"
-                        checked={!!topic.isMaterial}
-                        onChange={(e) =>
-                          updateMaterialityTopic(index, "isMaterial", e.target.checked)
-                        }
-                        style={{ marginRight: "8px" }}
-                      />
-                      Mark as material
-                    </label>
-
-                    <textarea
-                      value={topic.rationale}
-                      onChange={(e) =>
-                        updateMaterialityTopic(index, "rationale", e.target.value)
-                      }
-                      placeholder="Rationale"
-                      rows={3}
-                      style={{
-                        padding: "10px",
-                        borderRadius: "10px",
-                        border: "1px solid #d1d5db"
-                      }}
-                    />
-
-                    {reportForm.materialityTopics.length > 1 && (
-                      <button
-                        onClick={() => removeMaterialityTopic(index)}
-                        style={{
-                          padding: "10px 12px",
-                          borderRadius: "10px",
-                          border: "1px solid #ef4444",
-                          background: "#ffffff",
-                          color: "#ef4444",
-                          cursor: "pointer",
-                          fontWeight: "bold"
+                          display: "grid",
+                          gridTemplateColumns: "1fr 2fr",
+                          gap: "10px"
                         }}
                       >
+                        <input
+                          value={topic.topicCode}
+                          onChange={(e) =>
+                            updateMaterialityTopic(index, "topicCode", e.target.value)
+                          }
+                          placeholder="Topic code"
+                          style={{
+                            padding: "10px",
+                            borderRadius: "10px",
+                            border: "1px solid #d1d5db"
+                          }}
+                        />
+                        <input
+                          value={topic.topicLabel}
+                          onChange={(e) =>
+                            updateMaterialityTopic(index, "topicLabel", e.target.value)
+                          }
+                          placeholder="Topic label"
+                          style={{
+                            padding: "10px",
+                            borderRadius: "10px",
+                            border: "1px solid #d1d5db"
+                          }}
+                        />
+                      </div>
 
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(5, 1fr)",
+                          gap: "8px"
+                        }}
+                      >
+                        {[
+                          ["severity", "Severity"],
+                          ["scale", "Scale"],
+                          ["scope", "Scope"],
+                          ["irremediability", "Irrem."],
+                          ["likelihood", "Impact Likelihood"]
+                        ].map(([field, label]) => (
+                          <div key={field}>
+                            <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                              {label}
+                            </div>
+                            <input
+                              type="number"
+                              min="1"
+                              max="5"
+                              value={topic.impactMateriality[field]}
+                              onChange={(e) =>
+                                updateMaterialityTopic(
+                                  index,
+                                  `impactMateriality.${field}`,
+                                  Number(e.target.value)
+                                )
+                              }
+                              style={{
+                                width: "100%",
+                                padding: "10px",
+                                borderRadius: "10px",
+                                border: "1px solid #d1d5db"
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
 
-{(() => {
-  const scores = calculateMaterialityScores(topic);
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr 1fr",
+                          gap: "8px"
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                            Magnitude
+                          </div>
+                          <input
+                            type="number"
+                            min="1"
+                            max="5"
+                            value={topic.financialMateriality.magnitude}
+                            onChange={(e) =>
+                              updateMaterialityTopic(
+                                index,
+                                "financialMateriality.magnitude",
+                                Number(e.target.value)
+                              )
+                            }
+                            style={{
+                              width: "100%",
+                              padding: "10px",
+                              borderRadius: "10px",
+                              border: "1px solid #d1d5db"
+                            }}
+                          />
+                        </div>
 
-  //Double materiality show score in UI
-  return (
-    <div
-      style={{
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
-        borderRadius: "10px",
-        padding: "12px"
-      }}
-    >
-      <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
-        Materiality Score
-      </div>
-      <div>Impact Score: {scores.impactScore100}/100</div>
-      <div>Financial Score: {scores.financialScore100}/100</div>
-      <div>Overall Score: {scores.overallMaterialityScore}/100</div>
-      <div>
-        Result:{" "}
-        <strong style={{ color: scores.isMaterial ? "#b91c1c" : "#166534" }}>
-          {scores.isMaterial ? "Material" : "Not Material"}
-        </strong>
-      </div>
-    </div>
-  );
-})()}
+                        <div>
+                          <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                            Likelihood
+                          </div>
+                          <input
+                            type="number"
+                            min="1"
+                            max="5"
+                            value={topic.financialMateriality.likelihood}
+                            onChange={(e) =>
+                              updateMaterialityTopic(
+                                index,
+                                "financialMateriality.likelihood",
+                                Number(e.target.value)
+                              )
+                            }
+                            style={{
+                              width: "100%",
+                              padding: "10px",
+                              borderRadius: "10px",
+                              border: "1px solid #d1d5db"
+                            }}
+                          />
+                        </div>
 
+                        <div>
+                          <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                            Time horizon
+                          </div>
+                          <select
+                            value={topic.financialMateriality.timeHorizon}
+                            onChange={(e) =>
+                              updateMaterialityTopic(
+                                index,
+                                "financialMateriality.timeHorizon",
+                                e.target.value
+                              )
+                            }
+                            style={{
+                              width: "100%",
+                              padding: "10px",
+                              borderRadius: "10px",
+                              border: "1px solid #d1d5db"
+                            }}
+                          >
+                            <option value="short">Short</option>
+                            <option value="medium">Medium</option>
+                            <option value="long">Long</option>
+                          </select>
+                        </div>
+                      </div>
 
-                        Remove Topic
-                      </button>
-                    )}
+                      <input
+                        value={topic.stakeholdersConsulted}
+                        onChange={(e) =>
+                          updateMaterialityTopic(
+                            index,
+                            "stakeholdersConsulted",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Stakeholders consulted (comma-separated)"
+                        style={{
+                          padding: "10px",
+                          borderRadius: "10px",
+                          border: "1px solid #d1d5db"
+                        }}
+                      />
+
+                      <label style={{ fontSize: "14px", color: "#4b5563" }}>
+                        <input
+                          type="checkbox"
+                          checked={!!topic.isMaterial}
+                          onChange={(e) =>
+                            updateMaterialityTopic(index, "isMaterial", e.target.checked)
+                          }
+                          style={{ marginRight: "8px" }}
+                        />
+                        Mark as material
+                      </label>
+
+                      <textarea
+                        value={topic.rationale}
+                        onChange={(e) =>
+                          updateMaterialityTopic(index, "rationale", e.target.value)
+                        }
+                        placeholder="Rationale"
+                        rows={3}
+                        style={{
+                          padding: "10px",
+                          borderRadius: "10px",
+                          border: "1px solid #d1d5db"
+                        }}
+                      />
+
+                      <div
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "10px",
+                          padding: "12px"
+                        }}
+                      >
+                        <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                          Materiality Score
+                        </div>
+                        <div>Impact Score: {scores.impactScore100}/100</div>
+                        <div>Financial Score: {scores.financialScore100}/100</div>
+                        <div>Overall Score: {scores.overallMaterialityScore}/100</div>
+                        <div>
+                          Result:{" "}
+                          <strong
+                            style={{
+                              color: scores.isMaterial ? "#b91c1c" : "#166534"
+                            }}
+                          >
+                            {scores.isMaterial ? "Material" : "Not Material"}
+                          </strong>
+                        </div>
+                      </div>
+
+                      {reportForm.materialityTopics.length > 1 && (
+                        <button
+                          onClick={() => removeMaterialityTopic(index)}
+                          style={{
+                            padding: "10px 12px",
+                            borderRadius: "10px",
+                            border: "1px solid #ef4444",
+                            background: "#ffffff",
+                            color: "#ef4444",
+                            cursor: "pointer",
+                            fontWeight: "bold"
+                          }}
+                        >
+                          Remove Topic
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               <button
                 onClick={addMaterialityTopic}
@@ -1488,7 +1508,7 @@ materialityTopics: reportForm.materialityTopics.map((topic) => {
                   setNestedField("aiDraft", "disclosureDraft", e.target.value)
                 }
                 placeholder="AI disclosure draft"
-                rows={6}
+                rows={8}
                 style={{
                   padding: "12px",
                   borderRadius: "10px",
@@ -1688,6 +1708,41 @@ materialityTopics: reportForm.materialityTopics.map((topic) => {
                     </span>
                   </div>
 
+                  {Array.isArray(report.materialityTopics) &&
+                    report.materialityTopics.length > 0 && (
+                      <div
+                        style={{
+                          background: "#f9fafb",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "10px",
+                          padding: "14px",
+                          marginBottom: "12px"
+                        }}
+                      >
+                        <strong>Double Materiality Assessment</strong>
+                        <div style={{ marginTop: "10px" }}>
+                          {report.materialityTopics.map((topic, idx) => (
+                            <div key={idx} style={{ marginBottom: "12px" }}>
+                              <div>
+                                <strong>{topic.topicCode}</strong> - {topic.topicLabel}
+                              </div>
+                              <div>Impact Score: {topic.impactScore100 || 0}/100</div>
+                              <div>Financial Score: {topic.financialScore100 || 0}/100</div>
+                              <div>
+                                Overall Score: {topic.overallMaterialityScore || 0}/100
+                              </div>
+                              <div>
+                                Result:{" "}
+                                <strong>
+                                  {topic.isMaterial ? "Material" : "Not Material"}
+                                </strong>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                   <div
                     style={{
                       background: "#f9fafb",
@@ -1704,38 +1759,37 @@ materialityTopics: reportForm.materialityTopics.map((topic) => {
                     </div>
                   </div>
 
-<div
-  style={{
-    background: "#f9fafb",
-    border: "1px solid #e5e7eb",
-    borderRadius: "10px",
-    padding: "14px",
-    whiteSpace: "pre-wrap",
-    marginBottom: "12px"
-  }}
->
-  <strong>AI Disclosure Draft</strong>
-  <div style={{ marginTop: "8px" }}>
-    {report.aiDraft?.disclosureDraft || "No AI disclosure draft"}
-  </div>
-</div>
+                  <div
+                    style={{
+                      background: "#f9fafb",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "10px",
+                      padding: "14px",
+                      whiteSpace: "pre-wrap",
+                      marginBottom: "12px"
+                    }}
+                  >
+                    <strong>AI Disclosure Draft</strong>
+                    <div style={{ marginTop: "8px" }}>
+                      {report.aiDraft?.disclosureDraft || "No AI disclosure draft"}
+                    </div>
+                  </div>
 
-<div
-  style={{
-    background: "#f9fafb",
-    border: "1px solid #e5e7eb",
-    borderRadius: "10px",
-    padding: "14px",
-    whiteSpace: "pre-wrap",
-    marginBottom: "12px"
-  }}
->
-  <strong>AI Data Gaps</strong>
-  <div style={{ marginTop: "8px" }}>
-    {report.aiDraft?.dataGaps || "No AI data gaps"}
-  </div>
-</div>
-
+                  <div
+                    style={{
+                      background: "#f9fafb",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "10px",
+                      padding: "14px",
+                      whiteSpace: "pre-wrap",
+                      marginBottom: "12px"
+                    }}
+                  >
+                    <strong>AI Data Gaps</strong>
+                    <div style={{ marginTop: "8px" }}>
+                      {report.aiDraft?.dataGaps || "No AI data gaps"}
+                    </div>
+                  </div>
 
                   <div
                     style={{
