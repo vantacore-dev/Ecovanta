@@ -141,6 +141,33 @@ function App() {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
 
+//Score calculation
+
+const calculateOverallESGScore = (reportForm) => {
+  const eScores = [
+    Number(reportForm.e1?.scope1Emissions > 0 ? 3 : 1),
+    Number(reportForm.e1?.scope2Emissions > 0 ? 3 : 1),
+    Number(reportForm.e1?.scope3Emissions > 0 ? 3 : 1),
+    Number(reportForm.e1?.climatePolicies ? 4 : 1)
+  ];
+
+  const sScores = [
+    Number(reportForm.s1?.workforcePolicies ? 4 : 1),
+    Number(reportForm.s1?.diversityInclusion ? 4 : 1)
+  ];
+
+  const gScores = [
+    Number(reportForm.g1?.antiCorruption ? 4 : 1),
+    Number(reportForm.g1?.whistleblowing ? 4 : 1)
+  ];
+
+  const allScores = [...eScores, ...sScores, ...gScores];
+  const avg5 = allScores.reduce((sum, value) => sum + value, 0) / allScores.length;
+
+  return Math.round((avg5 / 5) * 100);
+};
+
+
   const fetchJson = useCallback(async (url, options = {}) => {
     const res = await fetch(url, options);
     const contentType = res.headers.get("content-type") || "";
@@ -514,13 +541,16 @@ function App() {
       setLoading(true);
       setStatusMessage("");
 
+
+const overallScore = calculateOverallESGScore(reportForm);
+
       const payload = {
         ...reportForm,
         aiDraft: normalizeAiDraft(reportForm.aiDraft),
-        scorecard: {
-          ...reportForm.scorecard,
-          benchmark
-        },
+     scorecard: {
+     benchmark,
+     overallScore
+     },
         materialityTopics: reportForm.materialityTopics.map((topic) => {
           const scores = calculateMaterialityScores(topic);
 
@@ -1855,6 +1885,7 @@ function App() {
       </div>
     </div>
   );
-}
+
+ }
 
 export default App;
