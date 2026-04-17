@@ -484,7 +484,7 @@ const calculateOverallESGScore = (reportForm) => {
   };
 
   const generateAiDraft = async () => {
-    console.log("Generate AI Draft clicked");
+    console.log("Generate Intelligence Draft clicked");
 
     if (!token) {
       alert("Login required.");
@@ -518,10 +518,10 @@ const calculateOverallESGScore = (reportForm) => {
       })
     };
 
-    console.log("AI payload being sent:", payload);
+    console.log("Intelligence payload being sent:", payload);
 
     if (!payload.companyName || !payload.sector) {
-      setStatusMessage("Company name and sector must be filled before AI draft.");
+      setStatusMessage("Company name and sector must be filled before Intelligence draft.");
       return;
     }
 
@@ -538,17 +538,17 @@ const calculateOverallESGScore = (reportForm) => {
         body: JSON.stringify(payload)
       });
 
-      console.log("AI draft response:", data);
+      console.log("Intelligence draft response:", data);
 
       setReportForm((prev) => ({
         ...prev,
         aiDraft: normalizeAiDraft(data)
       }));
 
-      setStatusMessage("AI draft generated.");
+      setStatusMessage("Intelligence draft generated.");
     } catch (err) {
-      console.error("AI draft error:", err);
-      setStatusMessage(`AI draft failed: ${err.message}`);
+      console.error("Intelligence draft error:", err);
+      setStatusMessage(`Intelligence draft failed: ${err.message}`);
     } finally {
       setAiLoading(false);
     }
@@ -873,7 +873,7 @@ const overallScore = calculateOverallESGScore(reportForm);
           }}
         >
           <div>
-            <h1 style={{ marginBottom: "8px" }}>Ecovanta CSRD-Ready Platform</h1>
+            <h1 style={{ marginBottom: "8px" }}>Ecovanta Intelligence Platform</h1>
             <p style={{ marginTop: 0, color: "#6b7280" }}>
               ESRS-aligned sustainability reporting workflow.
             </p>
@@ -1528,7 +1528,7 @@ const overallScore = calculateOverallESGScore(reportForm);
                 Add Material Topic
               </button>
 
-              <h3>AI Draft</h3>
+              <h3>Intelligence Draft</h3>
               <button
                 onClick={generateAiDraft}
                 disabled={aiLoading}
@@ -1543,7 +1543,7 @@ const overallScore = calculateOverallESGScore(reportForm);
                   opacity: aiLoading ? 0.7 : 1
                 }}
               >
-                {aiLoading ? "Generating AI draft..." : "Generate AI Draft"}
+                {aiLoading ? "Generating Intelligence draft..." : "Generate Intelligence Draft"}
               </button>
 
               <textarea
@@ -1551,7 +1551,7 @@ const overallScore = calculateOverallESGScore(reportForm);
                 onChange={(e) =>
                   setNestedField("aiDraft", "executiveSummary", e.target.value)
                 }
-                placeholder="AI executive summary"
+                placeholder="Intelligence executive summary"
                 rows={4}
                 style={{
                   padding: "12px",
@@ -1565,7 +1565,7 @@ const overallScore = calculateOverallESGScore(reportForm);
                 onChange={(e) =>
                   setNestedField("aiDraft", "disclosureDraft", e.target.value)
                 }
-                placeholder="AI disclosure draft"
+                placeholder="Intelligence disclosure draft"
                 rows={8}
                 style={{
                   padding: "12px",
@@ -1579,7 +1579,7 @@ const overallScore = calculateOverallESGScore(reportForm);
                 onChange={(e) =>
                   setNestedField("aiDraft", "dataGaps", e.target.value)
                 }
-                placeholder="AI data gaps"
+                placeholder="Intelligence data gaps"
                 rows={4}
                 style={{
                   padding: "12px",
@@ -1811,9 +1811,9 @@ const overallScore = calculateOverallESGScore(reportForm);
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>AI Executive Summary</strong>
+                    <strong>Intelligence Executive Summary</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.executiveSummary || "No AI summary"}
+                      {report.aiDraft?.executiveSummary || "No Intelligence summary"}
                     </div>
                   </div>
 
@@ -1827,9 +1827,9 @@ const overallScore = calculateOverallESGScore(reportForm);
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>AI Disclosure Draft</strong>
+                    <strong>Intelligence Disclosure Draft</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.disclosureDraft || "No AI disclosure draft"}
+                      {report.aiDraft?.disclosureDraft || "No Intelligence disclosure draft"}
                     </div>
                   </div>
 
@@ -1843,9 +1843,9 @@ const overallScore = calculateOverallESGScore(reportForm);
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>AI Data Gaps</strong>
+                    <strong>Intelligence Data Gaps</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.dataGaps || "No AI data gaps"}
+                      {report.aiDraft?.dataGaps || "No Intelligence data gaps"}
                     </div>
                   </div>
 
