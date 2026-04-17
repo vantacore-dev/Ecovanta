@@ -114,7 +114,35 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState("login");
+  const updateReportStatus = async (reportId, status) => {
+  if (!token) {
+    alert("Login required.");
+    return;
+  }
 
+  try {
+    const res = await fetch(`${API}/reports/${reportId}/status`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ status })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to update status");
+    }
+
+    setStatusMessage(`Status updated to ${status}`);
+    await refreshDashboard();
+  } catch (err) {
+    console.error("Status update error:", err);
+    alert(`Failed: ${err.message}`);
+  }
+};
   const [authForm, setAuthForm] = useState({
     email: "",
     password: "",
@@ -1821,12 +1849,71 @@ const overallScore = calculateOverallESGScore(reportForm);
                     </div>
                   </div>
 
+
+                  <div style={{ marginBottom: "8px", fontWeight: "bold" }}>
+                  Status: {report.reviewStatus || "draft"}
+                  </div>
+
                   <div
+
                     style={{
                       display: "flex",
                       gap: "10px",
                       flexWrap: "wrap"
                     }}
+                   
+
+<button
+  onClick={() =>
+    updateReportStatus(report._id || report.id, "in_review")
+  }
+  style={{
+    padding: "10px 14px",
+    borderRadius: "10px",
+    border: "none",
+    background: "#f59e0b",
+    color: "#fff",
+    fontWeight: "bold",
+    cursor: "pointer"
+  }}
+>
+  Send to Review
+</button>
+
+<button
+  onClick={() =>
+    updateReportStatus(report._id || report.id, "approved")
+  }
+  style={{
+    padding: "10px 14px",
+    borderRadius: "10px",
+    border: "none",
+    background: "#10b981",
+    color: "#fff",
+    fontWeight: "bold",
+    cursor: "pointer"
+  }}
+>
+  Approve
+</button>
+
+<button
+  onClick={() =>
+    updateReportStatus(report._id || report.id, "published")
+  }
+  style={{
+    padding: "10px 14px",
+    borderRadius: "10px",
+    border: "none",
+    background: "#6366f1",
+    color: "#fff",
+    fontWeight: "bold",
+    cursor: "pointer"
+  }}
+>
+  Publish
+</button>
+
                   >
                     <button
                       onClick={() =>
