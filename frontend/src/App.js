@@ -10,7 +10,7 @@ import {
 } from "recharts";
 
 const API = "https://ecovanta.onrender.com";
-const [auditLogs, setAuditLogs] = useState([]);
+
 const defaultMaterialityTopic = {
   topicCode: "E1",
   topicLabel: "Climate change",
@@ -70,20 +70,6 @@ const initialReportForm = {
   reviewStatus: "draft",
   materialityTopics: [{ ...defaultMaterialityTopic }]
 };
-//Loader
-const loadAuditLogs = useCallback(async () => {
-  if (!token) return;
-
-  try {
-    const data = await fetchJson(`${API}/audit`, {
-      headers: authHeaders
-    });
-    setAuditLogs(Array.isArray(data) ? data : []);
-  } catch (err) {
-    console.error("Load audit logs error:", err);
-  }
-}, [token, authHeaders, fetchJson]);
-
 
 const refreshDashboard = useCallback(async () => {
   await Promise.all([loadUser(), loadReports(), loadAnalytics(), loadAuditLogs()]);
@@ -166,6 +152,7 @@ const calculateMaterialityScores = (topic) => {
 };
 
 function App() {
+  
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState("login");
@@ -207,7 +194,7 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
-
+  const [auditLogs, setAuditLogs] = useState([]);
   const [reports, setReports] = useState([]);
   const [analytics, setAnalytics] = useState({
     totalReports: 0,
@@ -223,6 +210,20 @@ function App() {
   const authHeaders = useMemo(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
+
+
+  //Loader
+const loadAuditLogs = useCallback(async () => {
+  if (!token) return;
+  try {
+    const data = await fetchJson(`${API}/audit`, {
+      headers: authHeaders
+    });
+    setAuditLogs(Array.isArray(data) ? data : []);
+  } catch (err) {
+    console.error("Load audit logs error:", err);
+  }
+}, [token, authHeaders, fetchJson]);
 
 //Score calculation
 
@@ -367,8 +368,8 @@ const calculateOverallESGScore = (reportForm) => {
   }, [reportForm.sector, fetchJson]);
 
   const refreshDashboard = useCallback(async () => {
-    await Promise.all([loadUser(), loadReports(), loadAnalytics()]);
-  }, [loadUser, loadReports, loadAnalytics]);
+    await Promise.all([loadUser(), loadReports(), loadAnalytics(), loadAuditLogs()]);
+  }, [loadUser, loadReports, loadAnalytics, loadAuditLogs()]);
 
   useEffect(() => {
     if (!token) return;
