@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
-
+const auditRoutes = require("./routes/auditRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 const authRoutes = require("./routes/authRoutes");
 const reportRoutes = require("./routes/reportRoutes");
@@ -12,7 +12,7 @@ const webhookRoutes = require("./routes/webhookRoutes");
 const app = express();
 
 app.use(cors());
-
+app.use("/audit", auditRoutes);
 // Stripe webhook FIRST (before JSON parsing)
 app.use("/webhooks", webhookRoutes);
 

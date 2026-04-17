@@ -1,0 +1,21 @@
+const express = require("express");
+const router = express.Router();
+const auth = require("../middleware/auth");
+const AuditLog = require("../models/AuditLog");
+
+router.get("/", auth, async (req, res) => {
+  try {
+    const logs = await AuditLog.find({
+      userId: req.user.userId
+    })
+      .sort({ createdAt: -1 })
+      .limit(200);
+
+    res.json(logs);
+  } catch (err) {
+    console.error("Load audit logs error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;

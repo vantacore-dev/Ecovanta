@@ -2,7 +2,7 @@ const express = require("express");
 const PDFDocument = require("pdfkit");
 const ESRSReport = require("../models/ESRSReport");
 const auth = require("../middleware/auth");
-
+const { createAuditLog } = require("../utils/audit");
 const router = express.Router();
 
 // CREATE REPORT
@@ -170,6 +170,16 @@ router.get("/:id/pdf", auth, async (req, res) => {
   });
 }
 
+await createAuditLog({
+  user: req.user,
+  action: "REPORT_PDF_DOWNLOADED",
+  entityId: report._id,
+  companyName: report.companyName,
+  details: {
+    reportingYear: report.reportingYear
+  }
+});
+
     doc.end();
   } catch (err) {
     console.error("PDF generation error:", err);
@@ -177,6 +187,62 @@ router.get("/:id/pdf", auth, async (req, res) => {
   }
 });
 
+
+router.put("/:id", auth, async (req, res) => {
+  try {
+    const report = await ESRSReport.findOne({
+      _id: req.params.id,
+      userId: req.user.userId
+    });
+
+    if (!report) {
+      return res.status(404).json({ error: "Report not found" });
+    }
+
+    // --- UPDATE FIELDS ---
+    report.companyName = req.body.companyName || report.companyName;
+    report.sector = req.body.sector || report.sector;
+    report.reportingYear = req.body.reportingYear || report.reportingYear;
+
+    report.esrs2 = req.body.esrs2 || report.esrs2;
+    report.e1 = req.body.e1 || report.e1;
+    report.s1 = req.body.s1 || report.s1;
+    report.g1 = req.body.g1 || report.g1;
+
+    report.aiDraft = req.body.aiDraft || report.aiDraft;
+
+    report.scorecard = req.body.scorecard || report.scorecard;
+
+    report.materialityTopics =
+      req.body.materialityTopics || report.materialityTopics;
+
+    await report.save();
+
+    // ✅ ADD AUDIT LOG HERE
+    await createAuditLog({
+      user: req.user,
+      action: "REPORT_UPDATED",
+      entityId: report._id,
+      companyName: report.companyName,
+      details: {
+        fieldsUpdated: [
+          "esrs2",
+          "e1",
+          "s1",
+          "g1",
+          "aiDraft",
+          "scorecard",
+          "materialityTopics"
+        ]
+      }
+    });
+
+    res.json(report);
+  } catch (err) {
+    console.error("Update report error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 router.put("/:id/status", auth, async (req, res) => {
   try {
@@ -209,6 +275,29 @@ router.put("/:id/status", auth, async (req, res) => {
     }
 
     await report.save();
+    await createAuditLog({
+      user: req.user,
+      action: "REPORT_CREATED",
+      entityId: report._id,
+      companyName: report.companyName,
+      details: {
+      reviewStatus: report.reviewStatus,
+      reportingYear: report.reportingYear
+  }
+});
+
+    await createAuditLog({
+    user: req.user,
+    action: "REPORT_STATUS_UPDATED",
+    entityId: report._id,
+    companyName: report.companyName,
+    details: {
+    newStatus: report.reviewStatus,
+    reviewedBy: report.reviewedBy,
+    reviewedAt: report.reviewedAt,
+    publishedAt: report.publishedAt
+  }
+});
 
     res.json({
       message: "Report status updated successfully",
@@ -218,6 +307,9 @@ router.put("/:id/status", auth, async (req, res) => {
     console.error("Status update error:", err);
     res.status(500).json({ error: err.message });
   }
+
+
+  
 });
 
 module.exports = router;
