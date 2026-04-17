@@ -136,19 +136,33 @@ router.get("/:id/pdf", auth, async (req, res) => {
     doc.moveDown();
 
     // Materiality topics
+   
     if (Array.isArray(report.materialityTopics) && report.materialityTopics.length > 0) {
-      doc.fontSize(16).text("Materiality Topics");
-      doc.moveDown(0.5);
+  doc.fontSize(16).text("Materiality Topics");
+  doc.moveDown(0.5);
 
-      report.materialityTopics.forEach((topic, index) => {
-        doc.fontSize(12).text(
-          `${index + 1}. ${topic.topicCode || ""} - ${topic.topicLabel || ""}`
-        );
-        doc.text(`Material: ${topic.isMaterial ? "Yes" : "No"}`);
-        doc.text(`Rationale: ${topic.rationale || ""}`);
-        doc.moveDown(0.5);
-      });
-    }
+  report.materialityTopics.forEach((topic, index) => {
+    const overallScore = Number(topic.overallMaterialityScore || 0);
+    const resultLabel =
+      overallScore >= 80
+        ? "Highly Material"
+        : overallScore >= 60
+        ? "Material"
+        : overallScore >= 40
+        ? "Watchlist"
+        : "Not Material";
+
+    doc.fontSize(12).text(
+      `${index + 1}. ${topic.topicCode || ""} - ${topic.topicLabel || ""}`
+    );
+    doc.text(`Impact Score: ${topic.impactScore100 || 0}/100`);
+    doc.text(`Financial Score: ${topic.financialScore100 || 0}/100`);
+    doc.text(`Overall Score: ${overallScore}/100`);
+    doc.text(`Result: ${resultLabel}`);
+    doc.text(`Rationale: ${topic.rationale || ""}`);
+    doc.moveDown(0.8);
+  });
+}
 
     doc.end();
   } catch (err) {
