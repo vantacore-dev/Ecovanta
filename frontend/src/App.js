@@ -1855,114 +1855,55 @@ const overallScore = calculateOverallESGScore(reportForm);
                   </div>
 
                   <div
-
-                    style={{
-                      display: "flex",
-                      gap: "10px",
-                      flexWrap: "wrap"
-                    }}
-                   
-
-<button
-  onClick={() =>
-    updateReportStatus(report._id || report.id, "in_review")
-  }
   style={{
-    padding: "10px 14px",
-    borderRadius: "10px",
-    border: "none",
-    background: "#f59e0b",
-    color: "#fff",
-    fontWeight: "bold",
-    cursor: "pointer"
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap"
   }}
 >
-  Send to Review
-</button>
+  <button onClick={() =>
+    downloadSingleReportPDF(report._id || report.id, report.companyName)
+  }>
+    Download This Report
+  </button>
 
-<button
-  onClick={() =>
-    updateReportStatus(report._id || report.id, "approved")
-  }
-  style={{
-    padding: "10px 14px",
-    borderRadius: "10px",
-    border: "none",
-    background: "#10b981",
-    color: "#fff",
-    fontWeight: "bold",
-    cursor: "pointer"
-  }}
->
-  Approve
-</button>
+  <button onClick={() =>
+    loadReportIntoForm(report._id || report.id)
+  }>
+    Edit In Form
+  </button>
 
-<button
-  onClick={() =>
-    updateReportStatus(report._id || report.id, "published")
-  }
-  style={{
-    padding: "10px 14px",
-    borderRadius: "10px",
-    border: "none",
-    background: "#6366f1",
-    color: "#fff",
-    fontWeight: "bold",
-    cursor: "pointer"
-  }}
->
-  Publish
-</button>
+  <button onClick={() =>
+    deleteReport(report._id || report.id)
+  }>
+    Delete
+  </button>
 
-                  >
-                    <button
-                      onClick={() =>
-                        downloadSingleReportPDF(
-                          report._id || report.id,
-                          report.companyName
-                        )
-                      }
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: "10px",
-                        border: "none",
-                        background: "#1976d2",
-                        color: "#ffffff",
-                        fontWeight: "bold",
-                        cursor: "pointer"
-                      }}
-                    >
-                      Download This Report
-                    </button>
+  {report.reviewStatus === "draft" && (
+    <button onClick={() =>
+      updateReportStatus(report._id || report.id, "in_review")
+    }>
+      Send to Review
+    </button>
+  )}
 
-                    <button
-                      onClick={() => loadReportIntoForm(report._id || report.id)}
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: "10px",
-                        border: "1px solid #d1d5db",
-                        background: "#ffffff",
-                        cursor: "pointer",
-                        fontWeight: "bold"
-                      }}
-                    >
-                      Edit In Form
-                    </button>
+  {report.reviewStatus === "in_review" && (
+    <button onClick={() =>
+      updateReportStatus(report._id || report.id, "approved")
+    }>
+      Approve
+    </button>
+  )}
 
-                    <button
-                      onClick={() => deleteReport(report._id || report.id)}
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: "10px",
-                        border: "1px solid #ef4444",
-                        background: "#ffffff",
-                        color: "#ef4444",
-                        cursor: "pointer",
-                        fontWeight: "bold"
-                      }}
-                    >
-                      Delete
-                    </button>
+  {report.reviewStatus === "approved" && (
+    <button onClick={() =>
+      updateReportStatus(report._id || report.id, "published")
+    }>
+      Publish
+    </button>
+  )}
+</div>
+                    
                   </div>
                 </div>
               );
@@ -1972,7 +1913,6 @@ const overallScore = calculateOverallESGScore(reportForm);
       </div>
     </div>
   );
-
  }
 
 export default App;
