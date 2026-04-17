@@ -1861,57 +1861,67 @@ const overallScore = calculateOverallESGScore(reportForm);
     flexWrap: "wrap"
   }}
 >
-  <button onClick={() =>
-    downloadSingleReportPDF(report._id || report.id, report.companyName)
-  }>
+  <button
+    onClick={() =>
+      downloadSingleReportPDF(report._id || report.id, report.companyName)
+    }
+  >
     Download This Report
   </button>
 
-  <button onClick={() =>
-    loadReportIntoForm(report._id || report.id)
-  }>
+  <button
+    onClick={() =>
+      loadReportIntoForm(report._id || report.id)
+    }
+  >
     Edit In Form
   </button>
 
-  <button onClick={() =>
-    deleteReport(report._id || report.id)
-  }>
+  <button
+    onClick={() =>
+      deleteReport(report._id || report.id)
+    }
+  >
     Delete
   </button>
 
   {report.reviewStatus === "draft" && (
-    <button onClick={() =>
-      updateReportStatus(report._id || report.id, "in_review")
-    }>
+    <button
+      onClick={() =>
+        updateReportStatus(report._id || report.id, "in_review")
+      }
+    >
       Send to Review
     </button>
   )}
 
   {report.reviewStatus === "in_review" && (
-    <button onClick={() =>
-      updateReportStatus(report._id || report.id, "approved")
-    }>
+    <button
+      onClick={() =>
+        updateReportStatus(report._id || report.id, "approved")
+      }
+    >
       Approve
     </button>
   )}
 
   {report.reviewStatus === "approved" && (
-    <button onClick={() =>
-      updateReportStatus(report._id || report.id, "published")
-    }>
+    <button
+      onClick={() =>
+        updateReportStatus(report._id || report.id, "published")
+      }
+    >
       Publish
     </button>
   )}
-</div>
-                    
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    </div>
+</div>             
+  </div>
+   );
+   })
+   )}
+   </div>
+  </div>
+  </div>
   );
  }
 
