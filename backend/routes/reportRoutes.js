@@ -177,4 +177,47 @@ router.get("/:id/pdf", auth, async (req, res) => {
   }
 });
 
+
+router.put("/:id/status", auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const allowedStatuses = ["draft", "in_review", "approved", "published"];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+
+    const report = await ESRSReport.findOne({
+      _id: req.params.id,
+      userId: req.user.userId
+    });
+
+    if (!report) {
+      return res.status(404).json({ error: "Report not found" });
+    }
+
+    report.reviewStatus = status;
+
+    if (status === "approved") {
+      report.reviewedBy = req.user.userId;
+      report.reviewedAt = new Date();
+    }
+
+    if (status === "published") {
+      report.publishedAt = new Date();
+    }
+
+    await report.save();
+
+    res.json({
+      message: "Report status updated successfully",
+      report
+    });
+  } catch (err) {
+    console.error("Status update error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
