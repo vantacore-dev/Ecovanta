@@ -71,10 +71,6 @@ const initialReportForm = {
   materialityTopics: [{ ...defaultMaterialityTopic }]
 };
 
-const refreshDashboard = useCallback(async () => {
-  await Promise.all([loadUser(), loadReports(), loadAnalytics(), loadAuditLogs()]);
-}, [loadUser, loadReports, loadAnalytics, loadAuditLogs]);
-
 <div
   style={{
     background: "#ffffff",
