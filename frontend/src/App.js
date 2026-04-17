@@ -68,6 +68,45 @@ const initialReportForm = {
   materialityTopics: [{ ...defaultMaterialityTopic }]
 };
 
+// Double meteriality automatic ascore calculation
+
+const getTimeHorizonScore = (timeHorizon) => {
+  if (timeHorizon === "short") return 5;
+  if (timeHorizon === "medium") return 3;
+  if (timeHorizon === "long") return 2;
+  return 3;
+};
+
+const calculateMaterialityScores = (topic) => {
+  const impact = topic.impactMateriality || {};
+  const financial = topic.financialMateriality || {};
+
+  const impactRaw =
+    (Number(impact.severity || 0) * 0.3) +
+    (Number(impact.scale || 0) * 0.2) +
+    (Number(impact.scope || 0) * 0.2) +
+    (Number(impact.irremediability || 0) * 0.15) +
+    (Number(impact.likelihood || 0) * 0.15);
+
+  const financialRaw =
+    (Number(financial.magnitude || 0) * 0.5) +
+    (Number(financial.likelihood || 0) * 0.3) +
+    (getTimeHorizonScore(financial.timeHorizon) * 0.2);
+
+  const impactScore100 = Math.round((impactRaw / 5) * 100);
+  const financialScore100 = Math.round((financialRaw / 5) * 100);
+  const overallMaterialityScore = Math.max(impactScore100, financialScore100);
+  const isMaterial = overallMaterialityScore >= 60;
+
+  return {
+    impactScore100,
+    financialScore100,
+    overallMaterialityScore,
+    isMaterial
+  };
+};
+
+
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
@@ -470,16 +509,26 @@ setReportForm((prev) => ({
           ...reportForm.scorecard,
           benchmark
         },
-        materialityTopics: reportForm.materialityTopics.map((topic) => ({
-          ...topic,
-          stakeholdersConsulted: topic.stakeholdersConsulted
-            ? topic.stakeholdersConsulted
-                .split(",")
-                .map((item) => item.trim())
-                .filter(Boolean)
-            : []
-        }))
-      };
+   
+// Materiality auto-update
+
+materialityTopics: reportForm.materialityTopics.map((topic) => {
+  const scores = calculateMaterialityScores(topic);
+
+  return {
+    ...topic,
+    stakeholdersConsulted: topic.stakeholdersConsulted
+      ? topic.stakeholdersConsulted
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [],
+    isMaterial: scores.isMaterial,
+    impactScore100: scores.impactScore100,
+    financialScore100: scores.financialScore100,
+    overallMaterialityScore: scores.overallMaterialityScore
+  };
+}),
 
       const saved = await fetchJson(`${API}/reports`, {
         method: "POST",
@@ -1348,6 +1397,38 @@ setReportForm((prev) => ({
                           fontWeight: "bold"
                         }}
                       >
+
+
+{(() => {
+  const scores = calculateMaterialityScores(topic);
+
+  //Double materiality show score in UI
+  return (
+    <div
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: "10px",
+        padding: "12px"
+      }}
+    >
+      <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+        Materiality Score
+      </div>
+      <div>Impact Score: {scores.impactScore100}/100</div>
+      <div>Financial Score: {scores.financialScore100}/100</div>
+      <div>Overall Score: {scores.overallMaterialityScore}/100</div>
+      <div>
+        Result:{" "}
+        <strong style={{ color: scores.isMaterial ? "#b91c1c" : "#166534" }}>
+          {scores.isMaterial ? "Material" : "Not Material"}
+        </strong>
+      </div>
+    </div>
+  );
+})()}
+
+
                         Remove Topic
                       </button>
                     )}
