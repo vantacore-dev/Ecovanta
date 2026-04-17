@@ -10,7 +10,7 @@ import {
 } from "recharts";
 
 const API = "https://ecovanta.onrender.com";
-
+const [auditLogs, setAuditLogs] = useState([]);
 const defaultMaterialityTopic = {
   topicCode: "E1",
   topicLabel: "Climate change",
@@ -70,6 +70,61 @@ const initialReportForm = {
   reviewStatus: "draft",
   materialityTopics: [{ ...defaultMaterialityTopic }]
 };
+//Loader
+const loadAuditLogs = useCallback(async () => {
+  if (!token) return;
+
+  try {
+    const data = await fetchJson(`${API}/audit`, {
+      headers: authHeaders
+    });
+    setAuditLogs(Array.isArray(data) ? data : []);
+  } catch (err) {
+    console.error("Load audit logs error:", err);
+  }
+}, [token, authHeaders, fetchJson]);
+
+
+const refreshDashboard = useCallback(async () => {
+  await Promise.all([loadUser(), loadReports(), loadAnalytics(), loadAuditLogs()]);
+}, [loadUser, loadReports, loadAnalytics, loadAuditLogs]);
+
+<div
+  style={{
+    background: "#ffffff",
+    borderRadius: "12px",
+    padding: "20px",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+    marginTop: "24px"
+  }}
+>
+  <h2 style={{ marginTop: 0 }}>Audit Trail</h2>
+
+  {auditLogs.length === 0 ? (
+    <p style={{ color: "#6b7280" }}>No audit events yet.</p>
+  ) : (
+    auditLogs.map((log) => (
+      <div
+        key={log._id}
+        style={{
+          padding: "12px 0",
+          borderBottom: "1px solid #e5e7eb"
+        }}
+      >
+        <div style={{ fontWeight: "bold" }}>{log.action}</div>
+        <div style={{ color: "#6b7280", fontSize: "14px" }}>
+          Company: {log.companyName || "-"}
+        </div>
+        <div style={{ color: "#6b7280", fontSize: "14px" }}>
+          By: {log.userEmail || "Unknown"}
+        </div>
+        <div style={{ color: "#6b7280", fontSize: "14px" }}>
+          When: {new Date(log.createdAt).toLocaleString()}
+        </div>
+      </div>
+    ))
+  )}
+</div>
 
 const getTimeHorizonScore = (timeHorizon) => {
   if (timeHorizon === "short") return 5;
