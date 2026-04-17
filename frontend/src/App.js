@@ -110,41 +110,36 @@ const calculateMaterialityScores = (topic) => {
   };
 };
 
+const calculateOverallESGScore = (form) => {
+  const eScores = [
+    form.e1?.scope1Emissions > 0 ? 3 : 1,
+    form.e1?.scope2Emissions > 0 ? 3 : 1,
+    form.e1?.scope3Emissions > 0 ? 3 : 1,
+    form.e1?.climatePolicies ? 4 : 1
+  ];
+
+  const sScores = [
+    form.s1?.workforcePolicies ? 4 : 1,
+    form.s1?.diversityInclusion ? 4 : 1
+  ];
+
+  const gScores = [
+    form.g1?.antiCorruption ? 4 : 1,
+    form.g1?.whistleblowing ? 4 : 1
+  ];
+
+  const allScores = [...eScores, ...sScores, ...gScores];
+  const avg5 =
+    allScores.reduce((sum, value) => sum + value, 0) / allScores.length;
+
+  return Math.round((avg5 / 5) * 100);
+};
+
 function App() {
-  
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState("login");
-  
-  const updateReportStatus = async (reportId, status) => {
-  if (!token) {
-    alert("Login required.");
-    return;
-  }
 
-  try {
-    const res = await fetch(`${API}/reports/${reportId}/status`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ status })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to update status");
-    }
-
-    setStatusMessage(`Status updated to ${status}`);
-    await refreshDashboard();
-  } catch (err) {
-    console.error("Status update error:", err);
-    alert(`Failed: ${err.message}`);
-  }
-};
   const [authForm, setAuthForm] = useState({
     email: "",
     password: "",
@@ -154,6 +149,7 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+
   const [reports, setReports] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [analytics, setAnalytics] = useState({
@@ -163,6 +159,7 @@ function App() {
     moderateRisk: 0,
     lowRisk: 0
   });
+
   const [benchmark, setBenchmark] = useState(60);
   const [selectedReportId, setSelectedReportId] = useState("");
   const [reportForm, setReportForm] = useState(initialReportForm);
@@ -170,47 +167,6 @@ function App() {
   const authHeaders = useMemo(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
-
-
-  //Loader
-const loadAuditLogs = useCallback(async () => {
-  if (!token) return;
-  try {
-    const data = await fetchJson(`${API}/audit`, {
-      headers: authHeaders
-    });
-    setAuditLogs(Array.isArray(data) ? data : []);
-  } catch (err) {
-    console.error("Load audit logs error:", err);
-  }
-}, [token, authHeaders, fetchJson]);
-
-//Score calculation
-
-const calculateOverallESGScore = (reportForm) => {
-  const eScores = [
-    Number(reportForm.e1?.scope1Emissions > 0 ? 3 : 1),
-    Number(reportForm.e1?.scope2Emissions > 0 ? 3 : 1),
-    Number(reportForm.e1?.scope3Emissions > 0 ? 3 : 1),
-    Number(reportForm.e1?.climatePolicies ? 4 : 1)
-  ];
-
-  const sScores = [
-    Number(reportForm.s1?.workforcePolicies ? 4 : 1),
-    Number(reportForm.s1?.diversityInclusion ? 4 : 1)
-  ];
-
-  const gScores = [
-    Number(reportForm.g1?.antiCorruption ? 4 : 1),
-    Number(reportForm.g1?.whistleblowing ? 4 : 1)
-  ];
-
-  const allScores = [...eScores, ...sScores, ...gScores];
-  const avg5 = allScores.reduce((sum, value) => sum + value, 0) / allScores.length;
-
-  return Math.round((avg5 / 5) * 100);
-};
-
 
   const fetchJson = useCallback(async (url, options = {}) => {
     const res = await fetch(url, options);
@@ -254,91 +210,6 @@ const calculateOverallESGScore = (reportForm) => {
           : JSON.stringify(aiDraft?.dataGaps ?? "", null, 2)
     };
   }, []);
-
-  const loadUser = useCallback(async () => {
-    if (!token) return;
-
-    try {
-      const data = await fetchJson(`${API}/auth/me`, {
-        headers: authHeaders
-      });
-      setUser(data);
-    } catch (err) {
-      console.error("Load user error:", err);
-    }
-  }, [token, authHeaders, fetchJson]);
-
-  const loadReports = useCallback(async () => {
-    if (!token) return;
-
-    try {
-      const data = await fetchJson(`${API}/reports`, {
-        headers: authHeaders
-      });
-      setReports(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Load reports error:", err);
-      setStatusMessage(`Could not load reports: ${err.message}`);
-    }
-  }, [token, authHeaders, fetchJson]);
-
-  const loadAnalytics = useCallback(async () => {
-    if (!token) return;
-
-    try {
-      const data = await fetchJson(`${API}/reports`, {
-        headers: authHeaders
-      });
-
-      const safeReports = Array.isArray(data) ? data : [];
-      const scores = safeReports.map((report) =>
-        Number(report.scorecard?.overallScore || 0)
-      );
-
-      const totalReports = safeReports.length;
-      const averageScore = totalReports
-        ? Math.round(scores.reduce((sum, value) => sum + value, 0) / totalReports)
-        : 0;
-      const highRisk = scores.filter((score) => score < 60).length;
-      const moderateRisk = scores.filter(
-        (score) => score >= 60 && score < 80
-      ).length;
-      const lowRisk = scores.filter((score) => score >= 80).length;
-
-      setAnalytics({
-        totalReports,
-        averageScore,
-        highRisk,
-        moderateRisk,
-        lowRisk
-      });
-    } catch (err) {
-      console.error("Load analytics error:", err);
-    }
-  }, [token, authHeaders, fetchJson]);
-
-  const loadBenchmark = useCallback(async () => {
-    try {
-      const data = await fetchJson(`${API}/benchmark/${reportForm.sector}`);
-      setBenchmark(Number(data.benchmark || 60));
-    } catch (err) {
-      console.error("Load benchmark error:", err);
-      setBenchmark(60);
-    }
-  }, [reportForm.sector, fetchJson]);
-
-  const refreshDashboard = useCallback(async () => {
-    await Promise.all([loadUser(), loadReports(), loadAnalytics(), loadAuditLogs()]);
-  }, [loadUser, loadReports, loadAnalytics, loadAuditLogs()]);
-
-  useEffect(() => {
-    if (!token) return;
-    refreshDashboard();
-  }, [token, refreshDashboard]);
-
-  useEffect(() => {
-    loadBenchmark();
-  }, [loadBenchmark]);
 
   const handleAuthField = (field, value) => {
     setAuthForm((prev) => ({
@@ -423,8 +294,145 @@ const calculateOverallESGScore = (reportForm) => {
     setToken("");
     setUser(null);
     setReports([]);
+    setAuditLogs([]);
     setSelectedReportId("");
     setStatusMessage("Logged out.");
+  };
+
+  const loadUser = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      const data = await fetchJson(`${API}/auth/me`, {
+        headers: authHeaders
+      });
+      setUser(data);
+    } catch (err) {
+      console.error("Load user error:", err);
+    }
+  }, [token, authHeaders, fetchJson]);
+
+  const loadReports = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      const data = await fetchJson(`${API}/reports`, {
+        headers: authHeaders
+      });
+      setReports(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Load reports error:", err);
+      setStatusMessage(`Could not load reports: ${err.message}`);
+    }
+  }, [token, authHeaders, fetchJson]);
+
+  const loadAnalytics = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      const data = await fetchJson(`${API}/reports`, {
+        headers: authHeaders
+      });
+
+      const safeReports = Array.isArray(data) ? data : [];
+      const scores = safeReports.map((report) =>
+        Number(report.scorecard?.overallScore || 0)
+      );
+
+      const totalReports = safeReports.length;
+      const averageScore = totalReports
+        ? Math.round(
+            scores.reduce((sum, value) => sum + value, 0) / totalReports
+          )
+        : 0;
+
+      const highRisk = scores.filter((score) => score < 60).length;
+      const moderateRisk = scores.filter(
+        (score) => score >= 60 && score < 80
+      ).length;
+      const lowRisk = scores.filter((score) => score >= 80).length;
+
+      setAnalytics({
+        totalReports,
+        averageScore,
+        highRisk,
+        moderateRisk,
+        lowRisk
+      });
+    } catch (err) {
+      console.error("Load analytics error:", err);
+    }
+  }, [token, authHeaders, fetchJson]);
+
+  const loadAuditLogs = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      const data = await fetchJson(`${API}/audit`, {
+        headers: authHeaders
+      });
+      setAuditLogs(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Load audit logs error:", err);
+    }
+  }, [token, authHeaders, fetchJson]);
+
+  const loadBenchmark = useCallback(async () => {
+    try {
+      const data = await fetchJson(`${API}/benchmark/${reportForm.sector}`);
+      setBenchmark(Number(data.benchmark || 60));
+    } catch (err) {
+      console.error("Load benchmark error:", err);
+      setBenchmark(60);
+    }
+  }, [reportForm.sector, fetchJson]);
+
+  const refreshDashboard = useCallback(async () => {
+    await Promise.all([
+      loadUser(),
+      loadReports(),
+      loadAnalytics(),
+      loadAuditLogs()
+    ]);
+  }, [loadUser, loadReports, loadAnalytics, loadAuditLogs]);
+
+  useEffect(() => {
+    if (!token) return;
+    refreshDashboard();
+  }, [token, refreshDashboard]);
+
+  useEffect(() => {
+    loadBenchmark();
+  }, [loadBenchmark]);
+
+  const updateReportStatus = async (reportId, status) => {
+    if (!token) {
+      alert("Login required.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/reports/${reportId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update status");
+      }
+
+      setStatusMessage(`Status updated to ${status}`);
+      await refreshDashboard();
+    } catch (err) {
+      console.error("Status update error:", err);
+      alert(`Failed: ${err.message}`);
+    }
   };
 
   const upgradePlan = async (plan) => {
@@ -500,8 +508,6 @@ const calculateOverallESGScore = (reportForm) => {
   };
 
   const generateAiDraft = async () => {
-    console.log("Generate Intelligence Draft clicked");
-
     if (!token) {
       alert("Login required.");
       return;
@@ -534,10 +540,8 @@ const calculateOverallESGScore = (reportForm) => {
       })
     };
 
-    console.log("Intelligence payload being sent:", payload);
-
     if (!payload.companyName || !payload.sector) {
-      setStatusMessage("Company name and sector must be filled before Intelligence draft.");
+      setStatusMessage("Company name and sector must be filled before AI draft.");
       return;
     }
 
@@ -554,17 +558,15 @@ const calculateOverallESGScore = (reportForm) => {
         body: JSON.stringify(payload)
       });
 
-      console.log("Intelligence draft response:", data);
-
       setReportForm((prev) => ({
         ...prev,
         aiDraft: normalizeAiDraft(data)
       }));
 
-      setStatusMessage("Intelligence draft generated.");
+      setStatusMessage("AI draft generated.");
     } catch (err) {
-      console.error("Intelligence draft error:", err);
-      setStatusMessage(`Intelligence draft failed: ${err.message}`);
+      console.error("AI draft error:", err);
+      setStatusMessage(`AI draft failed: ${err.message}`);
     } finally {
       setAiLoading(false);
     }
@@ -585,16 +587,15 @@ const calculateOverallESGScore = (reportForm) => {
       setLoading(true);
       setStatusMessage("");
 
-
-const overallScore = calculateOverallESGScore(reportForm);
+      const overallScore = calculateOverallESGScore(reportForm);
 
       const payload = {
         ...reportForm,
         aiDraft: normalizeAiDraft(reportForm.aiDraft),
-     scorecard: {
-     benchmark,
-     overallScore
-     },
+        scorecard: {
+          benchmark,
+          overallScore
+        },
         materialityTopics: reportForm.materialityTopics.map((topic) => {
           const scores = calculateMaterialityScores(topic);
 
@@ -613,8 +614,6 @@ const overallScore = calculateOverallESGScore(reportForm);
           };
         })
       };
-
-      console.log("Saving payload:", payload);
 
       const saved = await fetchJson(`${API}/reports`, {
         method: "POST",
@@ -889,7 +888,7 @@ const overallScore = calculateOverallESGScore(reportForm);
           }}
         >
           <div>
-            <h1 style={{ marginBottom: "8px" }}>Ecovanta Intelligence Platform</h1>
+            <h1 style={{ marginBottom: "8px" }}>Ecovanta CSRD-Ready Platform</h1>
             <p style={{ marginTop: 0, color: "#6b7280" }}>
               ESRS-aligned sustainability reporting workflow.
             </p>
@@ -1544,7 +1543,7 @@ const overallScore = calculateOverallESGScore(reportForm);
                 Add Material Topic
               </button>
 
-              <h3>Intelligence Draft</h3>
+              <h3>AI Draft</h3>
               <button
                 onClick={generateAiDraft}
                 disabled={aiLoading}
@@ -1559,7 +1558,7 @@ const overallScore = calculateOverallESGScore(reportForm);
                   opacity: aiLoading ? 0.7 : 1
                 }}
               >
-                {aiLoading ? "Generating Intelligence draft..." : "Generate Intelligence Draft"}
+                {aiLoading ? "Generating AI draft..." : "Generate AI Draft"}
               </button>
 
               <textarea
@@ -1567,7 +1566,7 @@ const overallScore = calculateOverallESGScore(reportForm);
                 onChange={(e) =>
                   setNestedField("aiDraft", "executiveSummary", e.target.value)
                 }
-                placeholder="Intelligence executive summary"
+                placeholder="AI executive summary"
                 rows={4}
                 style={{
                   padding: "12px",
@@ -1581,7 +1580,7 @@ const overallScore = calculateOverallESGScore(reportForm);
                 onChange={(e) =>
                   setNestedField("aiDraft", "disclosureDraft", e.target.value)
                 }
-                placeholder="Intelligence disclosure draft"
+                placeholder="AI disclosure draft"
                 rows={8}
                 style={{
                   padding: "12px",
@@ -1595,7 +1594,7 @@ const overallScore = calculateOverallESGScore(reportForm);
                 onChange={(e) =>
                   setNestedField("aiDraft", "dataGaps", e.target.value)
                 }
-                placeholder="Intelligence data gaps"
+                placeholder="AI data gaps"
                 rows={4}
                 style={{
                   padding: "12px",
@@ -1827,9 +1826,9 @@ const overallScore = calculateOverallESGScore(reportForm);
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>Intelligence Executive Summary</strong>
+                    <strong>AI Executive Summary</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.executiveSummary || "No Intelligence summary"}
+                      {report.aiDraft?.executiveSummary || "No AI summary"}
                     </div>
                   </div>
 
@@ -1843,9 +1842,9 @@ const overallScore = calculateOverallESGScore(reportForm);
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>Intelligence Disclosure Draft</strong>
+                    <strong>AI Disclosure Draft</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.disclosureDraft || "No Intelligence disclosure draft"}
+                      {report.aiDraft?.disclosureDraft || "No AI disclosure draft"}
                     </div>
                   </div>
 
@@ -1859,86 +1858,182 @@ const overallScore = calculateOverallESGScore(reportForm);
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>Intelligence Data Gaps</strong>
+                    <strong>AI Data Gaps</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.dataGaps || "No Intelligence data gaps"}
+                      {report.aiDraft?.dataGaps || "No AI data gaps"}
                     </div>
                   </div>
 
-
-                  <div style={{ marginBottom: "8px", fontWeight: "bold" }}>
-                  Status: {report.reviewStatus || "draft"}
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      borderRadius: "12px",
+                      padding: "12px",
+                      border: "1px solid #e5e7eb",
+                      marginBottom: "12px"
+                    }}
+                  >
+                    <strong>Status:</strong> {report.reviewStatus || "draft"}
                   </div>
 
                   <div
-  style={{
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap"
-  }}
->
-  <button
-    onClick={() =>
-      downloadSingleReportPDF(report._id || report.id, report.companyName)
-    }
-  >
-    Download This Report
-  </button>
+                    style={{
+                      display: "flex",
+                      gap: "10px",
+                      flexWrap: "wrap"
+                    }}
+                  >
+                    <button
+                      onClick={() =>
+                        downloadSingleReportPDF(
+                          report._id || report.id,
+                          report.companyName
+                        )
+                      }
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: "10px",
+                        border: "none",
+                        background: "#1976d2",
+                        color: "#ffffff",
+                        fontWeight: "bold",
+                        cursor: "pointer"
+                      }}
+                    >
+                      Download This Report
+                    </button>
 
-  <button
-    onClick={() =>
-      loadReportIntoForm(report._id || report.id)
-    }
-  >
-    Edit In Form
-  </button>
+                    <button
+                      onClick={() => loadReportIntoForm(report._id || report.id)}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: "10px",
+                        border: "1px solid #d1d5db",
+                        background: "#ffffff",
+                        cursor: "pointer",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      Edit In Form
+                    </button>
 
-  <button
-    onClick={() =>
-      deleteReport(report._id || report.id)
-    }
-  >
-    Delete
-  </button>
+                    <button
+                      onClick={() => deleteReport(report._id || report.id)}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: "10px",
+                        border: "1px solid #ef4444",
+                        background: "#ffffff",
+                        color: "#ef4444",
+                        cursor: "pointer",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      Delete
+                    </button>
 
-  {report.reviewStatus === "draft" && (
-    <button
-      onClick={() =>
-        updateReportStatus(report._id || report.id, "in_review")
-      }
-    >
-      Send to Review
-    </button>
-  )}
+                    {report.reviewStatus === "draft" && (
+                      <button
+                        onClick={() =>
+                          updateReportStatus(report._id || report.id, "in_review")
+                        }
+                        style={{
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          border: "none",
+                          background: "#f59e0b",
+                          color: "#ffffff",
+                          fontWeight: "bold",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Send to Review
+                      </button>
+                    )}
 
-  {report.reviewStatus === "in_review" && (
-    <button
-      onClick={() =>
-        updateReportStatus(report._id || report.id, "approved")
-      }
-    >
-      Approve
-    </button>
-  )}
+                    {report.reviewStatus === "in_review" && (
+                      <button
+                        onClick={() =>
+                          updateReportStatus(report._id || report.id, "approved")
+                        }
+                        style={{
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          border: "none",
+                          background: "#10b981",
+                          color: "#ffffff",
+                          fontWeight: "bold",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Approve
+                      </button>
+                    )}
 
-  {report.reviewStatus === "approved" && (
-    <button
-      onClick={() =>
-        updateReportStatus(report._id || report.id, "published")
-      }
-    >
-      Publish
-    </button>
-  )}
-</div>             
-  </div>
-   );
-   })
-   )}
-   </div>
-  </div>
-  </div>
+                    {report.reviewStatus === "approved" && (
+                      <button
+                        onClick={() =>
+                          updateReportStatus(report._id || report.id, "published")
+                        }
+                        style={{
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          border: "none",
+                          background: "#6366f1",
+                          color: "#ffffff",
+                          fontWeight: "bold",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Publish
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "12px",
+            padding: "20px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+            marginTop: "24px"
+          }}
+        >
+          <h2 style={{ marginTop: 0 }}>Audit Trail</h2>
+
+          {auditLogs.length === 0 ? (
+            <p style={{ color: "#6b7280" }}>No audit events yet.</p>
+          ) : (
+            auditLogs.map((log) => (
+              <div
+                key={log._id}
+                style={{
+                  padding: "12px 0",
+                  borderBottom: "1px solid #e5e7eb"
+                }}
+              >
+                <div style={{ fontWeight: "bold" }}>{log.action}</div>
+                <div style={{ color: "#6b7280", fontSize: "14px" }}>
+                  Company: {log.companyName || "-"}
+                </div>
+                <div style={{ color: "#6b7280", fontSize: "14px" }}>
+                  By: {log.userEmail || "Unknown"}
+                </div>
+                <div style={{ color: "#6b7280", fontSize: "14px" }}>
+                  When: {new Date(log.createdAt).toLocaleString()}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
   );
- }
+}
 
 export default App;
