@@ -152,6 +152,7 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState("login");
+  
   const updateReportStatus = async (reportId, status) => {
   if (!token) {
     alert("Login required.");
@@ -190,8 +191,8 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
-  const [auditLogs, setAuditLogs] = useState([]);
   const [reports, setReports] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
   const [analytics, setAnalytics] = useState({
     totalReports: 0,
     averageScore: 0,
