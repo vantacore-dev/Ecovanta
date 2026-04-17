@@ -15,7 +15,12 @@ router.post("/", auth, async (req, res) => {
         executiveSummary: String(req.body?.aiDraft?.executiveSummary || ""),
         disclosureDraft: String(req.body?.aiDraft?.disclosureDraft || ""),
         dataGaps: String(req.body?.aiDraft?.dataGaps || "")
-      }
+        
+      },
+      scorecard: {
+        benchmark: Number(req.body?.scorecard?.benchmark || 0),
+        overallScore: Number(req.body?.scorecard?.overallScore || 0)
+      },
     });
 
     res.json(report);
@@ -23,6 +28,7 @@ router.post("/", auth, async (req, res) => {
     console.error("Save report error:", err);
     res.status(500).json({ error: err.message });
   }
+ 
 });
 
 // GET REPORTS
