@@ -194,8 +194,24 @@ const esrsReportSchema = new mongoose.Schema(
 
     reviewStatus: {
       type: String,
-      enum: ["draft", "in_review", "approved"],
+      enum: ["draft", "in_review", "approved", "published"],
       default: "draft"
+    },
+
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
+
+    reviewedAt: {
+      type: Date,
+      default: null
+    },
+
+    publishedAt: {
+      type: Date,
+      default: null
     },
 
     materialityTopics: {
