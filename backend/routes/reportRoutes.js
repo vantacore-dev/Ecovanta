@@ -3,7 +3,7 @@ const PDFDocument = require("pdfkit");
 const auth = require("../middleware/auth");
 const ESRSReport = require("../models/ESRSReport");
 const { createAuditLog } = require("../utils/audit");
-
+const AuditLog = require("../models/AudiLog");
 const router = express.Router();
 
 // GET all reports for current user
@@ -132,6 +132,10 @@ router.put("/:id", auth, async (req, res) => {
     if (!report) {
       return res.status(404).json({ error: "Report not found" });
     }
+
+    const auditLogs = await AuditLog.find({
+    entityId: report._id
+    }).sort({ createdAt: 1 });
 
     report.companyName = req.body?.companyName || report.companyName;
     report.sector = req.body?.sector || report.sector;
@@ -425,6 +429,29 @@ router.get("/:id/pdf", auth, async (req, res) => {
         doc.moveDown(0.8);
       });
     }
+
+if (Array.isArray(auditLogs) && auditLogs.length > 0) {
+  doc.addPage();
+  doc.fontSize(16).text("Audit Trail Summary");
+  doc.moveDown(0.5);
+
+  auditLogs.forEach((log, index) => {
+    doc.fontSize(12).text(`${index + 1}. ${log.action}`);
+    doc.text(`User: ${log.userEmail || "Unknown"}`);
+    doc.text(`Company: ${log.companyName || "-"}`);
+    doc.text(`When: ${new Date(log.createdAt).toLocaleString()}`);
+
+    if (log.details?.newStatus) {
+      doc.text(`New Status: ${log.details.newStatus}`);
+    }
+
+    if (Array.isArray(log.details?.fieldsUpdated)) {
+      doc.text(`Fields Updated: ${log.details.fieldsUpdated.join(", ")}`);
+    }
+
+    doc.moveDown(0.8);
+  });
+}
 
     doc.end();
   } catch (err) {
