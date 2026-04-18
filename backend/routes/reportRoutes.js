@@ -3,7 +3,7 @@ const PDFDocument = require("pdfkit");
 const auth = require("../middleware/auth");
 const ESRSReport = require("../models/ESRSReport");
 const { createAuditLog } = require("../utils/audit");
-const AuditLog = require("../models/AudiLog");
+const AuditLog = require("../models/AuditLog");
 const router = express.Router();
 
 // GET all reports for current user
