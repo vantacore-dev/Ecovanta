@@ -133,10 +133,6 @@ router.put("/:id", auth, async (req, res) => {
       return res.status(404).json({ error: "Report not found" });
     }
 
-    const auditLogs = await AuditLog.find({
-    entityId: report._id
-    }).sort({ createdAt: 1 });
-
     report.companyName = req.body?.companyName || report.companyName;
     report.sector = req.body?.sector || report.sector;
     report.reportingYear = Number(
@@ -307,6 +303,10 @@ router.get("/:id/pdf", auth, async (req, res) => {
       return res.status(404).json({ error: "Report not found" });
     }
 
+    const auditLogs = await AuditLog.find({
+    entityId: report._id
+    }).sort({ createdAt: 1 });
+
     await createAuditLog({
       user: req.user,
       action: "REPORT_PDF_DOWNLOADED",
@@ -316,7 +316,7 @@ router.get("/:id/pdf", auth, async (req, res) => {
         reportingYear: report.reportingYear
       }
     });
-
+   
     const doc = new PDFDocument({ margin: 50 });
 
     res.setHeader("Content-Type", "application/pdf");
