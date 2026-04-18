@@ -6,6 +6,24 @@ const { createAuditLog } = require("../utils/audit");
 const AuditLog = require("../models/AuditLog");
 const router = express.Router();
 
+const canMoveToStatus = (role, status) => {
+  if (role === "admin") return true;
+
+  if (status === "in_review") {
+    return ["preparer", "reviewer", "approver"].includes(role);
+  }
+
+  if (status === "approved") {
+    return ["reviewer", "approver"].includes(role);
+  }
+
+  if (status === "published") {
+    return ["approver"].includes(role);
+  }
+
+  return false;
+};
+
 // GET all reports for current user
 router.get("/", auth, async (req, res) => {
   try {
@@ -240,6 +258,13 @@ router.put("/:id/status", auth, async (req, res) => {
   try {
     const { status } = req.body;
 
+    const userRole = req.user.role || "preparer";
+
+    if (!canMoveToStatus(userRole, status)) {
+    return res.status(403).json({
+    error: `Role '${userRole}' cannot move report to status '${status}'`
+  });
+}
     const allowedStatuses = ["draft", "in_review", "approved", "published"];
 
     if (!allowedStatuses.includes(status)) {
