@@ -164,6 +164,19 @@ function App() {
   const [selectedReportId, setSelectedReportId] = useState("");
   const [reportForm, setReportForm] = useState(initialReportForm);
 
+const isEditable = () => {
+  if (reportForm.reviewStatus === "draft") return true;
+
+  if (
+    reportForm.reviewStatus === "in_review" &&
+    ["reviewer", "approver", "admin"].includes(user?.role)
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
   const authHeaders = useMemo(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
@@ -1056,7 +1069,23 @@ function App() {
               boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
             }}
           >
-            <h2 style={{ marginTop: 0 }}>Create ESRS Report</h2>
+            <h2 style={{ marginTop: 0 }}>Create Your ESRS Report</h2>
+
+          <div style={{
+            padding: "10px",
+            borderRadius: "8px",
+            marginBottom: "12px",
+            background:
+            reportForm.reviewStatus === "draft"
+              ? "#e0f2fe"
+              : reportForm.reviewStatus === "in_review"
+              ? "#fef3c7"
+              : reportForm.reviewStatus === "approved"
+              ? "#d1fae5"
+              : "#ede9fe"
+          }}>
+            <strong>Status:</strong> {reportForm.reviewStatus}
+          </div>
 
             <div style={{ display: "grid", gap: "12px" }}>
               <input
