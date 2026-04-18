@@ -899,6 +899,10 @@ function App() {
               <strong>Plan:</strong> {user?.plan || "free"}
             </div>
 
+            <div style={{ marginBottom: "8px" }}>
+            <strong>Role:</strong> {user?.role || "preparer"}
+            </div>
+
             <div
               style={{
                 display: "flex",
@@ -1932,62 +1936,66 @@ function App() {
                       Delete
                     </button>
 
-                    {report.reviewStatus === "draft" && (
-                      <button
-                        onClick={() =>
-                          updateReportStatus(report._id || report.id, "in_review")
-                        }
-                        style={{
-                          padding: "10px 14px",
-                          borderRadius: "10px",
-                          border: "none",
-                          background: "#f59e0b",
-                          color: "#ffffff",
-                          fontWeight: "bold",
-                          cursor: "pointer"
-                        }}
-                      >
-                        Send to Review
-                      </button>
-                    )}
 
-                    {report.reviewStatus === "in_review" && (
-                      <button
-                        onClick={() =>
-                          updateReportStatus(report._id || report.id, "approved")
-                        }
-                        style={{
-                          padding: "10px 14px",
-                          borderRadius: "10px",
-                          border: "none",
-                          background: "#10b981",
-                          color: "#ffffff",
-                          fontWeight: "bold",
-                          cursor: "pointer"
-                        }}
-                      >
-                        Approve
-                      </button>
-                    )}
+{report.reviewStatus === "draft" &&
+  ["preparer", "reviewer", "approver", "admin"].includes(user?.role) && (
+    <button
+      onClick={() =>
+        updateReportStatus(report._id || report.id, "in_review")
+      }
+      style={{
+        padding: "10px 14px",
+        borderRadius: "10px",
+        border: "none",
+        background: "#f59e0b",
+        color: "#ffffff",
+        fontWeight: "bold",
+        cursor: "pointer"
+      }}
+    >
+      Send to Review
+    </button>
+  )}
 
-                    {report.reviewStatus === "approved" && (
-                      <button
-                        onClick={() =>
-                          updateReportStatus(report._id || report.id, "published")
-                        }
-                        style={{
-                          padding: "10px 14px",
-                          borderRadius: "10px",
-                          border: "none",
-                          background: "#6366f1",
-                          color: "#ffffff",
-                          fontWeight: "bold",
-                          cursor: "pointer"
-                        }}
-                      >
-                        Publish
-                      </button>
-                    )}
+{report.reviewStatus === "in_review" &&
+  ["reviewer", "approver", "admin"].includes(user?.role) && (
+    <button
+      onClick={() =>
+        updateReportStatus(report._id || report.id, "approved")
+      }
+      style={{
+        padding: "10px 14px",
+        borderRadius: "10px",
+        border: "none",
+        background: "#10b981",
+        color: "#ffffff",
+        fontWeight: "bold",
+        cursor: "pointer"
+      }}
+    >
+      Approve
+    </button>
+  )}
+
+{report.reviewStatus === "approved" &&
+  ["approver", "admin"].includes(user?.role) && (
+    <button
+      onClick={() =>
+        updateReportStatus(report._id || report.id, "published")
+      }
+      style={{
+        padding: "10px 14px",
+        borderRadius: "10px",
+        border: "none",
+        background: "#6366f1",
+        color: "#ffffff",
+        fontWeight: "bold",
+        cursor: "pointer"
+      }}
+    >
+      Publish
+    </button>
+  )}
                   </div>
                 </div>
               );
