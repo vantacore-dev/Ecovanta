@@ -1160,16 +1160,16 @@ function App() {
                 </button>
               )}
 
-              //<button//
-               // onClick={logout}
-               // style={{
-                 // padding: "10px 14px",
-                 // borderRadius: "10px",
-                  //border: "1px solid #d1d5db",
-                 // background: "#ffffff",
-                 // cursor: "pointer",
-                 // fontWeight: "bold"
-               // }}
+              <button
+               onClick={logout}
+               style={{
+                 padding: "10px 14px",
+                 borderRadius: "10px",
+                 border: "1px solid #d1d5db",
+                 background: "#ffffff",
+                 cursor: "pointer",
+                 fontWeight: "bold"
+               }}
               >
                 Logout
               </button>
