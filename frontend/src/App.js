@@ -873,7 +873,6 @@ function App() {
     if (score >= 60) return "Moderate Risk";
     return "High Risk";
   };
-
   const chartData = reports.map((report) => ({
     company: report.companyName,
     score: Number(report.scorecard?.overallScore || 0)
@@ -882,8 +881,7 @@ function App() {
   const benchmarkComparisonData = getBenchmarkComparisonData(reportForm, analytics);
   const materialityHeatmapData = getMaterialityHeatmapData(reportForm.materialityTopics);
   const complianceGapData = getComplianceGapData(reportForm);
-
-
+  
   if (!token) {
     return (
       <div
