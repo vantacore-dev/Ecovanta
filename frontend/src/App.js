@@ -140,7 +140,6 @@ const calculateOverallESGScore = (form) => {
   return Math.round((avg5 / 5) * 100);
 };
 
-//ici
 const DEFAULT_SECTOR_BENCHMARKS = {
   tech: { sectorAverage: 65, topQuartile: 82 },
   energy: { sectorAverage: 58, topQuartile: 78 },
@@ -1931,7 +1930,6 @@ function App() {
           </div>
         </div>
 
-        //ici
         <div
   style={{
     display: "grid",
