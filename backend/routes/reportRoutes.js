@@ -449,47 +449,7 @@ const getMissing = () => {
       align: "center"
     });
 
-    //add benchmark comparison to pdf
-    doc.moveDown().fontSize(14).text("11. Benchmark Comparison", { underline: true });
-
-    doc.moveDown().fontSize(11);
-    doc.text(`Company Score: ${report.scorecard?.overallScore || 0}`);
-    doc.text(`Sector Average: ${sectorBench.sectorAverage}`);
-    doc.text(`Top Quartile: ${sectorBench.topQuartile}`);
-
-    // add Meteriality Heatmap Table
-    doc.moveDown().fontSize(14).text("12. Materiality Heatmap", { underline: true });
-
-if (Array.isArray(report.materialityTopics)) {
-  report.materialityTopics.forEach((t, i) => {
-    doc.moveDown().fontSize(11).text(
-      `${i + 1}. ${t.topicCode} - ${t.topicLabel}`
-    );
-    doc.text(`Impact: ${t.impactScore100}/100`);
-    doc.text(`Financial: ${t.financialScore100}/100`);
-    doc.text(`Overall: ${t.overallMaterialityScore}/100`);
-    doc.text(`Result: ${t.isMaterial ? "Material" : "Not Material"}`);
-  });
-} else {
-  doc.text("No materiality data.");
-}
-
-    // add Compliance Gap Dashboard
-
-  doc.moveDown().fontSize(14).text("13. Compliance Gap Analysis", { underline: true });
-
-  const gaps = getMissing();
-
-  if (gaps.length === 0) {
-  doc.moveDown().text("No major compliance gaps identified.");
-  } else {
-  doc.moveDown().text("Missing elements:");
-  gaps.forEach((g, i) => {
-    doc.text(`- ${g}`);
-  });
-}
-
-    // MAIN CONTENT
+        // MAIN CONTENT
     doc.addPage();
 
     writeSection(
@@ -655,6 +615,46 @@ if (Array.isArray(report.materialityTopics)) {
         doc.moveDown(0.8);
       });
     }
+
+//add benchmark comparison to pdf
+    doc.moveDown().fontSize(14).text("11. Benchmark Comparison", { underline: true });
+
+    doc.moveDown().fontSize(11);
+    doc.text(`Company Score: ${report.scorecard?.overallScore || 0}`);
+    doc.text(`Sector Average: ${sectorBench.sectorAverage}`);
+    doc.text(`Top Quartile: ${sectorBench.topQuartile}`);
+
+    // add Meteriality Heatmap Table
+    doc.moveDown().fontSize(14).text("12. Materiality Heatmap", { underline: true });
+
+if (Array.isArray(report.materialityTopics)) {
+  report.materialityTopics.forEach((t, i) => {
+    doc.moveDown().fontSize(11).text(
+      `${i + 1}. ${t.topicCode} - ${t.topicLabel}`
+    );
+    doc.text(`Impact: ${t.impactScore100}/100`);
+    doc.text(`Financial: ${t.financialScore100}/100`);
+    doc.text(`Overall: ${t.overallMaterialityScore}/100`);
+    doc.text(`Result: ${t.isMaterial ? "Material" : "Not Material"}`);
+  });
+} else {
+  doc.text("No materiality data.");
+}
+
+    // add Compliance Gap Dashboard
+
+  doc.moveDown().fontSize(14).text("13. Compliance Gap Analysis", { underline: true });
+
+  const gaps = getMissing();
+
+  if (gaps.length === 0) {
+  doc.moveDown().text("No major compliance gaps identified.");
+  } else {
+  doc.moveDown().text("Missing elements:");
+  gaps.forEach((g, i) => {
+    doc.text(`- ${g}`);
+  });
+}
 
     // AUDIT TRAIL SUMMARY
     if (Array.isArray(auditLogs) && auditLogs.length > 0) {
