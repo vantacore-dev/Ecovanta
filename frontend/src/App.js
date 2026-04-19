@@ -563,7 +563,7 @@ function App() {
     };
 
     if (!payload.companyName || !payload.sector) {
-      setStatusMessage("Company name and sector must be filled before AI draft.");
+      setStatusMessage("Company name and sector must be filled before Intelligence draft.");
       return;
     }
 
@@ -591,10 +591,10 @@ function App() {
         }
       }));
 
-      setStatusMessage("AI draft generated.");
+      setStatusMessage("Intelligence draft generated.");
     } catch (err) {
-      console.error("AI draft error:", err);
-      setStatusMessage(`AI draft failed: ${err.message}`);
+      console.error("Intelligence draft error:", err);
+      setStatusMessage(`Intelligence draft failed: ${err.message}`);
     } finally {
       setAiLoading(false);
     }
@@ -916,7 +916,7 @@ function App() {
           }}
         >
           <div>
-            <h1 style={{ marginBottom: "8px" }}>Ecovanta CSRD-Ready Platform</h1>
+            <h1 style={{ marginBottom: "8px" }}>Ecovanta CSRD-Ready Intelligence Platform</h1>
             <p style={{ marginTop: 0, color: "#6b7280" }}>
               ESRS-aligned sustainability reporting workflow.
             </p>
@@ -1633,7 +1633,7 @@ function App() {
                 Add Material Topic
               </button>
 
-              <h3>AI Draft</h3>
+              <h3>Intelligence Draft</h3>
               <button
                 onClick={generateAiDraft}
                 disabled={aiLoading || !isEditable()}
@@ -1648,7 +1648,7 @@ function App() {
                   opacity: aiLoading || !isEditable() ? 0.7 : 1
                 }}
               >
-                {aiLoading ? "Generating AI draft..." : "Generate AI Draft"}
+                {aiLoading ? "Generating Intelligence draft..." : "Generate Intelligence Draft"}
               </button>
 
               <textarea
@@ -1657,7 +1657,7 @@ function App() {
                   setNestedField("aiDraft", "executiveSummary", e.target.value)
                 }
                 disabled={!isEditable()}
-                placeholder="AI executive summary"
+                placeholder="Intelligence executive summary"
                 rows={4}
                 style={{
                   padding: "12px",
@@ -1672,7 +1672,7 @@ function App() {
                   setNestedField("aiDraft", "disclosureDraft", e.target.value)
                 }
                 disabled={!isEditable()}
-                placeholder="AI disclosure draft"
+                placeholder="Intelligence disclosure draft"
                 rows={8}
                 style={{
                   padding: "12px",
@@ -1687,7 +1687,7 @@ function App() {
                   setNestedField("aiDraft", "dataGaps", e.target.value)
                 }
                 disabled={!isEditable()}
-                placeholder="AI data gaps"
+                placeholder="Intelligence data gaps"
                 rows={4}
                 style={{
                   padding: "12px",
@@ -1706,9 +1706,9 @@ function App() {
                   marginBottom: "12px"
                 }}
               >
-                <strong>AI Recommendations</strong>
+                <strong>Intelligence Recommendations</strong>
                 <div style={{ marginTop: "8px" }}>
-                  {reportForm.aiDraft?.recommendations || "No AI recommendations"}
+                  {reportForm.aiDraft?.recommendations || "No Intelligence recommendations"}
                 </div>
               </div>
 
@@ -1935,9 +1935,9 @@ function App() {
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>AI Executive Summary</strong>
+                    <strong>Intelligence Executive Summary</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.executiveSummary || "No AI summary"}
+                      {report.aiDraft?.executiveSummary || "No Intelligence summary"}
                     </div>
                   </div>
 
@@ -1951,9 +1951,9 @@ function App() {
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>AI Disclosure Draft</strong>
+                    <strong>Intelligence Disclosure Draft</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.disclosureDraft || "No AI disclosure draft"}
+                      {report.aiDraft?.disclosureDraft || "No Intelligence disclosure draft"}
                     </div>
                   </div>
 
@@ -1967,9 +1967,9 @@ function App() {
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>AI Data Gaps</strong>
+                    <strong>Intelligence Data Gaps</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.dataGaps || "No AI data gaps"}
+                      {report.aiDraft?.dataGaps || "No Intelligence data gaps"}
                     </div>
                   </div>
 
@@ -1983,9 +1983,9 @@ function App() {
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>AI Recommendations</strong>
+                    <strong>Intelligence Recommendations</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.recommendations || "No AI recommendations"}
+                      {report.aiDraft?.recommendations || "No Intelligence recommendations"}
                     </div>
                   </div>
 
