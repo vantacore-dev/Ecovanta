@@ -4,7 +4,7 @@ const auth = require("../middleware/auth");
 const ESRSReport = require("../models/ESRSReport");
 const AuditLog = require("../models/AuditLog");
 const { createAuditLog } = require("../utils/audit");
-
+const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
 const router = express.Router();
 
 const canMoveToStatus = (role, status) => {
@@ -345,6 +345,217 @@ router.put("/:id/status", auth, async (req, res) => {
   }
 });
 
+//Chart package
+const chartWidth = 900;
+const chartHeight = 500;
+const chartJSNodeCanvas = new ChartJSNodeCanvas({
+  width: chartWidth,
+  height: chartHeight,
+  backgroundColour: "white"
+});
+
+const getSectorBenchmarks = (sector) => {
+  const benchmarks = {
+    tech: { sectorAverage: 65, topQuartile: 82 },
+    energy: { sectorAverage: 58, topQuartile: 78 },
+    manufacturing: { sectorAverage: 61, topQuartile: 79 }
+  };
+
+  return benchmarks[sector] || { sectorAverage: 60, topQuartile: 75 };
+};
+
+const getComplianceScore = (report) => {
+  let total = 0;
+  let complete = 0;
+
+  const checks = [
+    report?.esrs2?.governance,
+    report?.esrs2?.strategy,
+    report?.esrs2?.impactsRisksOpportunities,
+    report?.esrs2?.metricsTargets,
+    report?.e1?.scope1Emissions,
+    report?.e1?.scope2Emissions,
+    report?.e1?.scope3Emissions,
+    report?.e1?.climatePolicies,
+    report?.s1?.workforcePolicies,
+    report?.s1?.diversityInclusion,
+    report?.g1?.antiCorruption,
+    report?.g1?.whistleblowing
+  ];
+
+  checks.forEach((item) => {
+    total += 1;
+    if (
+      item !== undefined &&
+      item !== null &&
+      String(item).trim() !== "" &&
+      String(item).trim() !== "0"
+    ) {
+      complete += 1;
+    }
+  });
+
+  return total ? Math.round((complete / total) * 100) : 0;
+};
+
+const buildBenchmarkChart = async (report) => {
+  const sectorBench = getSectorBenchmarks(report.sector);
+
+  const configuration = {
+    type: "bar",
+    data: {
+      labels: ["Company Score", "Sector Average", "Top Quartile"],
+      datasets: [
+        {
+          label: "Score",
+          data: [
+            Number(report.scorecard?.overallScore || 0),
+            sectorBench.sectorAverage,
+            sectorBench.topQuartile
+          ],
+          backgroundColor: ["#1976d2", "#f59e0b", "#10b981"]
+        }
+      ]
+    },
+    options: {
+      responsive: false,
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: "Benchmark Comparison"
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100
+        }
+      }
+    }
+  };
+
+  return chartJSNodeCanvas.renderToBuffer(configuration);
+};
+
+const buildMaterialityHeatmapChart = async (report) => {
+  const points = Array.isArray(report.materialityTopics)
+    ? report.materialityTopics.map((topic) => ({
+        x: Number(topic.financialScore100 || 0),
+        y: Number(topic.impactScore100 || 0),
+        label: topic.topicCode || topic.topicLabel || "Topic"
+      }))
+    : [];
+
+  const configuration = {
+    type: "scatter",
+    data: {
+      datasets: [
+        {
+          label: "Materiality Topics",
+          data: points,
+          backgroundColor: "#7c3aed",
+          pointRadius: 7
+        }
+      ]
+    },
+    options: {
+      responsive: false,
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: "Materiality Heatmap"
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const raw = context.raw || {};
+              return `${raw.label || "Topic"}: Financial ${raw.x}/100, Impact ${raw.y}/100`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          min: 0,
+          max: 100,
+          title: {
+            display: true,
+            text: "Financial Materiality"
+          }
+        },
+        y: {
+          min: 0,
+          max: 100,
+          title: {
+            display: true,
+            text: "Impact Materiality"
+          }
+        }
+      }
+    }
+  };
+
+  return chartJSNodeCanvas.renderToBuffer(configuration);
+};
+
+const buildComplianceGaugeChart = async (report) => {
+  const score = getComplianceScore(report);
+
+  const configuration = {
+    type: "doughnut",
+    data: {
+      labels: ["Complete", "Gap"],
+      datasets: [
+        {
+          data: [score, 100 - score],
+          backgroundColor: ["#10b981", "#e5e7eb"],
+          borderWidth: 0
+        }
+      ]
+    },
+    options: {
+      responsive: false,
+      rotation: -90,
+      circumference: 180,
+      cutout: "70%",
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: `Compliance Gap Dashboard - ${score}%`
+        }
+      }
+    },
+    plugins: [
+      {
+        id: "centerText",
+        afterDraw(chart) {
+          const { ctx } = chart;
+          const meta = chart.getDatasetMeta(0);
+          if (!meta || !meta.data || !meta.data.length) return;
+
+          const x = meta.data[0].x;
+          const y = meta.data[0].y;
+
+          ctx.save();
+          ctx.font = "bold 42px Arial";
+          ctx.fillStyle = "#111827";
+          ctx.textAlign = "center";
+          ctx.fillText(`${score}%`, x, y - 10);
+          ctx.font = "16px Arial";
+          ctx.fillStyle = "#6b7280";
+          ctx.fillText("Compliance Score", x, y + 22);
+          ctx.restore();
+        }
+      }
+    ]
+  };
+
+  return chartJSNodeCanvas.renderToBuffer(configuration);
+};
+
 // DOWNLOAD ENHANCED PDF
 router.get("/:id/pdf", auth, async (req, res) => {
   try {
@@ -616,6 +827,40 @@ const getMissing = () => {
       });
     }
 
+    // ===== 11. Analytics & Visual Insights =====
+    doc.addPage();
+    doc.fontSize(18).text("11. Analytics & Visual Insights", {
+      align: "center"
+    });
+    doc.moveDown();
+
+    const benchmarkChartBuffer = await buildBenchmarkChart(report);
+    const materialityChartBuffer = await buildMaterialityHeatmapChart(report);
+    const complianceGaugeBuffer = await buildComplianceGaugeChart(report);
+
+    doc.fontSize(14).text("11.1 Benchmark Comparison", { underline: true });
+    doc.moveDown(0.5);
+    doc.image(benchmarkChartBuffer, {
+      fit: [500, 260],
+      align: "center"
+    });
+
+    doc.moveDown(1.5);
+    doc.fontSize(14).text("11.2 Materiality Heatmap", { underline: true });
+    doc.moveDown(0.5);
+    doc.image(materialityChartBuffer, {
+      fit: [500, 260],
+      align: "center"
+    });
+
+    doc.addPage();
+    doc.fontSize(14).text("11.3 Compliance Gap Dashboard", { underline: true });
+    doc.moveDown(0.5);
+    doc.image(complianceGaugeBuffer, {
+      fit: [500, 260],
+      align: "center"
+    });
+
 //add benchmark comparison to pdf
     doc.moveDown().fontSize(14).text("11. Benchmark Comparison", { underline: true });
 
@@ -659,7 +904,7 @@ if (Array.isArray(report.materialityTopics)) {
     // AUDIT TRAIL SUMMARY
     if (Array.isArray(auditLogs) && auditLogs.length > 0) {
       doc.addPage();
-      doc.fontSize(18).text("14. Audit Trail Summary");
+      doc.fontSize(18).text("15. Audit Trail Summary");
       doc.moveDown(0.5);
 
       auditLogs.forEach((log, index) => {
