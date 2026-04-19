@@ -78,7 +78,8 @@ router.post("/", auth, async (req, res) => {
       aiDraft: {
         executiveSummary: String(req.body?.aiDraft?.executiveSummary || ""),
         disclosureDraft: String(req.body?.aiDraft?.disclosureDraft || ""),
-        dataGaps: String(req.body?.aiDraft?.dataGaps || "")
+        dataGaps: String(req.body?.aiDraft?.dataGaps || ""),
+         recommendations: String(req.body?.aiDraft?.recommendations || "")
       },
 
       scorecard: {

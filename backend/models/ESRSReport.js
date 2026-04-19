@@ -167,19 +167,13 @@ const esrsReportSchema = new mongoose.Schema(
     },
 
     aiDraft: {
-      executiveSummary: {
-        type: String,
-        default: ""
-      },
-      disclosureDraft: {
-        type: String,
-        default: ""
-      },
-      dataGaps: {
-        type: String,
-        default: ""
-      }
-    },
+  executiveSummary: { type: String, default: "" },
+  disclosureDraft: { type: String, default: "" },
+  dataGaps: { type: String, default: "" },
+
+  // ✅ FIXED
+  recommendations: { type: String, default: "" }
+  },
 
     scorecard: {
       benchmark: {
