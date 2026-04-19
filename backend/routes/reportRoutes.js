@@ -530,23 +530,53 @@ const buildComplianceGaugeChart = async (report) => {
     },
     plugins: [
       {
-        id: "centerText",
-        afterDraw(chart) {
+        id: "gaugeNeedle",
+        afterDatasetDraw(chart) {
           const { ctx } = chart;
           const meta = chart.getDatasetMeta(0);
+
           if (!meta || !meta.data || !meta.data.length) return;
 
-          const x = meta.data[0].x;
-          const y = meta.data[0].y;
+          const arc = meta.data[0];
+          const centerX = arc.x;
+          const centerY = arc.y;
+          const outerRadius = arc.outerRadius;
+
+          // score 0–100 mapped to -90deg to +90deg
+          const angle = Math.PI * (score / 100) - Math.PI;
+
+          const needleLength = outerRadius * 0.9;
+          const needleWidth = 6;
+
+          const needleX = centerX + Math.cos(angle) * needleLength;
+          const needleY = centerY + Math.sin(angle) * needleLength;
 
           ctx.save();
+
+          // needle
+          ctx.beginPath();
+          ctx.lineWidth = needleWidth;
+          ctx.strokeStyle = "#111827";
+          ctx.moveTo(centerX, centerY);
+          ctx.lineTo(needleX, needleY);
+          ctx.stroke();
+
+          // center hub
+          ctx.beginPath();
+          ctx.fillStyle = "#111827";
+          ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
+          ctx.fill();
+
+          // score text
           ctx.font = "bold 42px Arial";
           ctx.fillStyle = "#111827";
           ctx.textAlign = "center";
-          ctx.fillText(`${score}%`, x, y - 10);
+          ctx.fillText(`${score}%`, centerX, centerY - 18);
+
           ctx.font = "16px Arial";
           ctx.fillStyle = "#6b7280";
-          ctx.fillText("Compliance Score", x, y + 22);
+          ctx.fillText("Compliance Score", centerX, centerY + 24);
+
           ctx.restore();
         }
       }
