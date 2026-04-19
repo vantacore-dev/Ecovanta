@@ -873,6 +873,7 @@ function App() {
     if (score >= 60) return "Moderate Risk";
     return "High Risk";
   };
+  
   const chartData = reports.map((report) => ({
     company: report.companyName,
     score: Number(report.scorecard?.overallScore || 0)
