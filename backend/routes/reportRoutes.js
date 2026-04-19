@@ -659,7 +659,7 @@ if (Array.isArray(report.materialityTopics)) {
     // AUDIT TRAIL SUMMARY
     if (Array.isArray(auditLogs) && auditLogs.length > 0) {
       doc.addPage();
-      doc.fontSize(18).text("11. Audit Trail Summary");
+      doc.fontSize(18).text("14. Audit Trail Summary");
       doc.moveDown(0.5);
 
       auditLogs.forEach((log, index) => {
