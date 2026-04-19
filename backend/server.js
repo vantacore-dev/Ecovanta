@@ -36,5 +36,19 @@ app.get("/", (req, res) => {
   res.send("Ecovanta modular backend running");
 });
 
+app.get("/benchmark/:sector", (req, res) => {
+  const { sector } = req.params;
+
+  const benchmarks = {
+    tech: 65,
+    energy: 58,
+    manufacturing: 61
+  };
+
+  res.json({
+    benchmark: benchmarks[sector] || 60
+  });
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
