@@ -506,11 +506,11 @@ const buildComplianceGaugeChart = async (report) => {
   const configuration = {
     type: "doughnut",
     data: {
-      labels: ["Complete", "Gap"],
+      labels: ["Low", "Medium", "High"],
       datasets: [
         {
-          data: [score, 100 - score],
-          backgroundColor: ["#10b981", "#e5e7eb"],
+          data: [40, 30, 30],
+          backgroundColor: ["#ef4444", "#f59e0b", "#10b981"],
           borderWidth: 0
         }
       ]
@@ -542,12 +542,10 @@ const buildComplianceGaugeChart = async (report) => {
           const centerY = arc.y;
           const outerRadius = arc.outerRadius;
 
-          // score 0–100 mapped to -90deg to +90deg
+          // map 0–100 score onto half-circle
           const angle = Math.PI * (score / 100) - Math.PI;
 
           const needleLength = outerRadius * 0.9;
-          const needleWidth = 6;
-
           const needleX = centerX + Math.cos(angle) * needleLength;
           const needleY = centerY + Math.sin(angle) * needleLength;
 
@@ -555,7 +553,7 @@ const buildComplianceGaugeChart = async (report) => {
 
           // needle
           ctx.beginPath();
-          ctx.lineWidth = needleWidth;
+          ctx.lineWidth = 6;
           ctx.strokeStyle = "#111827";
           ctx.moveTo(centerX, centerY);
           ctx.lineTo(needleX, needleY);
