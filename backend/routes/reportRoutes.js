@@ -890,7 +890,7 @@ const getMissing = () => {
     });
 
 //add benchmark comparison to pdf
-    doc.moveDown().fontSize(14).text("11. Benchmark Comparison", { underline: true });
+    doc.moveDown().fontSize(14).text("12. Benchmark Comparison", { underline: true });
 
     doc.moveDown().fontSize(11);
     doc.text(`Company Score: ${report.scorecard?.overallScore || 0}`);
@@ -898,7 +898,7 @@ const getMissing = () => {
     doc.text(`Top Quartile: ${sectorBench.topQuartile}`);
 
     // add Meteriality Heatmap Table
-    doc.moveDown().fontSize(14).text("12. Materiality Heatmap", { underline: true });
+    doc.moveDown().fontSize(14).text("13. Materiality Heatmap", { underline: true });
 
 if (Array.isArray(report.materialityTopics)) {
   report.materialityTopics.forEach((t, i) => {
@@ -916,7 +916,7 @@ if (Array.isArray(report.materialityTopics)) {
 
     // add Compliance Gap Dashboard
 
-  doc.moveDown().fontSize(14).text("13. Compliance Gap Analysis", { underline: true });
+  doc.moveDown().fontSize(14).text("14. Compliance Gap Analysis", { underline: true });
 
   const gaps = getMissing();
 
