@@ -879,7 +879,6 @@ function App() {
     score: Number(report.scorecard?.overallScore || 0)
   }));
 
-  // ici
   const benchmarkComparisonData = getBenchmarkComparisonData(reportForm, analytics);
   const materialityHeatmapData = getMaterialityHeatmapData(reportForm.materialityTopics);
   const complianceGapData = getComplianceGapData(reportForm);
