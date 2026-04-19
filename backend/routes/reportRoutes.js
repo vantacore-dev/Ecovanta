@@ -2,8 +2,9 @@ const express = require("express");
 const PDFDocument = require("pdfkit");
 const auth = require("../middleware/auth");
 const ESRSReport = require("../models/ESRSReport");
-const { createAuditLog } = require("../utils/audit");
 const AuditLog = require("../models/AuditLog");
+const { createAuditLog } = require("../utils/audit");
+
 const router = express.Router();
 
 const canMoveToStatus = (role, status) => {
@@ -79,7 +80,7 @@ router.post("/", auth, async (req, res) => {
         executiveSummary: String(req.body?.aiDraft?.executiveSummary || ""),
         disclosureDraft: String(req.body?.aiDraft?.disclosureDraft || ""),
         dataGaps: String(req.body?.aiDraft?.dataGaps || ""),
-         recommendations: String(req.body?.aiDraft?.recommendations || "")
+        recommendations: String(req.body?.aiDraft?.recommendations || "")
       },
 
       scorecard: {
@@ -152,6 +153,12 @@ router.put("/:id", auth, async (req, res) => {
       return res.status(404).json({ error: "Report not found" });
     }
 
+    if (report.reviewStatus === "in_review" && req.user.role === "preparer") {
+      return res.status(403).json({
+        error: "Preparer cannot edit report in review"
+      });
+    }
+
     report.companyName = req.body?.companyName || report.companyName;
     report.sector = req.body?.sector || report.sector;
     report.reportingYear = Number(
@@ -186,7 +193,8 @@ router.put("/:id", auth, async (req, res) => {
     report.aiDraft = {
       executiveSummary: String(req.body?.aiDraft?.executiveSummary || ""),
       disclosureDraft: String(req.body?.aiDraft?.disclosureDraft || ""),
-      dataGaps: String(req.body?.aiDraft?.dataGaps || "")
+      dataGaps: String(req.body?.aiDraft?.dataGaps || ""),
+      recommendations: String(req.body?.aiDraft?.recommendations || "")
     };
 
     report.scorecard = {
@@ -258,18 +266,18 @@ router.put("/:id", auth, async (req, res) => {
 router.put("/:id/status", auth, async (req, res) => {
   try {
     const { status } = req.body;
-
     const userRole = req.user.role || "preparer";
 
-    if (!canMoveToStatus(userRole, status)) {
-    return res.status(403).json({
-    error: `Role '${userRole}' cannot move report to status '${status}'`
-  });
-}
     const allowedStatuses = ["draft", "in_review", "approved", "published"];
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
+    }
+
+    if (!canMoveToStatus(userRole, status)) {
+      return res.status(403).json({
+        error: `Role '${userRole}' cannot move report to status '${status}'`
+      });
     }
 
     const report = await ESRSReport.findOne({
@@ -330,7 +338,7 @@ router.get("/:id/pdf", auth, async (req, res) => {
     }
 
     const auditLogs = await AuditLog.find({
-    entityId: report._id
+      entityId: report._id
     }).sort({ createdAt: 1 });
 
     await createAuditLog({
@@ -342,7 +350,7 @@ router.get("/:id/pdf", auth, async (req, res) => {
         reportingYear: report.reportingYear
       }
     });
-   
+
     const doc = new PDFDocument({ margin: 50 });
 
     res.setHeader("Content-Type", "application/pdf");
@@ -365,6 +373,12 @@ router.get("/:id/pdf", auth, async (req, res) => {
     doc.text(`Benchmark: ${report.scorecard?.benchmark ?? ""}`);
     doc.text(`Overall Score: ${report.scorecard?.overallScore ?? ""}`);
     doc.text(`Review Status: ${report.reviewStatus || ""}`);
+    if (report.reviewedAt) {
+      doc.text(`Reviewed At: ${new Date(report.reviewedAt).toLocaleString()}`);
+    }
+    if (report.publishedAt) {
+      doc.text(`Published At: ${new Date(report.publishedAt).toLocaleString()}`);
+    }
     doc.moveDown();
 
     doc.fontSize(16).text("ESRS 2");
@@ -426,6 +440,13 @@ router.get("/:id/pdf", auth, async (req, res) => {
     doc.fontSize(12).text(report.aiDraft?.dataGaps || "No AI data gaps");
     doc.moveDown();
 
+    doc.fontSize(16).text("AI Recommendations");
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(
+      report.aiDraft?.recommendations || "No AI recommendations"
+    );
+    doc.moveDown();
+
     if (
       Array.isArray(report.materialityTopics) &&
       report.materialityTopics.length > 0
@@ -456,28 +477,28 @@ router.get("/:id/pdf", auth, async (req, res) => {
       });
     }
 
-if (Array.isArray(auditLogs) && auditLogs.length > 0) {
-  doc.addPage();
-  doc.fontSize(16).text("Audit Trail Summary");
-  doc.moveDown(0.5);
+    if (Array.isArray(auditLogs) && auditLogs.length > 0) {
+      doc.addPage();
+      doc.fontSize(16).text("Audit Trail Summary");
+      doc.moveDown(0.5);
 
-  auditLogs.forEach((log, index) => {
-    doc.fontSize(12).text(`${index + 1}. ${log.action}`);
-    doc.text(`User: ${log.userEmail || "Unknown"}`);
-    doc.text(`Company: ${log.companyName || "-"}`);
-    doc.text(`When: ${new Date(log.createdAt).toLocaleString()}`);
+      auditLogs.forEach((log, index) => {
+        doc.fontSize(12).text(`${index + 1}. ${log.action}`);
+        doc.text(`User: ${log.userEmail || "Unknown"}`);
+        doc.text(`Company: ${log.companyName || "-"}`);
+        doc.text(`When: ${new Date(log.createdAt).toLocaleString()}`);
 
-    if (log.details?.newStatus) {
-      doc.text(`New Status: ${log.details.newStatus}`);
+        if (log.details?.newStatus) {
+          doc.text(`New Status: ${log.details.newStatus}`);
+        }
+
+        if (Array.isArray(log.details?.fieldsUpdated)) {
+          doc.text(`Fields Updated: ${log.details.fieldsUpdated.join(", ")}`);
+        }
+
+        doc.moveDown(0.8);
+      });
     }
-
-    if (Array.isArray(log.details?.fieldsUpdated)) {
-      doc.text(`Fields Updated: ${log.details.fieldsUpdated.join(", ")}`);
-    }
-
-    doc.moveDown(0.8);
-  });
-}
 
     doc.end();
   } catch (err) {
