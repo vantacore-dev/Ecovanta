@@ -6,7 +6,11 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  ResponsiveContainer
+  ResponsiveContainer,
+  ScatterChart,
+  Scatter,
+  ZAxis,
+  Cell
 } from "recharts";
 
 const API = "https://ecovanta.onrender.com";
@@ -134,6 +138,105 @@ const calculateOverallESGScore = (form) => {
     allScores.reduce((sum, value) => sum + value, 0) / allScores.length;
 
   return Math.round((avg5 / 5) * 100);
+};
+
+//ici
+const DEFAULT_SECTOR_BENCHMARKS = {
+  tech: { sectorAverage: 65, topQuartile: 82 },
+  energy: { sectorAverage: 58, topQuartile: 78 },
+  manufacturing: { sectorAverage: 61, topQuartile: 79 }
+};
+
+const getBenchmarkComparisonData = (reportForm, analytics) => {
+  const sector = reportForm?.sector || "tech";
+  const sectorBenchmarks =
+    DEFAULT_SECTOR_BENCHMARKS[sector] || DEFAULT_SECTOR_BENCHMARKS.tech;
+
+  return [
+    {
+      name: "Company",
+      value: Number(reportForm?.scorecard?.overallScore || analytics?.averageScore || 0)
+    },
+    {
+      name: "Sector Avg",
+      value: sectorBenchmarks.sectorAverage
+    },
+    {
+      name: "Top Quartile",
+      value: sectorBenchmarks.topQuartile
+    }
+  ];
+};
+
+const getMaterialityHeatmapData = (materialityTopics = []) => {
+  return materialityTopics.map((topic, index) => ({
+    x: Number(topic.financialScore100 || 0),
+    y: Number(topic.impactScore100 || 0),
+    z: 100,
+    name: topic.topicCode || `Topic ${index + 1}`,
+    label: topic.topicLabel || "",
+    overall: Number(topic.overallMaterialityScore || 0),
+    result: topic.isMaterial ? "Material" : "Not Material"
+  }));
+};
+
+const getComplianceGapData = (reportForm) => {
+  const gaps = [];
+
+  const e1Missing = [];
+  if (!reportForm?.e1?.scope1Emissions) e1Missing.push("Scope 1 emissions");
+  if (!reportForm?.e1?.scope2Emissions) e1Missing.push("Scope 2 emissions");
+  if (!reportForm?.e1?.scope3Emissions) e1Missing.push("Scope 3 emissions");
+  if (!reportForm?.e1?.climatePolicies?.trim()) e1Missing.push("Climate policies");
+
+  const esrs2Missing = [];
+  if (!reportForm?.esrs2?.governance?.trim()) esrs2Missing.push("Governance");
+  if (!reportForm?.esrs2?.strategy?.trim()) esrs2Missing.push("Strategy");
+  if (!reportForm?.esrs2?.impactsRisksOpportunities?.trim()) {
+    esrs2Missing.push("Impacts, risks and opportunities");
+  }
+  if (!reportForm?.esrs2?.metricsTargets?.trim()) esrs2Missing.push("Metrics and targets");
+
+  const s1Missing = [];
+  if (!reportForm?.s1?.workforcePolicies?.trim()) s1Missing.push("Workforce policies");
+  if (!reportForm?.s1?.diversityInclusion?.trim()) s1Missing.push("Diversity & inclusion");
+
+  const g1Missing = [];
+  if (!reportForm?.g1?.antiCorruption?.trim()) g1Missing.push("Anti-corruption");
+  if (!reportForm?.g1?.whistleblowing?.trim()) g1Missing.push("Whistleblowing");
+
+  const materialityMissing = [];
+  if (!Array.isArray(reportForm?.materialityTopics) || reportForm.materialityTopics.length === 0) {
+    materialityMissing.push("Materiality topics");
+  } else {
+    reportForm.materialityTopics.forEach((topic, index) => {
+      if (!topic.topicCode?.trim()) materialityMissing.push(`Topic ${index + 1}: topic code`);
+      if (!topic.topicLabel?.trim()) materialityMissing.push(`Topic ${index + 1}: topic label`);
+      if (!topic.rationale?.trim()) materialityMissing.push(`Topic ${index + 1}: rationale`);
+    });
+  }
+
+  const sections = [
+    { key: "ESRS 2", missing: esrs2Missing },
+    { key: "E1 Climate", missing: e1Missing },
+    { key: "S1 Workforce", missing: s1Missing },
+    { key: "G1 Business Conduct", missing: g1Missing },
+    { key: "Materiality", missing: materialityMissing }
+  ];
+
+  return sections.map((section) => {
+    const totalChecks = Math.max(section.missing.length + 4, 4);
+    const completeness = Math.max(
+      0,
+      Math.round(((totalChecks - section.missing.length) / totalChecks) * 100)
+    );
+
+    return {
+      section: section.key,
+      completeness,
+      missing: section.missing
+    };
+  });
 };
 
 function App() {
@@ -776,6 +879,12 @@ function App() {
     company: report.companyName,
     score: Number(report.scorecard?.overallScore || 0)
   }));
+
+  // ici
+  const benchmarkComparisonData = getBenchmarkComparisonData(reportForm, analytics);
+  const materialityHeatmapData = getMaterialityHeatmapData(reportForm.materialityTopics);
+  const complianceGapData = getComplianceGapData(reportForm);
+
 
   if (!token) {
     return (
@@ -1761,7 +1870,7 @@ function App() {
                 </div>
               )}
             </div>
-
+             
             <div
               style={{
                 background: "#ffffff",
@@ -1822,10 +1931,237 @@ function App() {
           </div>
         </div>
 
+        //ici
+        <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+    gap: "20px",
+    marginTop: "24px",
+    marginBottom: "24px"
+  }}
+>
+  {/* Benchmark Comparison Chart */}
+  <div
+    style={{
+      background: "#ffffff",
+      borderRadius: "12px",
+      padding: "20px",
+      boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
+    }}
+  >
+    <h2 style={{ marginTop: 0 }}>Benchmark Comparison</h2>
+    <p style={{ color: "#6b7280", marginTop: 0 }}>
+      Compare current score against sector reference points.
+    </p>
+
+    <div style={{ width: "100%", height: "280px" }}>
+      <ResponsiveContainer>
+        <BarChart data={benchmarkComparisonData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis domain={[0, 100]} />
+          <Tooltip />
+          <Bar dataKey="value">
+            {benchmarkComparisonData.map((entry, index) => (
+              <Cell
+                key={`bench-${index}`}
+                fill={
+                  entry.name === "Company"
+                    ? "#1976d2"
+                    : entry.name === "Sector Avg"
+                    ? "#f59e0b"
+                    : "#10b981"
+                }
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+
+  {/* Materiality Heatmap */}
+  <div
+    style={{
+      background: "#ffffff",
+      borderRadius: "12px",
+      padding: "20px",
+      boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
+    }}
+  >
+    <h2 style={{ marginTop: 0 }}>Materiality Heatmap</h2>
+    <p style={{ color: "#6b7280", marginTop: 0 }}>
+      Impact materiality vs financial materiality by topic.
+    </p>
+
+    {materialityHeatmapData.length === 0 ? (
+      <p style={{ color: "#6b7280" }}>No materiality topics yet.</p>
+    ) : (
+      <div style={{ width: "100%", height: "280px" }}>
+        <ResponsiveContainer>
+          <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+            <CartesianGrid />
+            <XAxis
+              type="number"
+              dataKey="x"
+              name="Financial"
+              domain={[0, 100]}
+              label={{ value: "Financial Score", position: "insideBottom", offset: -8 }}
+            />
+            <YAxis
+              type="number"
+              dataKey="y"
+              name="Impact"
+              domain={[0, 100]}
+              label={{ value: "Impact Score", angle: -90, position: "insideLeft" }}
+            />
+            <ZAxis type="number" dataKey="z" range={[120]} />
+            <Tooltip
+              cursor={{ strokeDasharray: "3 3" }}
+              formatter={(value, name, props) => {
+                if (name === "x") return [`${value}/100`, "Financial"];
+                if (name === "y") return [`${value}/100`, "Impact"];
+                return [value, name];
+              }}
+              content={({ active, payload }) => {
+                if (!active || !payload || !payload.length) return null;
+                const point = payload[0].payload;
+                return (
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #d1d5db",
+                      padding: "10px",
+                      borderRadius: "8px"
+                    }}
+                  >
+                    <div style={{ fontWeight: "bold" }}>
+                      {point.name} - {point.label}
+                    </div>
+                    <div>Impact: {point.y}/100</div>
+                    <div>Financial: {point.x}/100</div>
+                    <div>Overall: {point.overall}/100</div>
+                    <div>Result: {point.result}</div>
+                  </div>
+                );
+              }}
+            />
+            <Scatter data={materialityHeatmapData} fill="#7c3aed" />
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+    )}
+  </div>
+
+  {/* Compliance Gap Dashboard */}
+  <div
+    style={{
+      background: "#ffffff",
+      borderRadius: "12px",
+      padding: "20px",
+      boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
+    }}
+  >
+    <h2 style={{ marginTop: 0 }}>Compliance Gap Dashboard</h2>
+    <p style={{ color: "#6b7280", marginTop: 0 }}>
+      Tracks completeness by disclosure section and highlights missing inputs.
+    </p>
+
+    <div style={{ display: "grid", gap: "12px" }}>
+      {complianceGapData.map((item) => (
+        <div
+          key={item.section}
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "10px",
+            padding: "14px",
+            background: "#fafafa"
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "12px",
+              marginBottom: "8px"
+            }}
+          >
+            <strong>{item.section}</strong>
+            <span
+              style={{
+                padding: "4px 10px",
+                borderRadius: "999px",
+                background:
+                  item.completeness >= 80
+                    ? "#dcfce7"
+                    : item.completeness >= 60
+                    ? "#fef3c7"
+                    : "#fee2e2",
+                color:
+                  item.completeness >= 80
+                    ? "#166534"
+                    : item.completeness >= 60
+                    ? "#92400e"
+                    : "#991b1b",
+                fontWeight: "bold",
+                fontSize: "12px"
+              }}
+            >
+              {item.completeness}% complete
+            </span>
+          </div>
+
+          <div
+            style={{
+              width: "100%",
+              height: "10px",
+              background: "#e5e7eb",
+              borderRadius: "999px",
+              overflow: "hidden",
+              marginBottom: "10px"
+            }}
+          >
+            <div
+              style={{
+                width: `${item.completeness}%`,
+                height: "100%",
+                background:
+                  item.completeness >= 80
+                    ? "#10b981"
+                    : item.completeness >= 60
+                    ? "#f59e0b"
+                    : "#ef4444"
+              }}
+            />
+          </div>
+
+          {item.missing.length === 0 ? (
+            <div style={{ color: "#166534", fontSize: "14px" }}>
+              No major gaps identified.
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>
+                Missing:
+              </div>
+              <ul style={{ margin: 0, paddingLeft: "18px", color: "#6b7280" }}>
+                {item.missing.map((gap, idx) => (
+                  <li key={`${item.section}-${idx}`}>{gap}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
         <div style={{ marginTop: "24px" }}>
           <h2>Portfolio Reports</h2>
 
-          {reports.length === 0 ? (
+                  {reports.length === 0 ? (
             <div
               style={{
                 background: "#ffffff",
