@@ -1037,13 +1037,78 @@ function App() {
             </div>
 
             <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                flexWrap: "wrap",
-                justifyContent: "flex-end"
-              }}
-            >
+  style={{
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    justifyContent: "flex-end"
+  }}
+>
+  {(user?.plan || "free") === "free" && (
+    <>
+      <button
+        onClick={() => upgradePlan("pro")}
+        style={{
+          padding: "10px 14px",
+          borderRadius: "10px",
+          border: "none",
+          background: "#1976d2",
+          color: "#fff",
+          fontWeight: "bold",
+          cursor: "pointer"
+        }}
+      >
+        Upgrade to Pro
+      </button>
+
+      <button
+        onClick={() => upgradePlan("enterprise")}
+        style={{
+          padding: "10px 14px",
+          borderRadius: "10px",
+          border: "none",
+          background: "#7c3aed",
+          color: "#fff",
+          fontWeight: "bold",
+          cursor: "pointer"
+        }}
+      >
+        Upgrade to Enterprise
+      </button>
+    </>
+  )}
+
+  {(user?.plan || "free") === "pro" && (
+    <button
+      onClick={() => upgradePlan("enterprise")}
+      style={{
+        padding: "10px 14px",
+        borderRadius: "10px",
+        border: "none",
+        background: "#7c3aed",
+        color: "#fff",
+        fontWeight: "bold",
+        cursor: "pointer"
+      }}
+    >
+      Upgrade to Enterprise
+    </button>
+  )}
+
+  <button
+    onClick={logout}
+    style={{
+      padding: "10px 14px",
+      borderRadius: "10px",
+      border: "1px solid #d1d5db",
+      background: "#ffffff",
+      cursor: "pointer",
+      fontWeight: "bold"
+    }}
+  >
+    Logout
+  </button>
+</div>
               {user?.plan === "free" && (
                 <>
                   <button
