@@ -61,7 +61,8 @@ const initialReportForm = {
   aiDraft: {
     executiveSummary: "",
     disclosureDraft: "",
-    dataGaps: ""
+    dataGaps: "",
+    recommendations: ""
   },
   scorecard: {
     benchmark: 0,
@@ -164,19 +165,6 @@ function App() {
   const [selectedReportId, setSelectedReportId] = useState("");
   const [reportForm, setReportForm] = useState(initialReportForm);
 
-const isEditable = () => {
-  if (reportForm.reviewStatus === "draft") return true;
-
-  if (
-    reportForm.reviewStatus === "in_review" &&
-    ["reviewer", "approver", "admin"].includes(user?.role)
-  ) {
-    return true;
-  }
-
-  return false;
-};
-
   const authHeaders = useMemo(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
@@ -220,7 +208,14 @@ const isEditable = () => {
           ? aiDraft.dataGaps
           : Array.isArray(aiDraft?.dataGaps)
           ? aiDraft.dataGaps.join("\n- ")
-          : JSON.stringify(aiDraft?.dataGaps ?? "", null, 2)
+          : JSON.stringify(aiDraft?.dataGaps ?? "", null, 2),
+
+      recommendations:
+        typeof aiDraft?.recommendations === "string"
+          ? aiDraft.recommendations
+          : Array.isArray(aiDraft?.recommendations)
+          ? aiDraft.recommendations.join("\n- ")
+          : JSON.stringify(aiDraft?.recommendations ?? "", null, 2)
     };
   }, []);
 
@@ -246,6 +241,19 @@ const isEditable = () => {
         [field]: value
       }
     }));
+  };
+
+  const isEditable = () => {
+    if (reportForm.reviewStatus === "draft") return true;
+
+    if (
+      reportForm.reviewStatus === "in_review" &&
+      ["reviewer", "approver", "admin"].includes(user?.role)
+    ) {
+      return true;
+    }
+
+    return false;
   };
 
   const login = useCallback(async () => {
@@ -309,6 +317,7 @@ const isEditable = () => {
     setReports([]);
     setAuditLogs([]);
     setSelectedReportId("");
+    setReportForm(initialReportForm);
     setStatusMessage("Logged out.");
   };
 
@@ -573,7 +582,13 @@ const isEditable = () => {
 
       setReportForm((prev) => ({
         ...prev,
-        aiDraft: normalizeAiDraft(data)
+        aiDraft: {
+          ...prev.aiDraft,
+          executiveSummary: data.executiveSummary || "",
+          disclosureDraft: data.disclosureDraft || "",
+          dataGaps: data.dataGaps || "",
+          recommendations: data.recommendations || ""
+        }
       }));
 
       setStatusMessage("AI draft generated.");
@@ -911,9 +926,8 @@ const isEditable = () => {
             <div style={{ marginBottom: "8px" }}>
               <strong>Plan:</strong> {user?.plan || "free"}
             </div>
-
             <div style={{ marginBottom: "8px" }}>
-            <strong>Role:</strong> {user?.role || "preparer"}
+              <strong>Role:</strong> {user?.role || "preparer"}
             </div>
 
             <div
@@ -1069,29 +1083,45 @@ const isEditable = () => {
               boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
             }}
           >
-            <h2 style={{ marginTop: 0 }}>Create Your ESRS Report</h2>
+            <h2 style={{ marginTop: 0 }}>Create ESRS Report</h2>
 
-          <div style={{
-            padding: "10px",
-            borderRadius: "8px",
-            marginBottom: "12px",
-            background:
-            reportForm.reviewStatus === "draft"
-              ? "#e0f2fe"
-              : reportForm.reviewStatus === "in_review"
-              ? "#fef3c7"
-              : reportForm.reviewStatus === "approved"
-              ? "#d1fae5"
-              : "#ede9fe"
-          }}>
-            <strong>Status:</strong> {reportForm.reviewStatus}
-          </div>
+            <div
+              style={{
+                padding: "10px",
+                borderRadius: "8px",
+                background:
+                  reportForm.reviewStatus === "draft"
+                    ? "#e0f2fe"
+                    : reportForm.reviewStatus === "in_review"
+                    ? "#fef3c7"
+                    : reportForm.reviewStatus === "approved"
+                    ? "#d1fae5"
+                    : "#ede9fe",
+                marginBottom: "12px"
+              }}
+            >
+              <strong>Status:</strong> {reportForm.reviewStatus}
+            </div>
+
+            {!isEditable() && (
+              <div
+                style={{
+                  background: "#fee2e2",
+                  padding: "10px",
+                  borderRadius: "8px",
+                  marginBottom: "12px"
+                }}
+              >
+                This report is in review, approved, or published mode and cannot be edited.
+              </div>
+            )}
 
             <div style={{ display: "grid", gap: "12px" }}>
               <input
                 value={reportForm.companyName}
                 onChange={(e) => setTopField("companyName", e.target.value)}
                 placeholder="Company name"
+                disabled={!isEditable()}
                 style={{
                   padding: "12px",
                   borderRadius: "10px",
@@ -1109,6 +1139,7 @@ const isEditable = () => {
                 <select
                   value={reportForm.sector}
                   onChange={(e) => setTopField("sector", e.target.value)}
+                  disabled={!isEditable()}
                   style={{
                     padding: "12px",
                     borderRadius: "10px",
@@ -1124,6 +1155,7 @@ const isEditable = () => {
                   type="number"
                   value={reportForm.reportingYear}
                   onChange={(e) => setTopField("reportingYear", Number(e.target.value))}
+                  disabled={!isEditable()}
                   placeholder="Reporting year"
                   style={{
                     padding: "12px",
@@ -1137,6 +1169,7 @@ const isEditable = () => {
               <textarea
                 value={reportForm.esrs2.governance}
                 onChange={(e) => setNestedField("esrs2", "governance", e.target.value)}
+                disabled={!isEditable()}
                 placeholder="Governance"
                 rows={3}
                 style={{
@@ -1148,6 +1181,7 @@ const isEditable = () => {
               <textarea
                 value={reportForm.esrs2.strategy}
                 onChange={(e) => setNestedField("esrs2", "strategy", e.target.value)}
+                disabled={!isEditable()}
                 placeholder="Strategy"
                 rows={3}
                 style={{
@@ -1161,6 +1195,7 @@ const isEditable = () => {
                 onChange={(e) =>
                   setNestedField("esrs2", "impactsRisksOpportunities", e.target.value)
                 }
+                disabled={!isEditable()}
                 placeholder="Impacts, risks and opportunities"
                 rows={3}
                 style={{
@@ -1172,6 +1207,7 @@ const isEditable = () => {
               <textarea
                 value={reportForm.esrs2.metricsTargets}
                 onChange={(e) => setNestedField("esrs2", "metricsTargets", e.target.value)}
+                disabled={!isEditable()}
                 placeholder="Metrics and targets"
                 rows={3}
                 style={{
@@ -1195,6 +1231,7 @@ const isEditable = () => {
                   onChange={(e) =>
                     setNestedField("e1", "scope1Emissions", Number(e.target.value))
                   }
+                  disabled={!isEditable()}
                   placeholder="Scope 1 emissions"
                   style={{
                     padding: "12px",
@@ -1208,6 +1245,7 @@ const isEditable = () => {
                   onChange={(e) =>
                     setNestedField("e1", "scope2Emissions", Number(e.target.value))
                   }
+                  disabled={!isEditable()}
                   placeholder="Scope 2 emissions"
                   style={{
                     padding: "12px",
@@ -1223,6 +1261,7 @@ const isEditable = () => {
                 onChange={(e) =>
                   setNestedField("e1", "scope3Emissions", Number(e.target.value))
                 }
+                disabled={!isEditable()}
                 placeholder="Scope 3 emissions"
                 style={{
                   padding: "12px",
@@ -1234,6 +1273,7 @@ const isEditable = () => {
               <textarea
                 value={reportForm.e1.climatePolicies}
                 onChange={(e) => setNestedField("e1", "climatePolicies", e.target.value)}
+                disabled={!isEditable()}
                 placeholder="Climate policies"
                 rows={3}
                 style={{
@@ -1249,6 +1289,7 @@ const isEditable = () => {
                 onChange={(e) =>
                   setNestedField("s1", "workforcePolicies", e.target.value)
                 }
+                disabled={!isEditable()}
                 placeholder="Workforce policies"
                 rows={3}
                 style={{
@@ -1262,6 +1303,7 @@ const isEditable = () => {
                 onChange={(e) =>
                   setNestedField("s1", "diversityInclusion", e.target.value)
                 }
+                disabled={!isEditable()}
                 placeholder="Diversity and inclusion"
                 rows={3}
                 style={{
@@ -1277,6 +1319,7 @@ const isEditable = () => {
                 onChange={(e) =>
                   setNestedField("g1", "antiCorruption", e.target.value)
                 }
+                disabled={!isEditable()}
                 placeholder="Anti-corruption"
                 rows={3}
                 style={{
@@ -1290,6 +1333,7 @@ const isEditable = () => {
                 onChange={(e) =>
                   setNestedField("g1", "whistleblowing", e.target.value)
                 }
+                disabled={!isEditable()}
                 placeholder="Whistleblowing"
                 rows={3}
                 style={{
@@ -1326,6 +1370,7 @@ const isEditable = () => {
                           onChange={(e) =>
                             updateMaterialityTopic(index, "topicCode", e.target.value)
                           }
+                          disabled={!isEditable()}
                           placeholder="Topic code"
                           style={{
                             padding: "10px",
@@ -1338,6 +1383,7 @@ const isEditable = () => {
                           onChange={(e) =>
                             updateMaterialityTopic(index, "topicLabel", e.target.value)
                           }
+                          disabled={!isEditable()}
                           placeholder="Topic label"
                           style={{
                             padding: "10px",
@@ -1377,6 +1423,7 @@ const isEditable = () => {
                                   Number(e.target.value)
                                 )
                               }
+                              disabled={!isEditable()}
                               style={{
                                 width: "100%",
                                 padding: "10px",
@@ -1411,6 +1458,7 @@ const isEditable = () => {
                                 Number(e.target.value)
                               )
                             }
+                            disabled={!isEditable()}
                             style={{
                               width: "100%",
                               padding: "10px",
@@ -1436,6 +1484,7 @@ const isEditable = () => {
                                 Number(e.target.value)
                               )
                             }
+                            disabled={!isEditable()}
                             style={{
                               width: "100%",
                               padding: "10px",
@@ -1458,6 +1507,7 @@ const isEditable = () => {
                                 e.target.value
                               )
                             }
+                            disabled={!isEditable()}
                             style={{
                               width: "100%",
                               padding: "10px",
@@ -1481,6 +1531,7 @@ const isEditable = () => {
                             e.target.value
                           )
                         }
+                        disabled={!isEditable()}
                         placeholder="Stakeholders consulted (comma-separated)"
                         style={{
                           padding: "10px",
@@ -1496,6 +1547,7 @@ const isEditable = () => {
                           onChange={(e) =>
                             updateMaterialityTopic(index, "isMaterial", e.target.checked)
                           }
+                          disabled={!isEditable()}
                           style={{ marginRight: "8px" }}
                         />
                         Mark as material
@@ -1506,6 +1558,7 @@ const isEditable = () => {
                         onChange={(e) =>
                           updateMaterialityTopic(index, "rationale", e.target.value)
                         }
+                        disabled={!isEditable()}
                         placeholder="Rationale"
                         rows={3}
                         style={{
@@ -1544,6 +1597,7 @@ const isEditable = () => {
                       {reportForm.materialityTopics.length > 1 && (
                         <button
                           onClick={() => removeMaterialityTopic(index)}
+                          disabled={!isEditable()}
                           style={{
                             padding: "10px 12px",
                             borderRadius: "10px",
@@ -1551,7 +1605,8 @@ const isEditable = () => {
                             background: "#ffffff",
                             color: "#ef4444",
                             cursor: "pointer",
-                            fontWeight: "bold"
+                            fontWeight: "bold",
+                            opacity: !isEditable() ? 0.6 : 1
                           }}
                         >
                           Remove Topic
@@ -1564,13 +1619,15 @@ const isEditable = () => {
 
               <button
                 onClick={addMaterialityTopic}
+                disabled={!isEditable()}
                 style={{
                   padding: "10px 12px",
                   borderRadius: "10px",
                   border: "1px solid #d1d5db",
                   background: "#ffffff",
                   cursor: "pointer",
-                  fontWeight: "bold"
+                  fontWeight: "bold",
+                  opacity: !isEditable() ? 0.6 : 1
                 }}
               >
                 Add Material Topic
@@ -1579,7 +1636,7 @@ const isEditable = () => {
               <h3>AI Draft</h3>
               <button
                 onClick={generateAiDraft}
-                disabled={aiLoading}
+                disabled={aiLoading || !isEditable()}
                 style={{
                   padding: "12px 16px",
                   borderRadius: "10px",
@@ -1587,8 +1644,8 @@ const isEditable = () => {
                   background: "#7c3aed",
                   color: "#ffffff",
                   fontWeight: "bold",
-                  cursor: aiLoading ? "not-allowed" : "pointer",
-                  opacity: aiLoading ? 0.7 : 1
+                  cursor: aiLoading || !isEditable() ? "not-allowed" : "pointer",
+                  opacity: aiLoading || !isEditable() ? 0.7 : 1
                 }}
               >
                 {aiLoading ? "Generating AI draft..." : "Generate AI Draft"}
@@ -1599,6 +1656,7 @@ const isEditable = () => {
                 onChange={(e) =>
                   setNestedField("aiDraft", "executiveSummary", e.target.value)
                 }
+                disabled={!isEditable()}
                 placeholder="AI executive summary"
                 rows={4}
                 style={{
@@ -1613,6 +1671,7 @@ const isEditable = () => {
                 onChange={(e) =>
                   setNestedField("aiDraft", "disclosureDraft", e.target.value)
                 }
+                disabled={!isEditable()}
                 placeholder="AI disclosure draft"
                 rows={8}
                 style={{
@@ -1627,6 +1686,7 @@ const isEditable = () => {
                 onChange={(e) =>
                   setNestedField("aiDraft", "dataGaps", e.target.value)
                 }
+                disabled={!isEditable()}
                 placeholder="AI data gaps"
                 rows={4}
                 style={{
@@ -1636,9 +1696,25 @@ const isEditable = () => {
                 }}
               />
 
+              <div
+                style={{
+                  background: "#f9fafb",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "10px",
+                  padding: "14px",
+                  whiteSpace: "pre-wrap",
+                  marginBottom: "12px"
+                }}
+              >
+                <strong>AI Recommendations</strong>
+                <div style={{ marginTop: "8px" }}>
+                  {reportForm.aiDraft?.recommendations || "No AI recommendations"}
+                </div>
+              </div>
+
               <button
                 onClick={saveReport}
-                disabled={loading}
+                disabled={loading || !isEditable()}
                 style={{
                   marginTop: "8px",
                   padding: "12px 16px",
@@ -1647,8 +1723,8 @@ const isEditable = () => {
                   background: "#1976d2",
                   color: "#ffffff",
                   fontWeight: "bold",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.7 : 1
+                  cursor: loading || !isEditable() ? "not-allowed" : "pointer",
+                  opacity: loading || !isEditable() ? 0.7 : 1
                 }}
               >
                 {loading ? "Saving..." : "Save Report"}
@@ -1899,6 +1975,22 @@ const isEditable = () => {
 
                   <div
                     style={{
+                      background: "#f9fafb",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "10px",
+                      padding: "14px",
+                      whiteSpace: "pre-wrap",
+                      marginBottom: "12px"
+                    }}
+                  >
+                    <strong>AI Recommendations</strong>
+                    <div style={{ marginTop: "8px" }}>
+                      {report.aiDraft?.recommendations || "No AI recommendations"}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
                       background: "#ffffff",
                       borderRadius: "12px",
                       padding: "12px",
@@ -1965,66 +2057,67 @@ const isEditable = () => {
                       Delete
                     </button>
 
+                    {report.reviewStatus === "draft" &&
+                      ["preparer", "reviewer", "approver", "admin"].includes(
+                        user?.role
+                      ) && (
+                        <button
+                          onClick={() =>
+                            updateReportStatus(report._id || report.id, "in_review")
+                          }
+                          style={{
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            border: "none",
+                            background: "#f59e0b",
+                            color: "#ffffff",
+                            fontWeight: "bold",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Send to Review
+                        </button>
+                      )}
 
-{report.reviewStatus === "draft" &&
-  ["preparer", "reviewer", "approver", "admin"].includes(user?.role) && (
-    <button
-      onClick={() =>
-        updateReportStatus(report._id || report.id, "in_review")
-      }
-      style={{
-        padding: "10px 14px",
-        borderRadius: "10px",
-        border: "none",
-        background: "#f59e0b",
-        color: "#ffffff",
-        fontWeight: "bold",
-        cursor: "pointer"
-      }}
-    >
-      Send to Review
-    </button>
-  )}
+                    {report.reviewStatus === "in_review" &&
+                      ["reviewer", "approver", "admin"].includes(user?.role) && (
+                        <button
+                          onClick={() =>
+                            updateReportStatus(report._id || report.id, "approved")
+                          }
+                          style={{
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            border: "none",
+                            background: "#10b981",
+                            color: "#ffffff",
+                            fontWeight: "bold",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Approve
+                        </button>
+                      )}
 
-{report.reviewStatus === "in_review" &&
-  ["reviewer", "approver", "admin"].includes(user?.role) && (
-    <button
-      onClick={() =>
-        updateReportStatus(report._id || report.id, "approved")
-      }
-      style={{
-        padding: "10px 14px",
-        borderRadius: "10px",
-        border: "none",
-        background: "#10b981",
-        color: "#ffffff",
-        fontWeight: "bold",
-        cursor: "pointer"
-      }}
-    >
-      Approve
-    </button>
-  )}
-
-{report.reviewStatus === "approved" &&
-  ["approver", "admin"].includes(user?.role) && (
-    <button
-      onClick={() =>
-        updateReportStatus(report._id || report.id, "published")
-      }
-      style={{
-        padding: "10px 14px",
-        borderRadius: "10px",
-        border: "none",
-        background: "#6366f1",
-        color: "#ffffff",
-        fontWeight: "bold",
-        cursor: "pointer"
-      }}
-    >
-      Publish
-    </button>
-  )}
+                    {report.reviewStatus === "approved" &&
+                      ["approver", "admin"].includes(user?.role) && (
+                        <button
+                          onClick={() =>
+                            updateReportStatus(report._id || report.id, "published")
+                          }
+                          style={{
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            border: "none",
+                            background: "#6366f1",
+                            color: "#ffffff",
+                            fontWeight: "bold",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Publish
+                        </button>
+                      )}
                   </div>
                 </div>
               );
@@ -2064,6 +2157,16 @@ const isEditable = () => {
                 <div style={{ color: "#6b7280", fontSize: "14px" }}>
                   When: {new Date(log.createdAt).toLocaleString()}
                 </div>
+                {log.details?.newStatus && (
+                  <div style={{ color: "#6b7280", fontSize: "14px" }}>
+                    New Status: {log.details.newStatus}
+                  </div>
+                )}
+                {Array.isArray(log.details?.fieldsUpdated) && (
+                  <div style={{ color: "#6b7280", fontSize: "14px" }}>
+                    Changes: {log.details.fieldsUpdated.join(", ")}
+                  </div>
+                )}
               </div>
             ))
           )}
