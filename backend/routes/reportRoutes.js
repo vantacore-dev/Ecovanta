@@ -567,11 +567,17 @@ router.get("/:id/pdf", auth, async (req, res) => {
     ) {
       ensureSpace(doc);
       doc.moveDown();
-      doc.fontSize(16).text("10. Materiality Topic Notes");
+      // ✅ Reset left alignment after table
+      doc.x = doc.page.margins.left;
+      doc.fontSize(16).text("10. Materiality Topic Notes", {
+      align: "left"
+      });
       doc.moveDown(0.5);
 
       report.materialityTopics.forEach((topic, index) => {
         ensureSpace(doc, 710);
+         // ✅ Reset alignment for each row
+        doc.x = doc.page.margins.left;
         const overallScore = Number(topic.overallMaterialityScore || 0);
 
         doc.fontSize(12).text(
