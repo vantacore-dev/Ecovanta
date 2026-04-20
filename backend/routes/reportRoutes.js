@@ -506,12 +506,13 @@ const buildComplianceGaugeChart = async (report) => {
   const configuration = {
     type: "doughnut",
     data: {
-      labels: ["Low", "Medium", "High"],
+      labels: ["Low", "Moderate", "Strong"],
       datasets: [
         {
           data: [40, 30, 30],
-          backgroundColor: ["#ef4444", "#f59e0b", "#10b981"],
-          borderWidth: 0
+          backgroundColor: ["#C96A5A", "#D7B26D", "#6FA287"],
+          borderWidth: 0,
+          hoverOffset: 0
         }
       ]
     },
@@ -519,18 +520,28 @@ const buildComplianceGaugeChart = async (report) => {
       responsive: false,
       rotation: -90,
       circumference: 180,
-      cutout: "70%",
+      cutout: "72%",
+      animation: false,
       plugins: {
         legend: { display: false },
         title: {
           display: true,
-          text: `Compliance Gap Dashboard - ${score}%`
+          text: `Compliance Gap Dashboard`,
+          color: "#1F2937",
+          font: {
+            size: 20,
+            weight: "bold"
+          },
+          padding: {
+            top: 10,
+            bottom: 20
+          }
         }
       }
     },
     plugins: [
       {
-        id: "gaugeNeedle",
+        id: "premiumGaugeNeedle",
         afterDatasetDraw(chart) {
           const { ctx } = chart;
           const meta = chart.getDatasetMeta(0);
@@ -541,39 +552,90 @@ const buildComplianceGaugeChart = async (report) => {
           const centerX = arc.x;
           const centerY = arc.y;
           const outerRadius = arc.outerRadius;
+          const innerRadius = arc.innerRadius;
 
-          // map 0–100 score onto half-circle
+          // 0–100 mapped to half circle from left to right
           const angle = Math.PI * (score / 100) - Math.PI;
 
-          const needleLength = outerRadius * 0.9;
+          // smoother, slightly shorter needle
+          const needleLength = outerRadius * 0.82;
+          const baseRadius = 10;
+
           const needleX = centerX + Math.cos(angle) * needleLength;
           const needleY = centerY + Math.sin(angle) * needleLength;
 
           ctx.save();
 
-          // needle
+          // needle shadow
           ctx.beginPath();
-          ctx.lineWidth = 6;
-          ctx.strokeStyle = "#111827";
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = "rgba(0,0,0,0.10)";
+          ctx.moveTo(centerX + 1, centerY + 1);
+          ctx.lineTo(needleX + 1, needleY + 1);
+          ctx.stroke();
+
+          // main needle
+          ctx.beginPath();
+          ctx.lineWidth = 3;
+          ctx.lineCap = "round";
+          ctx.strokeStyle = "#1F2937";
           ctx.moveTo(centerX, centerY);
           ctx.lineTo(needleX, needleY);
           ctx.stroke();
 
           // center hub
           ctx.beginPath();
-          ctx.fillStyle = "#111827";
-          ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
+          ctx.fillStyle = "#1F2937";
+          ctx.arc(centerX, centerY, baseRadius, 0, Math.PI * 2);
           ctx.fill();
 
-          // score text
-          ctx.font = "bold 42px Arial";
+          // inner hub ring
+          ctx.beginPath();
+          ctx.fillStyle = "#F9FAFB";
+          ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+          // main score text
+          ctx.font = "bold 38px Arial";
           ctx.fillStyle = "#111827";
           ctx.textAlign = "center";
           ctx.fillText(`${score}%`, centerX, centerY - 18);
 
-          ctx.font = "16px Arial";
-          ctx.fillStyle = "#6b7280";
-          ctx.fillText("Compliance Score", centerX, centerY + 24);
+          // subtitle
+          ctx.font = "15px Arial";
+          ctx.fillStyle = "#6B7280";
+          ctx.fillText("Compliance Score", centerX, centerY + 20);
+
+          // labels under zones
+          const labelRadius = outerRadius + 18;
+          const leftAngle = -Math.PI + Math.PI * 0.20;   // low zone center
+          const midAngle = -Math.PI + Math.PI * 0.55;    // moderate zone center
+          const rightAngle = -Math.PI + Math.PI * 0.85;  // strong zone center
+
+          const labels = [
+            { text: "Low", angle: leftAngle, color: "#A54E43" },
+            { text: "Moderate", angle: midAngle, color: "#9A7A38" },
+            { text: "Strong", angle: rightAngle, color: "#4E7D66" }
+          ];
+
+          ctx.font = "13px Arial";
+
+          labels.forEach((label) => {
+            const lx = centerX + Math.cos(label.angle) * labelRadius;
+            const ly = centerY + Math.sin(label.angle) * labelRadius + 18;
+
+            ctx.fillStyle = label.color;
+            ctx.textAlign = "center";
+            ctx.fillText(label.text, lx, ly);
+          });
+
+          // optional min/max labels
+          ctx.font = "12px Arial";
+          ctx.fillStyle = "#9CA3AF";
+          ctx.textAlign = "left";
+          ctx.fillText("0", centerX - outerRadius - 6, centerY + 6);
+          ctx.textAlign = "right";
+          ctx.fillText("100", centerX + outerRadius + 6, centerY + 6);
 
           ctx.restore();
         }
@@ -583,7 +645,6 @@ const buildComplianceGaugeChart = async (report) => {
 
   return chartJSNodeCanvas.renderToBuffer(configuration);
 };
-
 // DOWNLOAD ENHANCED PDF
 router.get("/:id/pdf", auth, async (req, res) => {
   try {
