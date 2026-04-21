@@ -76,6 +76,12 @@ const initialReportForm = {
   materialityTopics: [{ ...defaultMaterialityTopic }]
 };
 
+const DEFAULT_SECTOR_BENCHMARKS = {
+  tech: { sectorAverage: 65, topQuartile: 82 },
+  energy: { sectorAverage: 58, topQuartile: 78 },
+  manufacturing: { sectorAverage: 61, topQuartile: 79 }
+};
+
 const getTimeHorizonScore = (timeHorizon) => {
   if (timeHorizon === "short") return 5;
   if (timeHorizon === "medium") return 3;
@@ -140,12 +146,6 @@ const calculateOverallESGScore = (form) => {
   return Math.round((avg5 / 5) * 100);
 };
 
-const DEFAULT_SECTOR_BENCHMARKS = {
-  tech: { sectorAverage: 65, topQuartile: 82 },
-  energy: { sectorAverage: 58, topQuartile: 78 },
-  manufacturing: { sectorAverage: 61, topQuartile: 79 }
-};
-
 const getBenchmarkComparisonData = (reportForm, analytics) => {
   const sector = reportForm?.sector || "tech";
   const sectorBenchmarks =
@@ -154,7 +154,9 @@ const getBenchmarkComparisonData = (reportForm, analytics) => {
   return [
     {
       name: "Company",
-      value: Number(reportForm?.scorecard?.overallScore || analytics?.averageScore || 0)
+      value: Number(
+        reportForm?.scorecard?.overallScore || analytics?.averageScore || 0
+      )
     },
     {
       name: "Sector Avg",
@@ -180,54 +182,85 @@ const getMaterialityHeatmapData = (materialityTopics = []) => {
 };
 
 const getComplianceGapData = (reportForm) => {
-  const gaps = [];
-
   const e1Missing = [];
   if (!reportForm?.e1?.scope1Emissions) e1Missing.push("Scope 1 emissions");
   if (!reportForm?.e1?.scope2Emissions) e1Missing.push("Scope 2 emissions");
   if (!reportForm?.e1?.scope3Emissions) e1Missing.push("Scope 3 emissions");
-  if (!reportForm?.e1?.climatePolicies?.trim()) e1Missing.push("Climate policies");
+  if (!reportForm?.e1?.climatePolicies?.trim()) {
+    e1Missing.push("Climate policies");
+  }
 
   const esrs2Missing = [];
-  if (!reportForm?.esrs2?.governance?.trim()) esrs2Missing.push("Governance");
-  if (!reportForm?.esrs2?.strategy?.trim()) esrs2Missing.push("Strategy");
+  if (!reportForm?.esrs2?.governance?.trim()) {
+    esrs2Missing.push("Governance");
+  }
+  if (!reportForm?.esrs2?.strategy?.trim()) {
+    esrs2Missing.push("Strategy");
+  }
   if (!reportForm?.esrs2?.impactsRisksOpportunities?.trim()) {
     esrs2Missing.push("Impacts, risks and opportunities");
   }
-  if (!reportForm?.esrs2?.metricsTargets?.trim()) esrs2Missing.push("Metrics and targets");
+  if (!reportForm?.esrs2?.metricsTargets?.trim()) {
+    esrs2Missing.push("Metrics and targets");
+  }
 
   const s1Missing = [];
-  if (!reportForm?.s1?.workforcePolicies?.trim()) s1Missing.push("Workforce policies");
-  if (!reportForm?.s1?.diversityInclusion?.trim()) s1Missing.push("Diversity & inclusion");
+  if (!reportForm?.s1?.workforcePolicies?.trim()) {
+    s1Missing.push("Workforce policies");
+  }
+  if (!reportForm?.s1?.diversityInclusion?.trim()) {
+    s1Missing.push("Diversity & inclusion");
+  }
 
   const g1Missing = [];
-  if (!reportForm?.g1?.antiCorruption?.trim()) g1Missing.push("Anti-corruption");
-  if (!reportForm?.g1?.whistleblowing?.trim()) g1Missing.push("Whistleblowing");
+  if (!reportForm?.g1?.antiCorruption?.trim()) {
+    g1Missing.push("Anti-corruption");
+  }
+  if (!reportForm?.g1?.whistleblowing?.trim()) {
+    g1Missing.push("Whistleblowing");
+  }
 
   const materialityMissing = [];
-  if (!Array.isArray(reportForm?.materialityTopics) || reportForm.materialityTopics.length === 0) {
+  if (
+    !Array.isArray(reportForm?.materialityTopics) ||
+    reportForm.materialityTopics.length === 0
+  ) {
     materialityMissing.push("Materiality topics");
   } else {
     reportForm.materialityTopics.forEach((topic, index) => {
-      if (!topic.topicCode?.trim()) materialityMissing.push(`Topic ${index + 1}: topic code`);
-      if (!topic.topicLabel?.trim()) materialityMissing.push(`Topic ${index + 1}: topic label`);
-      if (!topic.rationale?.trim()) materialityMissing.push(`Topic ${index + 1}: rationale`);
+      if (!topic.topicCode?.trim()) {
+        materialityMissing.push(`Topic ${index + 1}: topic code`);
+      }
+      if (!topic.topicLabel?.trim()) {
+        materialityMissing.push(`Topic ${index + 1}: topic label`);
+      }
+      if (!topic.rationale?.trim()) {
+        materialityMissing.push(`Topic ${index + 1}: rationale`);
+      }
+      if (!topic.stakeholdersConsulted?.trim()) {
+        materialityMissing.push(`Topic ${index + 1}: stakeholders consulted`);
+      }
     });
   }
 
   const sections = [
-    { key: "ESRS 2", missing: esrs2Missing },
-    { key: "E1 Climate", missing: e1Missing },
-    { key: "S1 Workforce", missing: s1Missing },
-    { key: "G1 Business Conduct", missing: g1Missing },
-    { key: "Materiality", missing: materialityMissing }
+    { key: "ESRS 2", missing: esrs2Missing, total: 4 },
+    { key: "E1 Climate", missing: e1Missing, total: 4 },
+    { key: "S1 Workforce", missing: s1Missing, total: 2 },
+    { key: "G1 Business Conduct", missing: g1Missing, total: 2 },
+    {
+      key: "Materiality",
+      missing: materialityMissing,
+      total: Math.max(reportForm?.materialityTopics?.length || 1, 1) * 4
+    }
   ];
 
   return sections.map((section) => {
-    const totalChecks = Math.max(section.missing.length + 4, 4);
     const completeness = Math.max(
       0,
-      Math.round(((totalChecks - section.missing.length) / totalChecks) * 100)
+      Math.round(
+        ((section.total - section.missing.length) / section.total) * 100
+      )
     );
 
     return {
@@ -266,6 +299,10 @@ function App() {
   const [benchmark, setBenchmark] = useState(60);
   const [selectedReportId, setSelectedReportId] = useState("");
   const [reportForm, setReportForm] = useState(initialReportForm);
+
+  const currentPlan = user?.plan || "free";
+  const hasProAccess = ["pro", "enterprise"].includes(currentPlan);
+  const hasEnterpriseAccess = currentPlan === "enterprise";
 
   const authHeaders = useMemo(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -489,7 +526,10 @@ function App() {
   }, [token, authHeaders, fetchJson]);
 
   const loadAuditLogs = useCallback(async () => {
-    if (!token) return;
+    if (!token || !hasEnterpriseAccess) {
+      setAuditLogs([]);
+      return;
+    }
 
     try {
       const data = await fetchJson(`${API}/audit`, {
@@ -499,7 +539,7 @@ function App() {
     } catch (err) {
       console.error("Load audit logs error:", err);
     }
-  }, [token, authHeaders, fetchJson]);
+  }, [token, authHeaders, fetchJson, hasEnterpriseAccess]);
 
   const loadBenchmark = useCallback(async () => {
     try {
@@ -507,7 +547,9 @@ function App() {
       setBenchmark(Number(data.benchmark || 60));
     } catch (err) {
       console.error("Load benchmark error:", err);
-      setBenchmark(60);
+      setBenchmark(
+        DEFAULT_SECTOR_BENCHMARKS[reportForm.sector]?.sectorAverage || 60
+      );
     }
   }, [reportForm.sector, fetchJson]);
 
@@ -532,6 +574,11 @@ function App() {
   const updateReportStatus = async (reportId, status) => {
     if (!token) {
       alert("Login required.");
+      return;
+    }
+
+    if (!hasEnterpriseAccess) {
+      alert("Workflow features are available on Enterprise only.");
       return;
     }
 
@@ -637,6 +684,11 @@ function App() {
       return;
     }
 
+    if (!hasProAccess) {
+      alert("AI Draft is available on Pro and Enterprise plans only.");
+      return;
+    }
+
     const payload = {
       companyName: String(reportForm.companyName || "").trim(),
       sector: String(reportForm.sector || "").trim(),
@@ -665,7 +717,9 @@ function App() {
     };
 
     if (!payload.companyName || !payload.sector) {
-      setStatusMessage("Company name and sector must be filled before Intelligence draft.");
+      setStatusMessage(
+        "Company name and sector must be filled before AI draft."
+      );
       return;
     }
 
@@ -693,10 +747,10 @@ function App() {
         }
       }));
 
-      setStatusMessage("Intelligence draft generated.");
+      setStatusMessage("AI draft generated.");
     } catch (err) {
-      console.error("Intelligence draft error:", err);
-      setStatusMessage(`Intelligence draft failed: ${err.message}`);
+      console.error("AI draft error:", err);
+      setStatusMessage(`AI draft failed: ${err.message}`);
     } finally {
       setAiLoading(false);
     }
@@ -784,7 +838,8 @@ function App() {
       esrs2: {
         governance: found.esrs2?.governance || "",
         strategy: found.esrs2?.strategy || "",
-        impactsRisksOpportunities: found.esrs2?.impactsRisksOpportunities || "",
+        impactsRisksOpportunities:
+          found.esrs2?.impactsRisksOpportunities || "",
         metricsTargets: found.esrs2?.metricsTargets || ""
       },
       e1: {
@@ -812,7 +867,7 @@ function App() {
           ...topic,
           stakeholdersConsulted: Array.isArray(topic.stakeholdersConsulted)
             ? topic.stakeholdersConsulted.join(", ")
-            : "",
+            : topic.stakeholdersConsulted || "",
           impactScore100: topic.impactScore100 || 0,
           financialScore100: topic.financialScore100 || 0,
           overallMaterialityScore: topic.overallMaterialityScore || 0
@@ -826,6 +881,11 @@ function App() {
   const downloadSingleReportPDF = async (reportId, companyName) => {
     if (!token) {
       alert("Login required.");
+      return;
+    }
+
+    if (!hasProAccess) {
+      alert("PDF export is available on Pro and Enterprise plans only.");
       return;
     }
 
@@ -859,7 +919,9 @@ function App() {
   };
 
   const deleteReport = async () => {
-    alert("Delete route is not included yet. Add DELETE /reports/:id on the backend first.");
+    alert(
+      "Delete route is not included yet. Add DELETE /reports/:id on the backend first."
+    );
   };
 
   const getRiskColor = (score) => {
@@ -873,16 +935,21 @@ function App() {
     if (score >= 60) return "Moderate Risk";
     return "High Risk";
   };
-  
+
   const chartData = reports.map((report) => ({
     company: report.companyName,
     score: Number(report.scorecard?.overallScore || 0)
   }));
 
-  const benchmarkComparisonData = getBenchmarkComparisonData(reportForm, analytics);
-  const materialityHeatmapData = getMaterialityHeatmapData(reportForm.materialityTopics);
+  const benchmarkComparisonData = getBenchmarkComparisonData(
+    reportForm,
+    analytics
+  );
+  const materialityHeatmapData = getMaterialityHeatmapData(
+    reportForm.materialityTopics
+  );
   const complianceGapData = getComplianceGapData(reportForm);
-  
+
   if (!token) {
     return (
       <div
@@ -1022,97 +1089,98 @@ function App() {
           }}
         >
           <div>
-            <h1 style={{ marginBottom: "8px" }}>Ecovanta CSRD-Ready Intelligence Platform</h1>
+            <h1 style={{ marginBottom: "8px" }}>
+              Ecovanta CSRD-Ready Platform
+            </h1>
             <p style={{ marginTop: 0, color: "#6b7280" }}>
               ESRS-aligned sustainability reporting workflow.
             </p>
           </div>
 
-          
-<div style={{ textAlign: "right" }}>
-  <div style={{ marginBottom: "8px" }}>
-    <strong>Plan:</strong> {user?.plan || "free"}
-  </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ marginBottom: "8px" }}>
+              <strong>Plan:</strong> {user?.plan || "free"}
+            </div>
 
-  <div style={{ marginBottom: "8px" }}>
-    <strong>Role:</strong> {user?.role || "preparer"}
-  </div>
+            <div style={{ marginBottom: "8px" }}>
+              <strong>Role:</strong> {user?.role || "preparer"}
+            </div>
 
-  <div
-    style={{
-      display: "flex",
-      gap: "10px",
-      flexWrap: "wrap",
-      justifyContent: "flex-end"
-    }}
-  >
-    {(user?.plan || "free") === "free" && (
-      <>
-        <button
-          onClick={() => upgradePlan("pro")}
-          style={{
-            padding: "10px 14px",
-            borderRadius: "10px",
-            border: "none",
-            background: "#1976d2",
-            color: "#fff",
-            fontWeight: "bold",
-            cursor: "pointer"
-          }}
-        >
-          Upgrade to Pro
-        </button>
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                flexWrap: "wrap",
+                justifyContent: "flex-end"
+              }}
+            >
+              {currentPlan === "free" && (
+                <>
+                  <button
+                    onClick={() => upgradePlan("pro")}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "10px",
+                      border: "none",
+                      background: "#1976d2",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Upgrade to Pro
+                  </button>
 
-        <button
-          onClick={() => upgradePlan("enterprise")}
-          style={{
-            padding: "10px 14px",
-            borderRadius: "10px",
-            border: "none",
-            background: "#7c3aed",
-            color: "#fff",
-            fontWeight: "bold",
-            cursor: "pointer"
-          }}
-        >
-          Upgrade to Enterprise
-        </button>
-      </>
-    )}
+                  <button
+                    onClick={() => upgradePlan("enterprise")}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "10px",
+                      border: "none",
+                      background: "#7c3aed",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Upgrade to Enterprise
+                  </button>
+                </>
+              )}
 
-    {(user?.plan || "free") === "pro" && (
-      <button
-        onClick={() => upgradePlan("enterprise")}
-        style={{
-          padding: "10px 14px",
-          borderRadius: "10px",
-          border: "none",
-          background: "#7c3aed",
-          color: "#fff",
-          fontWeight: "bold",
-          cursor: "pointer"
-        }}
-      >
-        Upgrade to Enterprise
-      </button>
-    )}
+              {currentPlan === "pro" && (
+                <button
+                  onClick={() => upgradePlan("enterprise")}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    border: "none",
+                    background: "#7c3aed",
+                    color: "#fff",
+                    fontWeight: "bold",
+                    cursor: "pointer"
+                  }}
+                >
+                  Upgrade to Enterprise
+                </button>
+              )}
 
-    <button
-      onClick={logout}
-      style={{
-        padding: "10px 14px",
-        borderRadius: "10px",
-        border: "1px solid #d1d5db",
-        background: "#ffffff",
-        cursor: "pointer",
-        fontWeight: "bold"
-      }}
-    >
-      Logout
-    </button>
-  </div>
-</div>
-</div>
+              <button
+                onClick={logout}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid #d1d5db",
+                  background: "#ffffff",
+                  cursor: "pointer",
+                  fontWeight: "bold"
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
 
         {statusMessage && (
           <div
@@ -1127,21 +1195,6 @@ function App() {
             {statusMessage}
           </div>
         )}
-
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "12px 16px",
-            background: "#ffffff",
-            borderRadius: "10px",
-            border: "1px solid #e5e7eb"
-          }}
-        >
-          <strong>Debug:</strong>
-          <span style={{ marginLeft: 8 }}>Token: {token ? "OK" : "Missing"}</span>
-          <span style={{ marginLeft: 16 }}>Reports loaded: {reports.length}</span>
-          <span style={{ marginLeft: 16 }}>Benchmark: {benchmark}</span>
-        </div>
 
         <div
           style={{
@@ -1167,8 +1220,16 @@ function App() {
                 boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
               }}
             >
-              <div style={{ color: "#6b7280", fontSize: "14px" }}>{card.title}</div>
-              <div style={{ fontSize: "28px", fontWeight: "bold", marginTop: "8px" }}>
+              <div style={{ color: "#6b7280", fontSize: "14px" }}>
+                {card.title}
+              </div>
+              <div
+                style={{
+                  fontSize: "28px",
+                  fontWeight: "bold",
+                  marginTop: "8px"
+                }}
+              >
                 {card.value || 0}
               </div>
             </div>
@@ -1220,7 +1281,8 @@ function App() {
                   marginBottom: "12px"
                 }}
               >
-                This report is in review, approved, or published mode and cannot be edited.
+                This report is in review, approved, or published mode and
+                cannot be edited.
               </div>
             )}
 
@@ -1262,7 +1324,9 @@ function App() {
                 <input
                   type="number"
                   value={reportForm.reportingYear}
-                  onChange={(e) => setTopField("reportingYear", Number(e.target.value))}
+                  onChange={(e) =>
+                    setTopField("reportingYear", Number(e.target.value))
+                  }
                   disabled={!isEditable()}
                   placeholder="Reporting year"
                   style={{
@@ -1276,7 +1340,9 @@ function App() {
               <h3>ESRS 2</h3>
               <textarea
                 value={reportForm.esrs2.governance}
-                onChange={(e) => setNestedField("esrs2", "governance", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("esrs2", "governance", e.target.value)
+                }
                 disabled={!isEditable()}
                 placeholder="Governance"
                 rows={3}
@@ -1288,7 +1354,9 @@ function App() {
               />
               <textarea
                 value={reportForm.esrs2.strategy}
-                onChange={(e) => setNestedField("esrs2", "strategy", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("esrs2", "strategy", e.target.value)
+                }
                 disabled={!isEditable()}
                 placeholder="Strategy"
                 rows={3}
@@ -1301,7 +1369,11 @@ function App() {
               <textarea
                 value={reportForm.esrs2.impactsRisksOpportunities}
                 onChange={(e) =>
-                  setNestedField("esrs2", "impactsRisksOpportunities", e.target.value)
+                  setNestedField(
+                    "esrs2",
+                    "impactsRisksOpportunities",
+                    e.target.value
+                  )
                 }
                 disabled={!isEditable()}
                 placeholder="Impacts, risks and opportunities"
@@ -1314,7 +1386,9 @@ function App() {
               />
               <textarea
                 value={reportForm.esrs2.metricsTargets}
-                onChange={(e) => setNestedField("esrs2", "metricsTargets", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("esrs2", "metricsTargets", e.target.value)
+                }
                 disabled={!isEditable()}
                 placeholder="Metrics and targets"
                 rows={3}
@@ -1337,7 +1411,11 @@ function App() {
                   type="number"
                   value={reportForm.e1.scope1Emissions}
                   onChange={(e) =>
-                    setNestedField("e1", "scope1Emissions", Number(e.target.value))
+                    setNestedField(
+                      "e1",
+                      "scope1Emissions",
+                      Number(e.target.value)
+                    )
                   }
                   disabled={!isEditable()}
                   placeholder="Scope 1 emissions"
@@ -1351,7 +1429,11 @@ function App() {
                   type="number"
                   value={reportForm.e1.scope2Emissions}
                   onChange={(e) =>
-                    setNestedField("e1", "scope2Emissions", Number(e.target.value))
+                    setNestedField(
+                      "e1",
+                      "scope2Emissions",
+                      Number(e.target.value)
+                    )
                   }
                   disabled={!isEditable()}
                   placeholder="Scope 2 emissions"
@@ -1380,7 +1462,9 @@ function App() {
 
               <textarea
                 value={reportForm.e1.climatePolicies}
-                onChange={(e) => setNestedField("e1", "climatePolicies", e.target.value)}
+                onChange={(e) =>
+                  setNestedField("e1", "climatePolicies", e.target.value)
+                }
                 disabled={!isEditable()}
                 placeholder="Climate policies"
                 rows={3}
@@ -1476,7 +1560,11 @@ function App() {
                         <input
                           value={topic.topicCode}
                           onChange={(e) =>
-                            updateMaterialityTopic(index, "topicCode", e.target.value)
+                            updateMaterialityTopic(
+                              index,
+                              "topicCode",
+                              e.target.value
+                            )
                           }
                           disabled={!isEditable()}
                           placeholder="Topic code"
@@ -1489,7 +1577,11 @@ function App() {
                         <input
                           value={topic.topicLabel}
                           onChange={(e) =>
-                            updateMaterialityTopic(index, "topicLabel", e.target.value)
+                            updateMaterialityTopic(
+                              index,
+                              "topicLabel",
+                              e.target.value
+                            )
                           }
                           disabled={!isEditable()}
                           placeholder="Topic label"
@@ -1516,7 +1608,12 @@ function App() {
                           ["likelihood", "Impact Likelihood"]
                         ].map(([field, label]) => (
                           <div key={field}>
-                            <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                            <div
+                              style={{
+                                fontSize: "12px",
+                                marginBottom: "4px"
+                              }}
+                            >
                               {label}
                             </div>
                             <input
@@ -1551,7 +1648,12 @@ function App() {
                         }}
                       >
                         <div>
-                          <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              marginBottom: "4px"
+                            }}
+                          >
                             Magnitude
                           </div>
                           <input
@@ -1577,7 +1679,12 @@ function App() {
                         </div>
 
                         <div>
-                          <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              marginBottom: "4px"
+                            }}
+                          >
                             Likelihood
                           </div>
                           <input
@@ -1603,7 +1710,12 @@ function App() {
                         </div>
 
                         <div>
-                          <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              marginBottom: "4px"
+                            }}
+                          >
                             Time horizon
                           </div>
                           <select
@@ -1653,7 +1765,11 @@ function App() {
                           type="checkbox"
                           checked={!!topic.isMaterial}
                           onChange={(e) =>
-                            updateMaterialityTopic(index, "isMaterial", e.target.checked)
+                            updateMaterialityTopic(
+                              index,
+                              "isMaterial",
+                              e.target.checked
+                            )
                           }
                           disabled={!isEditable()}
                           style={{ marginRight: "8px" }}
@@ -1664,7 +1780,11 @@ function App() {
                       <textarea
                         value={topic.rationale}
                         onChange={(e) =>
-                          updateMaterialityTopic(index, "rationale", e.target.value)
+                          updateMaterialityTopic(
+                            index,
+                            "rationale",
+                            e.target.value
+                          )
                         }
                         disabled={!isEditable()}
                         placeholder="Rationale"
@@ -1684,12 +1804,21 @@ function App() {
                           padding: "12px"
                         }}
                       >
-                        <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                        <div
+                          style={{
+                            fontWeight: "bold",
+                            marginBottom: "8px"
+                          }}
+                        >
                           Materiality Score
                         </div>
                         <div>Impact Score: {scores.impactScore100}/100</div>
-                        <div>Financial Score: {scores.financialScore100}/100</div>
-                        <div>Overall Score: {scores.overallMaterialityScore}/100</div>
+                        <div>
+                          Financial Score: {scores.financialScore100}/100
+                        </div>
+                        <div>
+                          Overall Score: {scores.overallMaterialityScore}/100
+                        </div>
                         <div>
                           Result:{" "}
                           <strong
@@ -1741,23 +1870,41 @@ function App() {
                 Add Material Topic
               </button>
 
-              <h3>Intelligence Draft</h3>
-              <button
-                onClick={generateAiDraft}
-                disabled={aiLoading || !isEditable()}
-                style={{
-                  padding: "12px 16px",
-                  borderRadius: "10px",
-                  border: "none",
-                  background: "#7c3aed",
-                  color: "#ffffff",
-                  fontWeight: "bold",
-                  cursor: aiLoading || !isEditable() ? "not-allowed" : "pointer",
-                  opacity: aiLoading || !isEditable() ? 0.7 : 1
-                }}
-              >
-                {aiLoading ? "Generating Intelligence draft..." : "Generate Intelligence Draft"}
-              </button>
+              <h3>AI Draft</h3>
+
+              {hasProAccess ? (
+                <button
+                  onClick={generateAiDraft}
+                  disabled={aiLoading || !isEditable()}
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: "10px",
+                    border: "none",
+                    background: "#7c3aed",
+                    color: "#ffffff",
+                    fontWeight: "bold",
+                    cursor:
+                      aiLoading || !isEditable()
+                        ? "not-allowed"
+                        : "pointer",
+                    opacity: aiLoading || !isEditable() ? 0.7 : 1
+                  }}
+                >
+                  {aiLoading ? "Generating AI draft..." : "Generate AI Draft"}
+                </button>
+              ) : (
+                <div
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: "10px",
+                    background: "#fef3c7",
+                    color: "#92400e",
+                    fontWeight: "bold"
+                  }}
+                >
+                  AI Draft is a Pro feature.
+                </div>
+              )}
 
               <textarea
                 value={reportForm.aiDraft.executiveSummary}
@@ -1765,7 +1912,7 @@ function App() {
                   setNestedField("aiDraft", "executiveSummary", e.target.value)
                 }
                 disabled={!isEditable()}
-                placeholder="Intelligence executive summary"
+                placeholder="AI executive summary"
                 rows={4}
                 style={{
                   padding: "12px",
@@ -1780,7 +1927,7 @@ function App() {
                   setNestedField("aiDraft", "disclosureDraft", e.target.value)
                 }
                 disabled={!isEditable()}
-                placeholder="Intelligence disclosure draft"
+                placeholder="AI disclosure draft"
                 rows={8}
                 style={{
                   padding: "12px",
@@ -1795,7 +1942,7 @@ function App() {
                   setNestedField("aiDraft", "dataGaps", e.target.value)
                 }
                 disabled={!isEditable()}
-                placeholder="Intelligence data gaps"
+                placeholder="AI data gaps"
                 rows={4}
                 style={{
                   padding: "12px",
@@ -1814,9 +1961,10 @@ function App() {
                   marginBottom: "12px"
                 }}
               >
-                <strong>Intelligence Recommendations</strong>
+                <strong>AI Recommendations</strong>
                 <div style={{ marginTop: "8px" }}>
-                  {reportForm.aiDraft?.recommendations || "No Intelligence recommendations"}
+                  {reportForm.aiDraft?.recommendations ||
+                    "No AI recommendations"}
                 </div>
               </div>
 
@@ -1831,7 +1979,8 @@ function App() {
                   background: "#1976d2",
                   color: "#ffffff",
                   fontWeight: "bold",
-                  cursor: loading || !isEditable() ? "not-allowed" : "pointer",
+                  cursor:
+                    loading || !isEditable() ? "not-allowed" : "pointer",
                   opacity: loading || !isEditable() ? 0.7 : 1
                 }}
               >
@@ -1853,7 +2002,8 @@ function App() {
 
               {reports.length === 0 ? (
                 <p style={{ color: "#6b7280" }}>
-                  No reports yet. Create your first ESRS report to populate the dashboard.
+                  No reports yet. Create your first ESRS report to populate the
+                  dashboard.
                 </p>
               ) : (
                 <div style={{ width: "100%", height: "320px" }}>
@@ -1869,7 +2019,7 @@ function App() {
                 </div>
               )}
             </div>
-             
+
             <div
               style={{
                 background: "#ffffff",
@@ -1892,7 +2042,10 @@ function App() {
                 >
                   <option value="">Select report</option>
                   {reports.map((report) => (
-                    <option key={report._id || report.id} value={report._id || report.id}>
+                    <option
+                      key={report._id || report.id}
+                      value={report._id || report.id}
+                    >
                       {report.companyName} - {report.reportingYear}
                     </option>
                   ))}
@@ -1930,236 +2083,256 @@ function App() {
           </div>
         </div>
 
-        <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-    gap: "20px",
-    marginTop: "24px",
-    marginBottom: "24px"
-  }}
->
-  {/* Benchmark Comparison Chart */}
-  <div
-    style={{
-      background: "#ffffff",
-      borderRadius: "12px",
-      padding: "20px",
-      boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
-    }}
-  >
-    <h2 style={{ marginTop: 0 }}>Benchmark Comparison</h2>
-    <p style={{ color: "#6b7280", marginTop: 0 }}>
-      Compare current score against sector reference points.
-    </p>
-
-    <div style={{ width: "100%", height: "280px" }}>
-      <ResponsiveContainer>
-        <BarChart data={benchmarkComparisonData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis domain={[0, 100]} />
-          <Tooltip />
-          <Bar dataKey="value">
-            {benchmarkComparisonData.map((entry, index) => (
-              <Cell
-                key={`bench-${index}`}
-                fill={
-                  entry.name === "Company"
-                    ? "#1976d2"
-                    : entry.name === "Sector Avg"
-                    ? "#f59e0b"
-                    : "#10b981"
-                }
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  </div>
-
-  {/* Materiality Heatmap */}
-  <div
-    style={{
-      background: "#ffffff",
-      borderRadius: "12px",
-      padding: "20px",
-      boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
-    }}
-  >
-    <h2 style={{ marginTop: 0 }}>Materiality Heatmap</h2>
-    <p style={{ color: "#6b7280", marginTop: 0 }}>
-      Impact materiality vs financial materiality by topic.
-    </p>
-
-    {materialityHeatmapData.length === 0 ? (
-      <p style={{ color: "#6b7280" }}>No materiality topics yet.</p>
-    ) : (
-      <div style={{ width: "100%", height: "280px" }}>
-        <ResponsiveContainer>
-          <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-            <CartesianGrid />
-            <XAxis
-              type="number"
-              dataKey="x"
-              name="Financial"
-              domain={[0, 100]}
-              label={{ value: "Financial Score", position: "insideBottom", offset: -8 }}
-            />
-            <YAxis
-              type="number"
-              dataKey="y"
-              name="Impact"
-              domain={[0, 100]}
-              label={{ value: "Impact Score", angle: -90, position: "insideLeft" }}
-            />
-            <ZAxis type="number" dataKey="z" range={[120]} />
-            <Tooltip
-              cursor={{ strokeDasharray: "3 3" }}
-              formatter={(value, name, props) => {
-                if (name === "x") return [`${value}/100`, "Financial"];
-                if (name === "y") return [`${value}/100`, "Impact"];
-                return [value, name];
-              }}
-              content={({ active, payload }) => {
-                if (!active || !payload || !payload.length) return null;
-                const point = payload[0].payload;
-                return (
-                  <div
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #d1d5db",
-                      padding: "10px",
-                      borderRadius: "8px"
-                    }}
-                  >
-                    <div style={{ fontWeight: "bold" }}>
-                      {point.name} - {point.label}
-                    </div>
-                    <div>Impact: {point.y}/100</div>
-                    <div>Financial: {point.x}/100</div>
-                    <div>Overall: {point.overall}/100</div>
-                    <div>Result: {point.result}</div>
-                  </div>
-                );
-              }}
-            />
-            <Scatter data={materialityHeatmapData} fill="#7c3aed" />
-          </ScatterChart>
-        </ResponsiveContainer>
-      </div>
-    )}
-  </div>
-
-  {/* Compliance Gap Dashboard */}
-  <div
-    style={{
-      background: "#ffffff",
-      borderRadius: "12px",
-      padding: "20px",
-      boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
-    }}
-  >
-    <h2 style={{ marginTop: 0 }}>Compliance Gap Dashboard</h2>
-    <p style={{ color: "#6b7280", marginTop: 0 }}>
-      Tracks completeness by disclosure section and highlights missing inputs.
-    </p>
-
-    <div style={{ display: "grid", gap: "12px" }}>
-      {complianceGapData.map((item) => (
-        <div
-          key={item.section}
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "10px",
-            padding: "14px",
-            background: "#fafafa"
-          }}
-        >
+        {hasProAccess && (
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "12px",
-              marginBottom: "8px"
-            }}
-          >
-            <strong>{item.section}</strong>
-            <span
-              style={{
-                padding: "4px 10px",
-                borderRadius: "999px",
-                background:
-                  item.completeness >= 80
-                    ? "#dcfce7"
-                    : item.completeness >= 60
-                    ? "#fef3c7"
-                    : "#fee2e2",
-                color:
-                  item.completeness >= 80
-                    ? "#166534"
-                    : item.completeness >= 60
-                    ? "#92400e"
-                    : "#991b1b",
-                fontWeight: "bold",
-                fontSize: "12px"
-              }}
-            >
-              {item.completeness}% complete
-            </span>
-          </div>
-
-          <div
-            style={{
-              width: "100%",
-              height: "10px",
-              background: "#e5e7eb",
-              borderRadius: "999px",
-              overflow: "hidden",
-              marginBottom: "10px"
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gap: "20px",
+              marginTop: "24px",
+              marginBottom: "24px"
             }}
           >
             <div
               style={{
-                width: `${item.completeness}%`,
-                height: "100%",
-                background:
-                  item.completeness >= 80
-                    ? "#10b981"
-                    : item.completeness >= 60
-                    ? "#f59e0b"
-                    : "#ef4444"
+                background: "#ffffff",
+                borderRadius: "12px",
+                padding: "20px",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
               }}
-            />
-          </div>
+            >
+              <h2 style={{ marginTop: 0 }}>Benchmark Comparison</h2>
+              <p style={{ color: "#6b7280", marginTop: 0 }}>
+                Compare current score against sector reference points.
+              </p>
 
-          {item.missing.length === 0 ? (
-            <div style={{ color: "#166534", fontSize: "14px" }}>
-              No major gaps identified.
-            </div>
-          ) : (
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "6px" }}>
-                Missing:
+              <div style={{ width: "100%", height: "280px" }}>
+                <ResponsiveContainer>
+                  <BarChart data={benchmarkComparisonData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip />
+                    <Bar dataKey="value">
+                      {benchmarkComparisonData.map((entry, index) => (
+                        <Cell
+                          key={`bench-${index}`}
+                          fill={
+                            entry.name === "Company"
+                              ? "#1976d2"
+                              : entry.name === "Sector Avg"
+                              ? "#f59e0b"
+                              : "#10b981"
+                          }
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-              <ul style={{ margin: 0, paddingLeft: "18px", color: "#6b7280" }}>
-                {item.missing.map((gap, idx) => (
-                  <li key={`${item.section}-${idx}`}>{gap}</li>
-                ))}
-              </ul>
             </div>
-          )}
-        </div>
-      ))}
-    </div>
-  </div>
-</div>
+
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "12px",
+                padding: "20px",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
+              }}
+            >
+              <h2 style={{ marginTop: 0 }}>Materiality Heatmap</h2>
+              <p style={{ color: "#6b7280", marginTop: 0 }}>
+                Impact materiality vs financial materiality by topic.
+              </p>
+
+              {materialityHeatmapData.length === 0 ? (
+                <p style={{ color: "#6b7280" }}>No materiality topics yet.</p>
+              ) : (
+                <div style={{ width: "100%", height: "280px" }}>
+                  <ResponsiveContainer>
+                    <ScatterChart
+                      margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                    >
+                      <CartesianGrid />
+                      <XAxis
+                        type="number"
+                        dataKey="x"
+                        name="Financial"
+                        domain={[0, 100]}
+                        label={{
+                          value: "Financial Score",
+                          position: "insideBottom",
+                          offset: -8
+                        }}
+                      />
+                      <YAxis
+                        type="number"
+                        dataKey="y"
+                        name="Impact"
+                        domain={[0, 100]}
+                        label={{
+                          value: "Impact Score",
+                          angle: -90,
+                          position: "insideLeft"
+                        }}
+                      />
+                      <ZAxis type="number" dataKey="z" range={[120]} />
+                      <Tooltip
+                        cursor={{ strokeDasharray: "3 3" }}
+                        content={({ active, payload }) => {
+                          if (!active || !payload || !payload.length) {
+                            return null;
+                          }
+                          const point = payload[0].payload;
+                          return (
+                            <div
+                              style={{
+                                background: "#fff",
+                                border: "1px solid #d1d5db",
+                                padding: "10px",
+                                borderRadius: "8px"
+                              }}
+                            >
+                              <div style={{ fontWeight: "bold" }}>
+                                {point.name} - {point.label}
+                              </div>
+                              <div>Impact: {point.y}/100</div>
+                              <div>Financial: {point.x}/100</div>
+                              <div>Overall: {point.overall}/100</div>
+                              <div>Result: {point.result}</div>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Scatter data={materialityHeatmapData} fill="#7c3aed" />
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "12px",
+                padding: "20px",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
+              }}
+            >
+              <h2 style={{ marginTop: 0 }}>Compliance Gap Dashboard</h2>
+              <p style={{ color: "#6b7280", marginTop: 0 }}>
+                Tracks completeness by disclosure section and highlights missing
+                inputs.
+              </p>
+
+              <div style={{ display: "grid", gap: "12px" }}>
+                {complianceGapData.map((item) => (
+                  <div
+                    key={item.section}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "10px",
+                      padding: "14px",
+                      background: "#fafafa"
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: "12px",
+                        marginBottom: "8px"
+                      }}
+                    >
+                      <strong>{item.section}</strong>
+                      <span
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: "999px",
+                          background:
+                            item.completeness >= 80
+                              ? "#dcfce7"
+                              : item.completeness >= 60
+                              ? "#fef3c7"
+                              : "#fee2e2",
+                          color:
+                            item.completeness >= 80
+                              ? "#166534"
+                              : item.completeness >= 60
+                              ? "#92400e"
+                              : "#991b1b",
+                          fontWeight: "bold",
+                          fontSize: "12px"
+                        }}
+                      >
+                        {item.completeness}% complete
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "10px",
+                        background: "#e5e7eb",
+                        borderRadius: "999px",
+                        overflow: "hidden",
+                        marginBottom: "10px"
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${item.completeness}%`,
+                          height: "100%",
+                          background:
+                            item.completeness >= 80
+                              ? "#10b981"
+                              : item.completeness >= 60
+                              ? "#f59e0b"
+                              : "#ef4444"
+                        }}
+                      />
+                    </div>
+
+                    {item.missing.length === 0 ? (
+                      <div style={{ color: "#166534", fontSize: "14px" }}>
+                        No major gaps identified.
+                      </div>
+                    ) : (
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: "bold",
+                            marginBottom: "6px"
+                          }}
+                        >
+                          Missing:
+                        </div>
+                        <ul
+                          style={{
+                            margin: 0,
+                            paddingLeft: "18px",
+                            color: "#6b7280"
+                          }}
+                        >
+                          {item.missing.map((gap, idx) => (
+                            <li key={`${item.section}-${idx}`}>{gap}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{ marginTop: "24px" }}>
           <h2>Portfolio Reports</h2>
 
-                  {reports.length === 0 ? (
+          {reports.length === 0 ? (
             <div
               style={{
                 background: "#ffffff",
@@ -2240,17 +2413,24 @@ function App() {
                           {report.materialityTopics.map((topic, idx) => (
                             <div key={idx} style={{ marginBottom: "12px" }}>
                               <div>
-                                <strong>{topic.topicCode}</strong> - {topic.topicLabel}
+                                <strong>{topic.topicCode}</strong> -{" "}
+                                {topic.topicLabel}
                               </div>
                               <div>Impact Score: {topic.impactScore100 || 0}/100</div>
-                              <div>Financial Score: {topic.financialScore100 || 0}/100</div>
                               <div>
-                                Overall Score: {topic.overallMaterialityScore || 0}/100
+                                Financial Score: {topic.financialScore100 || 0}
+                                /100
+                              </div>
+                              <div>
+                                Overall Score:{" "}
+                                {topic.overallMaterialityScore || 0}/100
                               </div>
                               <div>
                                 Result:{" "}
                                 <strong>
-                                  {topic.isMaterial ? "Material" : "Not Material"}
+                                  {topic.isMaterial
+                                    ? "Material"
+                                    : "Not Material"}
                                 </strong>
                               </div>
                             </div>
@@ -2269,9 +2449,9 @@ function App() {
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>Intelligence Executive Summary</strong>
+                    <strong>AI Executive Summary</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.executiveSummary || "No Intelligence summary"}
+                      {report.aiDraft?.executiveSummary || "No AI summary"}
                     </div>
                   </div>
 
@@ -2285,9 +2465,10 @@ function App() {
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>Intelligence Disclosure Draft</strong>
+                    <strong>AI Disclosure Draft</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.disclosureDraft || "No Intelligence disclosure draft"}
+                      {report.aiDraft?.disclosureDraft ||
+                        "No AI disclosure draft"}
                     </div>
                   </div>
 
@@ -2301,9 +2482,9 @@ function App() {
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>Intelligence Data Gaps</strong>
+                    <strong>AI Data Gaps</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.dataGaps || "No Intelligence data gaps"}
+                      {report.aiDraft?.dataGaps || "No AI data gaps"}
                     </div>
                   </div>
 
@@ -2317,9 +2498,10 @@ function App() {
                       marginBottom: "12px"
                     }}
                   >
-                    <strong>Intelligence Recommendations</strong>
+                    <strong>AI Recommendations</strong>
                     <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.recommendations || "No Intelligence recommendations"}
+                      {report.aiDraft?.recommendations ||
+                        "No AI recommendations"}
                     </div>
                   </div>
 
@@ -2342,25 +2524,42 @@ function App() {
                       flexWrap: "wrap"
                     }}
                   >
-                    <button
-                      onClick={() =>
-                        downloadSingleReportPDF(
-                          report._id || report.id,
-                          report.companyName
-                        )
-                      }
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: "10px",
-                        border: "none",
-                        background: "#1976d2",
-                        color: "#ffffff",
-                        fontWeight: "bold",
-                        cursor: "pointer"
-                      }}
-                    >
-                      Download This Report
-                    </button>
+                    {hasProAccess ? (
+                      <button
+                        onClick={() =>
+                          downloadSingleReportPDF(
+                            report._id || report.id,
+                            report.companyName
+                          )
+                        }
+                        style={{
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          border: "none",
+                          background: "#1976d2",
+                          color: "#ffffff",
+                          fontWeight: "bold",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Download This Report
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        style={{
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          border: "none",
+                          background: "#d1d5db",
+                          color: "#6b7280",
+                          fontWeight: "bold",
+                          cursor: "not-allowed"
+                        }}
+                      >
+                        PDF Export (Pro)
+                      </button>
+                    )}
 
                     <button
                       onClick={() => loadReportIntoForm(report._id || report.id)}
@@ -2391,13 +2590,14 @@ function App() {
                       Delete
                     </button>
 
-                    {report.reviewStatus === "draft" &&
-                      ["preparer", "reviewer", "approver", "admin"].includes(
-                        user?.role
-                      ) && (
+                    {hasEnterpriseAccess &&
+                      report.reviewStatus === "draft" && (
                         <button
                           onClick={() =>
-                            updateReportStatus(report._id || report.id, "in_review")
+                            updateReportStatus(
+                              report._id || report.id,
+                              "in_review"
+                            )
                           }
                           style={{
                             padding: "10px 14px",
@@ -2413,11 +2613,15 @@ function App() {
                         </button>
                       )}
 
-                    {report.reviewStatus === "in_review" &&
+                    {hasEnterpriseAccess &&
+                      report.reviewStatus === "in_review" &&
                       ["reviewer", "approver", "admin"].includes(user?.role) && (
                         <button
                           onClick={() =>
-                            updateReportStatus(report._id || report.id, "approved")
+                            updateReportStatus(
+                              report._id || report.id,
+                              "approved"
+                            )
                           }
                           style={{
                             padding: "10px 14px",
@@ -2433,11 +2637,15 @@ function App() {
                         </button>
                       )}
 
-                    {report.reviewStatus === "approved" &&
+                    {hasEnterpriseAccess &&
+                      report.reviewStatus === "approved" &&
                       ["approver", "admin"].includes(user?.role) && (
                         <button
                           onClick={() =>
-                            updateReportStatus(report._id || report.id, "published")
+                            updateReportStatus(
+                              report._id || report.id,
+                              "published"
+                            )
                           }
                           style={{
                             padding: "10px 14px",
@@ -2459,54 +2667,56 @@ function App() {
           )}
         </div>
 
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "12px",
-            padding: "20px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-            marginTop: "24px"
-          }}
-        >
-          <h2 style={{ marginTop: 0 }}>Audit Trail</h2>
+        {hasEnterpriseAccess && (
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "12px",
+              padding: "20px",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+              marginTop: "24px"
+            }}
+          >
+            <h2 style={{ marginTop: 0 }}>Audit Trail</h2>
 
-          {auditLogs.length === 0 ? (
-            <p style={{ color: "#6b7280" }}>No audit events yet.</p>
-          ) : (
-            auditLogs.map((log) => (
-              <div
-                key={log._id}
-                style={{
-                  padding: "12px 0",
-                  borderBottom: "1px solid #e5e7eb"
-                }}
-              >
-                <div style={{ fontWeight: "bold" }}>{log.action}</div>
-                <div style={{ color: "#6b7280", fontSize: "14px" }}>
-                  Company: {log.companyName || "-"}
-                </div>
-                <div style={{ color: "#6b7280", fontSize: "14px" }}>
-                  By: {log.userEmail || "Unknown"}
-                </div>
-                <div style={{ color: "#6b7280", fontSize: "14px" }}>
-                  When: {new Date(log.createdAt).toLocaleString()}
-                </div>
-                {log.details?.newStatus && (
+            {auditLogs.length === 0 ? (
+              <p style={{ color: "#6b7280" }}>No audit events yet.</p>
+            ) : (
+              auditLogs.map((log) => (
+                <div
+                  key={log._id}
+                  style={{
+                    padding: "12px 0",
+                    borderBottom: "1px solid #e5e7eb"
+                  }}
+                >
+                  <div style={{ fontWeight: "bold" }}>{log.action}</div>
                   <div style={{ color: "#6b7280", fontSize: "14px" }}>
-                    New Status: {log.details.newStatus}
+                    Company: {log.companyName || "-"}
                   </div>
-                )}
-                {Array.isArray(log.details?.fieldsUpdated) && (
                   <div style={{ color: "#6b7280", fontSize: "14px" }}>
-                    Changes: {log.details.fieldsUpdated.join(", ")}
+                    By: {log.userEmail || "Unknown"}
                   </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+                  <div style={{ color: "#6b7280", fontSize: "14px" }}>
+                    When: {new Date(log.createdAt).toLocaleString()}
+                  </div>
+                  {log.details?.newStatus && (
+                    <div style={{ color: "#6b7280", fontSize: "14px" }}>
+                      New Status: {log.details.newStatus}
+                    </div>
+                  )}
+                  {Array.isArray(log.details?.fieldsUpdated) && (
+                    <div style={{ color: "#6b7280", fontSize: "14px" }}>
+                      Changes: {log.details.fieldsUpdated.join(", ")}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
-   // </div>//
+    </div>
   );
 }
 
