@@ -71,15 +71,16 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        email: user.email,
-        role: user.role // ✅ IMPORTANT
-      },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+ const token = jwt.sign(
+  {
+    userId: user._id,
+    email: user.email,
+    role: user.role,
+    plan: user.plan // ✅ ADD THIS
+  },
+  JWT_SECRET,
+  { expiresIn: "7d" }
+);
 
     res.json({
       token
