@@ -12,6 +12,26 @@ const PRICE_MAP = {
   enterprise: process.env.STRIPE_PRICE_ENTERPRISE
 };
 
+
+router.post("/cancel-subscription", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+
+    if (!user?.stripeSubscriptionId) {
+      return res.status(400).json({ error: "No active subscription" });
+    }
+
+    await stripe.subscriptions.update(user.stripeSubscriptionId, {
+      cancel_at_period_end: true // safer (no immediate cutoff)
+    });
+
+    return res.json({ message: "Subscription will be cancelled at period end" });
+  } catch (err) {
+    console.error("Cancel subscription error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post("/create-checkout-session", auth, async (req, res) => {
   try {
     const { plan } = req.body;
