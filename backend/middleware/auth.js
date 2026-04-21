@@ -22,15 +22,13 @@ module.exports = (req, res, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // decoded should include:
-    // userId, email, role
     req.user = decoded;
-
     next();
   } catch (err) {
-    console.error("Auth middleware error:", err);
+    console.error("Auth middleware error:", err.message);
     return res.status(401).json({
-      error: "Invalid or expired token"
+      error: "Invalid or expired token",
+      details: err.message
     });
   }
 };
