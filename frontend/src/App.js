@@ -271,11 +271,116 @@ const getComplianceGapData = (reportForm) => {
   });
 };
 
+
+const getPriorityColor = (priority) => {
+  const value = String(priority || "").toLowerCase();
+
+  if (value === "high") {
+    return {
+      bg: "#fee2e2",
+      text: "#991b1b",
+      border: "#fecaca"
+    };
+  }
+
+  if (value === "medium") {
+    return {
+      bg: "#fef3c7",
+      text: "#92400e",
+      border: "#fde68a"
+    };
+  }
+
+  return {
+    bg: "#dcfce7",
+    text: "#166534",
+    border: "#bbf7d0"
+  };
+};
+
+const parseRecommendationsText = (rawText) => {
+  if (!rawText || typeof rawText !== "string") return [];
+
+  const blocks = rawText
+    .split(/\n\s*\n(?=\d+\.)/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  return blocks.map((block, index) => {
+    const lines = block.split("\n").map((line) => line.trim());
+
+    const title = (lines[0] || "").replace(/^\d+\.\s*/, "").trim();
+
+    const getField = (label) => {
+      const line = lines.find((l) => l.startsWith(`${label}:`));
+      return line ? line.replace(`${label}:`, "").trim() : "";
+    };
+
+    const category = getField("Category");
+    const priority = getField("Priority");
+    const timeline = getField("Timeline");
+    const esrsReference = getField("ESRS Reference");
+
+    const extractSectionLines = (sectionTitle, nextSectionTitles = []) => {
+      const startIndex = lines.findIndex((l) => l === sectionTitle);
+      if (startIndex === -1) return [];
+
+      let endIndex = lines.length;
+
+      for (const nextTitle of nextSectionTitles) {
+        const foundIndex = lines.findIndex(
+          (l, i) => i > startIndex && l === nextTitle
+        );
+        if (foundIndex !== -1 && foundIndex < endIndex) {
+          endIndex = foundIndex;
+        }
+      }
+
+      return lines
+        .slice(startIndex + 1, endIndex)
+        .map((l) => l.trim())
+        .filter(Boolean);
+    };
+
+    const currentGap = extractSectionLines("Current Gap:", [
+      "Risk / Impact:",
+      "Recommended Actions:",
+      "Suggested KPIs:"
+    ]).join(" ");
+
+    const riskImpact = extractSectionLines("Risk / Impact:", [
+      "Recommended Actions:",
+      "Suggested KPIs:"
+    ]).join(" ");
+
+    const actions = extractSectionLines("Recommended Actions:", [
+      "Suggested KPIs:"
+    ]).map((line) => line.replace(/^- /, "").trim());
+
+    const suggestedKPIs = extractSectionLines("Suggested KPIs:").map((line) =>
+      line.replace(/^- /, "").trim()
+    );
+
+    return {
+      id: `${title}-${index}`,
+      title,
+      category,
+      priority,
+      timeline,
+      esrsReference,
+      currentGap,
+      riskImpact,
+      actions,
+      suggestedKPIs
+    };
+  });
+};
+
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState("login");
-
+  const [recommendationFilter, setRecommendationFilter] = useState("all");
   const [authForm, setAuthForm] = useState({
     email: "",
     password: "",
@@ -571,6 +676,25 @@ function App() {
     loadBenchmark();
   }, [loadBenchmark]);
 
+const parsedRecommendations = parseRecommendationsText(
+  reportForm.aiDraft?.recommendations || ""
+);
+
+const filteredRecommendations = parsedRecommendations.filter((item) => {
+  if (recommendationFilter === "all") return true;
+  if (recommendationFilter === "high") {
+    return String(item.priority || "").toLowerCase() === "high";
+  }
+  if (recommendationFilter === "compliance") {
+    return String(item.category || "").toLowerCase() === "compliance";
+  }
+  if (recommendationFilter === "strategy") {
+    return String(item.category || "").toLowerCase() === "strategy";
+  }
+  return true;
+});
+
+
   const updateReportStatus = async (reportId, status) => {
     if (!token) {
       alert("Login required.");
@@ -605,6 +729,36 @@ function App() {
       alert(`Failed: ${err.message}`);
     }
   };
+
+
+const cancelSubscription = async () => {
+  if (!token) {
+    alert("Login required.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Are you sure you want to cancel your subscription?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const data = await fetchJson(`${API}/billing/cancel-subscription`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders
+      }
+    });
+
+    setStatusMessage(data.message || "Subscription cancellation requested.");
+    await refreshDashboard();
+  } catch (err) {
+    console.error("Cancel subscription error:", err);
+    alert(`Cancel failed: ${err.message}`);
+  }
+};
 
   const upgradePlan = async (plan) => {
     if (!token) {
@@ -1164,6 +1318,24 @@ function App() {
                   Upgrade to Enterprise
                 </button>
               )}
+
+
+{["pro", "enterprise"].includes(currentPlan) && (
+  <button
+    onClick={cancelSubscription}
+    style={{
+      padding: "10px 14px",
+      borderRadius: "10px",
+      border: "1px solid #ef4444",
+      background: "#ffffff",
+      color: "#ef4444",
+      fontWeight: "bold",
+      cursor: "pointer"
+    }}
+  >
+    Cancel Subscription
+  </button>
+)}
 
               <button
                 onClick={logout}
@@ -1952,21 +2124,241 @@ function App() {
               />
 
               <div
-                style={{
-                  background: "#f9fafb",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "10px",
-                  padding: "14px",
-                  whiteSpace: "pre-wrap",
-                  marginBottom: "12px"
-                }}
-              >
-                <strong>AI Recommendations</strong>
-                <div style={{ marginTop: "8px" }}>
-                  {reportForm.aiDraft?.recommendations ||
-                    "No AI recommendations"}
+  style={{
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: "12px",
+    padding: "16px",
+    marginBottom: "12px"
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: "12px",
+      flexWrap: "wrap",
+      marginBottom: "14px"
+    }}
+  >
+    <strong style={{ fontSize: "16px" }}>AI Recommendations</strong>
+
+    <select
+      value={recommendationFilter}
+      onChange={(e) => setRecommendationFilter(e.target.value)}
+      style={{
+        padding: "10px 12px",
+        borderRadius: "10px",
+        border: "1px solid #d1d5db",
+        background: "#ffffff"
+      }}
+    >
+      <option value="all">All</option>
+      <option value="high">High Priority</option>
+      <option value="compliance">Compliance</option>
+      <option value="strategy">Strategy</option>
+    </select>
+  </div>
+
+  {filteredRecommendations.length === 0 ? (
+    <div style={{ color: "#6b7280" }}>No AI recommendations</div>
+  ) : (
+    <div style={{ display: "grid", gap: "14px" }}>
+      {filteredRecommendations.map((item) => {
+        const priorityStyle = getPriorityColor(item.priority);
+
+        return (
+          <div
+            key={item.id}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "12px",
+              padding: "16px",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "start",
+                gap: "12px",
+                flexWrap: "wrap",
+                marginBottom: "12px"
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    marginBottom: "6px"
+                  }}
+                >
+                  {item.title}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    flexWrap: "wrap"
+                  }}
+                >
+                  {item.category && (
+                    <span
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: "999px",
+                        background: "#eef2ff",
+                        color: "#4338ca",
+                        fontSize: "12px",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      {item.category}
+                    </span>
+                  )}
+
+                  {item.timeline && (
+                    <span
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: "999px",
+                        background: "#f3f4f6",
+                        color: "#374151",
+                        fontSize: "12px",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      {item.timeline}
+                    </span>
+                  )}
+
+                  {item.esrsReference && (
+                    <span
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: "999px",
+                        background: "#ecfeff",
+                        color: "#0f766e",
+                        fontSize: "12px",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      {item.esrsReference}
+                    </span>
+                  )}
                 </div>
               </div>
+
+              {item.priority && (
+                <span
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: "999px",
+                    background: priorityStyle.bg,
+                    color: priorityStyle.text,
+                    border: `1px solid ${priorityStyle.border}`,
+                    fontSize: "12px",
+                    fontWeight: "bold"
+                  }}
+                >
+                  {item.priority} Priority
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: "grid", gap: "12px" }}>
+              {item.currentGap && (
+                <div>
+                  <div
+                    style={{
+                      fontWeight: "bold",
+                      marginBottom: "4px",
+                      color: "#111827"
+                    }}
+                  >
+                    Current Gap
+                  </div>
+                  <div style={{ color: "#4b5563" }}>{item.currentGap}</div>
+                </div>
+              )}
+
+              {item.riskImpact && (
+                <div>
+                  <div
+                    style={{
+                      fontWeight: "bold",
+                      marginBottom: "4px",
+                      color: "#111827"
+                    }}
+                  >
+                    Risk / Impact
+                  </div>
+                  <div style={{ color: "#4b5563" }}>{item.riskImpact}</div>
+                </div>
+              )}
+
+              {Array.isArray(item.actions) && item.actions.length > 0 && (
+                <div>
+                  <div
+                    style={{
+                      fontWeight: "bold",
+                      marginBottom: "6px",
+                      color: "#111827"
+                    }}
+                  >
+                    Recommended Actions
+                  </div>
+                  <ul
+                    style={{
+                      margin: 0,
+                      paddingLeft: "18px",
+                      color: "#4b5563"
+                    }}
+                  >
+                    {item.actions.map((action, idx) => (
+                      <li key={`${item.id}-action-${idx}`}>{action}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {Array.isArray(item.suggestedKPIs) &&
+                item.suggestedKPIs.length > 0 && (
+                  <div>
+                    <div
+                      style={{
+                        fontWeight: "bold",
+                        marginBottom: "6px",
+                        color: "#111827"
+                      }}
+                    >
+                      Suggested KPIs
+                    </div>
+                    <ul
+                      style={{
+                        margin: 0,
+                        paddingLeft: "18px",
+                        color: "#4b5563"
+                      }}
+                    >
+                      {item.suggestedKPIs.map((kpi, idx) => (
+                        <li key={`${item.id}-kpi-${idx}`}>{kpi}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</div>
 
               <button
                 onClick={saveReport}
@@ -2489,21 +2881,94 @@ function App() {
                   </div>
 
                   <div
+  style={{
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: "10px",
+    padding: "14px",
+    marginBottom: "12px"
+  }}
+>
+  <strong>AI Recommendations</strong>
+
+  <div style={{ marginTop: "10px", display: "grid", gap: "12px" }}>
+    {parseRecommendationsText(report.aiDraft?.recommendations || "").length ===
+    0 ? (
+      <div style={{ color: "#6b7280" }}>No AI recommendations</div>
+    ) : (
+      parseRecommendationsText(report.aiDraft?.recommendations || "").map(
+        (item) => {
+          const priorityStyle = getPriorityColor(item.priority);
+
+          return (
+            <div
+              key={item.id}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e5e7eb",
+                borderRadius: "12px",
+                padding: "14px"
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "start",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  marginBottom: "8px"
+                }}
+              >
+                <div style={{ fontWeight: "bold" }}>{item.title}</div>
+
+                {item.priority && (
+                  <span
                     style={{
-                      background: "#f9fafb",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "10px",
-                      padding: "14px",
-                      whiteSpace: "pre-wrap",
-                      marginBottom: "12px"
+                      padding: "5px 10px",
+                      borderRadius: "999px",
+                      background: priorityStyle.bg,
+                      color: priorityStyle.text,
+                      border: `1px solid ${priorityStyle.border}`,
+                      fontSize: "12px",
+                      fontWeight: "bold"
                     }}
                   >
-                    <strong>AI Recommendations</strong>
-                    <div style={{ marginTop: "8px" }}>
-                      {report.aiDraft?.recommendations ||
-                        "No AI recommendations"}
-                    </div>
-                  </div>
+                    {item.priority}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ color: "#6b7280", marginBottom: "6px" }}>
+                {[item.category, item.timeline, item.esrsReference]
+                  .filter(Boolean)
+                  .join(" • ")}
+              </div>
+
+              {item.currentGap && (
+                <div style={{ marginBottom: "8px" }}>
+                  <strong>Gap:</strong> {item.currentGap}
+                </div>
+              )}
+
+              {Array.isArray(item.actions) && item.actions.length > 0 && (
+                <div>
+                  <strong>Actions:</strong>
+                  <ul style={{ marginBottom: 0, paddingLeft: "18px" }}>
+                    {item.actions.map((action, idx) => (
+                      <li key={`${item.id}-report-action-${idx}`}>{action}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          );
+        }
+      )
+    )}
+  </div>
+</div>
+
 
                   <div
                     style={{
