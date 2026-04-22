@@ -14,7 +14,11 @@ import {
 } from "recharts";
 import HelpTooltip from "./components/HelpTooltip";
 import { HELP } from "./helpContent";
+import EcovantaLandingPage from "./EcovantaLandingPage";
 
+export default function App() {
+  return <EcovantaLandingPage />;
+}
 const API = "https://ecovanta.onrender.com";
 
 const defaultMaterialityTopic = {
