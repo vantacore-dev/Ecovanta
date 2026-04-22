@@ -553,7 +553,7 @@ export default function EcovantaLandingPage() {
 
             <PricingCard
               name="Enterprise"
-              price="€899"
+              price="€899/month"
               description="For organizations requiring governance, scale, and audit-grade control."
               features={[
                 "Review & approval workflows",
