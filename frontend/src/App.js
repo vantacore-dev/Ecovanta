@@ -791,36 +791,34 @@ function FieldLabel({ children, helpKey }) {
     }
   };
 
-  router.post("/cancel-subscription", auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId);
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+  const cancelSubscription = async () => {
+    if (!token) {
+      alert("Login required.");
+      return;
     }
 
-    if (!user.stripeSubscriptionId) {
-      return res.status(400).json({ error: "No active subscription found" });
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel your subscription?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const data = await fetchJson(`${API}/billing/cancel-subscription`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders
+        }
+      });
+
+      setStatusMessage(data.message || "Subscription cancellation requested.");
+      await refreshDashboard();
+    } catch (err) {
+      console.error("Cancel subscription error:", err);
+      alert(`Cancel failed: ${err.message}`);
     }
-
-    await stripe.subscriptions.del(user.stripeSubscriptionId);
-
-    user.plan = "free";
-    user.subscriptionStatus = "cancelled";
-    user.stripeSubscriptionId = "";
-    await user.save();
-
-    return res.json({
-      message: "Subscription cancelled successfully. You are now on the Free plan."
-    });
-  } catch (err) {
-    console.error("Cancel subscription error:", err);
-    return res.status(500).json({
-      error: "Failed to cancel subscription",
-      details: err.message
-    });
-  }
-});
+  };
 
   const addMaterialityTopic = () => {
     setReportForm((prev) => ({
