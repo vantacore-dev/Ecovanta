@@ -713,9 +713,10 @@ export default function EcovantaLandingPage() {
 
             <PricingCard
               name="Pro"
-              price="€49/mo"
+              price="599/month"
               description="For growing teams automating ESG workflows and report generation."
               features={[
+                "Free features +",
                 "AI-powered draft generation",
                 "Structured recommendations",
                 "Benchmark comparison",
@@ -728,16 +729,17 @@ export default function EcovantaLandingPage() {
 
             <PricingCard
               name="Enterprise"
-              price="Custom"
+              price="€899/month"
               description="For organizations requiring governance, scale, and audit-grade control."
               features={[
+                "Pro features +",
                 "Review & approval workflows",
                 "Audit logs and traceability",
                 "Team collaboration",
                 "Priority support",
                 "API access"
               ]}
-              buttonText="Contact Sales"
+              buttonText="Upgrade to Enterprise"
             />
           </div>
         </div>
