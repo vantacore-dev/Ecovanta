@@ -28,7 +28,7 @@ router.post("/cancel-subscription", auth, async (req, res) => {
     }
 
     try {
-      await stripe.subscriptions.del(user.stripeSubscriptionId);
+    await stripe.subscriptions.cancel(user.stripeSubscriptionId);
     } catch (stripeErr) {
       console.error("Stripe cancellation error:", stripeErr);
 
