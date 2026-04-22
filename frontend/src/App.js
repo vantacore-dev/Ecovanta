@@ -1,16 +1,3 @@
-import EcovantaLandingPage from "./EcovantaLandingPage";
-
-function App() {
-  const isLoggedIn = localStorage.getItem("token");
-
-  if (!isLoggedIn) {
-    return <EcovantaLandingPage />;
-  }
-
-  return <MainPlatform />;
-}
-
-export default App;
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   BarChart,
@@ -3413,4 +3400,17 @@ function FieldLabel({ children, helpKey }) {
 }
 
 //export default App;
-export default MainPlatform;
+//export default MainPlatform;
+import EcovantaLandingPage from "./EcovantaLandingPage";
+
+function App() {
+  const isLoggedIn = localStorage.getItem("token");
+
+  if (!isLoggedIn) {
+    return <EcovantaLandingPage />;
+  }
+
+  return <MainPlatform />;
+}
+
+export default App;
