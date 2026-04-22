@@ -3400,9 +3400,14 @@ function FieldLabel({ children, helpKey }) {
 }
 
 function App() {
-  const isLoggedIn = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
-  if (!isLoggedIn) {
+  // 👇 ADD THIS HERE
+  const params = new URLSearchParams(window.location.search);
+  const showSignup = params.get("signup") === "true";
+
+  // 👇 UPDATE THIS CONDITION
+  if (!token && !showSignup) {
     return <EcovantaLandingPage />;
   }
 
