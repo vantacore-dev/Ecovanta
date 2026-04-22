@@ -12,6 +12,8 @@ import {
   ZAxis,
   Cell
 } from "recharts";
+import HelpTooltip from "./components/HelpTooltip";
+import { HELP } from "./helpContent";
 
 const API = "https://ecovanta.onrender.com";
 
@@ -271,7 +273,6 @@ const getComplianceGapData = (reportForm) => {
   });
 };
 
-
 const getPriorityColor = (priority) => {
   const value = String(priority || "").toLowerCase();
 
@@ -376,11 +377,65 @@ const parseRecommendationsText = (rawText) => {
   });
 };
 
+function GuidedSteps({ step }) {
+  const steps = [
+    "Fill Company Information",
+    "Complete ESRS 2",
+    "Add ESG Data",
+    "Define Materiality",
+    "Generate AI Draft",
+    "Review & Export"
+  ];
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: "10px",
+        marginBottom: "20px",
+        flexWrap: "wrap"
+      }}
+    >
+      {steps.map((label, index) => (
+        <div
+          key={index}
+          style={{
+            padding: "8px 12px",
+            borderRadius: "999px",
+            background: index <= step ? "#7c3aed" : "#e5e7eb",
+            color: index <= step ? "#fff" : "#374151",
+            fontSize: "12px",
+            fontWeight: "bold"
+          }}
+        >
+          {label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FieldLabel({ children, helpKey }) {
+  return (
+    <label
+      style={{
+        fontWeight: "bold",
+        display: "inline-flex",
+        alignItems: "center",
+        marginBottom: "6px"
+      }}
+    >
+      {children}
+      <HelpTooltip content={HELP[helpKey]} />
+    </label>
+  );
+}
+
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState("login");
-  const [recommendationFilter, setRecommendationFilter] = useState("all");
+
   const [authForm, setAuthForm] = useState({
     email: "",
     password: "",
@@ -404,6 +459,7 @@ function App() {
   const [benchmark, setBenchmark] = useState(60);
   const [selectedReportId, setSelectedReportId] = useState("");
   const [reportForm, setReportForm] = useState(initialReportForm);
+  const [recommendationFilter, setRecommendationFilter] = useState("all");
 
   const currentPlan = user?.plan || "free";
   const hasProAccess = ["pro", "enterprise"].includes(currentPlan);
@@ -676,25 +732,6 @@ function App() {
     loadBenchmark();
   }, [loadBenchmark]);
 
-const parsedRecommendations = parseRecommendationsText(
-  reportForm.aiDraft?.recommendations || ""
-);
-
-const filteredRecommendations = parsedRecommendations.filter((item) => {
-  if (recommendationFilter === "all") return true;
-  if (recommendationFilter === "high") {
-    return String(item.priority || "").toLowerCase() === "high";
-  }
-  if (recommendationFilter === "compliance") {
-    return String(item.category || "").toLowerCase() === "compliance";
-  }
-  if (recommendationFilter === "strategy") {
-    return String(item.category || "").toLowerCase() === "strategy";
-  }
-  return true;
-});
-
-
   const updateReportStatus = async (reportId, status) => {
     if (!token) {
       alert("Login required.");
@@ -730,36 +767,6 @@ const filteredRecommendations = parsedRecommendations.filter((item) => {
     }
   };
 
-
-const cancelSubscription = async () => {
-  if (!token) {
-    alert("Login required.");
-    return;
-  }
-
-  const confirmed = window.confirm(
-    "Are you sure you want to cancel your subscription?"
-  );
-
-  if (!confirmed) return;
-
-  try {
-    const data = await fetchJson(`${API}/billing/cancel-subscription`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeaders
-      }
-    });
-
-    setStatusMessage(data.message || "Subscription cancellation requested.");
-    await refreshDashboard();
-  } catch (err) {
-    console.error("Cancel subscription error:", err);
-    alert(`Cancel failed: ${err.message}`);
-  }
-};
-
   const upgradePlan = async (plan) => {
     if (!token) {
       alert("Login required.");
@@ -780,6 +787,35 @@ const cancelSubscription = async () => {
     } catch (err) {
       console.error("Upgrade error:", err);
       alert(`Upgrade failed: ${err.message}`);
+    }
+  };
+
+  const cancelSubscription = async () => {
+    if (!token) {
+      alert("Login required.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel your subscription?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const data = await fetchJson(`${API}/billing/cancel-subscription`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders
+        }
+      });
+
+      setStatusMessage(data.message || "Subscription cancellation requested.");
+      await refreshDashboard();
+    } catch (err) {
+      console.error("Cancel subscription error:", err);
+      alert(`Cancel failed: ${err.message}`);
     }
   };
 
@@ -929,7 +965,12 @@ const cancelSubscription = async () => {
 
       const payload = {
         ...reportForm,
-        aiDraft: normalizeAiDraft(reportForm.aiDraft),
+        aiDraft: normalizeAiDraft({
+          executiveSummary: reportForm.aiDraft?.executiveSummary || "",
+          disclosureDraft: reportForm.aiDraft?.disclosureDraft || "",
+          dataGaps: reportForm.aiDraft?.dataGaps || "",
+          recommendations: reportForm.aiDraft?.recommendations || ""
+        }),
         scorecard: {
           benchmark,
           overallScore
@@ -1103,6 +1144,39 @@ const cancelSubscription = async () => {
     reportForm.materialityTopics
   );
   const complianceGapData = getComplianceGapData(reportForm);
+
+  const parsedRecommendations = parseRecommendationsText(
+    reportForm.aiDraft?.recommendations || ""
+  );
+
+  const filteredRecommendations = parsedRecommendations.filter((item) => {
+    if (recommendationFilter === "all") return true;
+    if (recommendationFilter === "high") {
+      return String(item.priority || "").toLowerCase() === "high";
+    }
+    if (recommendationFilter === "compliance") {
+      return String(item.category || "").toLowerCase() === "compliance";
+    }
+    if (recommendationFilter === "strategy") {
+      return String(item.category || "").toLowerCase() === "strategy";
+    }
+    return true;
+  });
+
+  const currentStep = useMemo(() => {
+    if (!reportForm.companyName) return 0;
+    if (!reportForm.esrs2.governance) return 1;
+    if (
+      !reportForm.e1.scope1Emissions &&
+      !reportForm.e1.scope2Emissions &&
+      !reportForm.e1.scope3Emissions
+    ) {
+      return 2;
+    }
+    if (!reportForm.materialityTopics.length) return 3;
+    if (!reportForm.aiDraft.executiveSummary) return 4;
+    return 5;
+  }, [reportForm]);
 
   if (!token) {
     return (
@@ -1319,23 +1393,22 @@ const cancelSubscription = async () => {
                 </button>
               )}
 
-
-{["pro", "enterprise"].includes(currentPlan) && (
-  <button
-    onClick={cancelSubscription}
-    style={{
-      padding: "10px 14px",
-      borderRadius: "10px",
-      border: "1px solid #ef4444",
-      background: "#ffffff",
-      color: "#ef4444",
-      fontWeight: "bold",
-      cursor: "pointer"
-    }}
-  >
-    Cancel Subscription
-  </button>
-)}
+              {["pro", "enterprise"].includes(currentPlan) && (
+                <button
+                  onClick={cancelSubscription}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    border: "1px solid #ef4444",
+                    background: "#ffffff",
+                    color: "#ef4444",
+                    fontWeight: "bold",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel Subscription
+                </button>
+              )}
 
               <button
                 onClick={logout}
@@ -1426,6 +1499,8 @@ const cancelSubscription = async () => {
           >
             <h2 style={{ marginTop: 0 }}>Create ESRS Report</h2>
 
+            <GuidedSteps step={currentStep} />
+
             <div
               style={{
                 padding: "10px",
@@ -1459,17 +1534,21 @@ const cancelSubscription = async () => {
             )}
 
             <div style={{ display: "grid", gap: "12px" }}>
-              <input
-                value={reportForm.companyName}
-                onChange={(e) => setTopField("companyName", e.target.value)}
-                placeholder="Company name"
-                disabled={!isEditable()}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
+              <div>
+                <FieldLabel helpKey="companyName">Company Name</FieldLabel>
+                <input
+                  value={reportForm.companyName}
+                  onChange={(e) => setTopField("companyName", e.target.value)}
+                  placeholder="Company name"
+                  disabled={!isEditable()}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
 
               <div
                 style={{
@@ -1478,100 +1557,133 @@ const cancelSubscription = async () => {
                   gap: "12px"
                 }}
               >
-                <select
-                  value={reportForm.sector}
-                  onChange={(e) => setTopField("sector", e.target.value)}
-                  disabled={!isEditable()}
-                  style={{
-                    padding: "12px",
-                    borderRadius: "10px",
-                    border: "1px solid #d1d5db"
-                  }}
-                >
-                  <option value="tech">Tech</option>
-                  <option value="energy">Energy</option>
-                  <option value="manufacturing">Manufacturing</option>
-                </select>
+                <div>
+                  <FieldLabel helpKey="sector">Sector</FieldLabel>
+                  <select
+                    value={reportForm.sector}
+                    onChange={(e) => setTopField("sector", e.target.value)}
+                    disabled={!isEditable()}
+                    style={{
+                      padding: "12px",
+                      borderRadius: "10px",
+                      border: "1px solid #d1d5db",
+                      width: "100%"
+                    }}
+                  >
+                    <option value="tech">Tech</option>
+                    <option value="energy">Energy</option>
+                    <option value="manufacturing">Manufacturing</option>
+                  </select>
+                </div>
 
-                <input
-                  type="number"
-                  value={reportForm.reportingYear}
-                  onChange={(e) =>
-                    setTopField("reportingYear", Number(e.target.value))
-                  }
-                  disabled={!isEditable()}
-                  placeholder="Reporting year"
-                  style={{
-                    padding: "12px",
-                    borderRadius: "10px",
-                    border: "1px solid #d1d5db"
-                  }}
-                />
+                <div>
+                  <FieldLabel helpKey="reportingYear">Reporting Year</FieldLabel>
+                  <input
+                    type="number"
+                    value={reportForm.reportingYear}
+                    onChange={(e) =>
+                      setTopField("reportingYear", Number(e.target.value))
+                    }
+                    disabled={!isEditable()}
+                    placeholder="Reporting year"
+                    style={{
+                      padding: "12px",
+                      borderRadius: "10px",
+                      border: "1px solid #d1d5db",
+                      width: "100%"
+                    }}
+                  />
+                </div>
               </div>
 
               <h3>ESRS 2</h3>
-              <textarea
-                value={reportForm.esrs2.governance}
-                onChange={(e) =>
-                  setNestedField("esrs2", "governance", e.target.value)
-                }
-                disabled={!isEditable()}
-                placeholder="Governance"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-              <textarea
-                value={reportForm.esrs2.strategy}
-                onChange={(e) =>
-                  setNestedField("esrs2", "strategy", e.target.value)
-                }
-                disabled={!isEditable()}
-                placeholder="Strategy"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-              <textarea
-                value={reportForm.esrs2.impactsRisksOpportunities}
-                onChange={(e) =>
-                  setNestedField(
-                    "esrs2",
-                    "impactsRisksOpportunities",
-                    e.target.value
-                  )
-                }
-                disabled={!isEditable()}
-                placeholder="Impacts, risks and opportunities"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-              <textarea
-                value={reportForm.esrs2.metricsTargets}
-                onChange={(e) =>
-                  setNestedField("esrs2", "metricsTargets", e.target.value)
-                }
-                disabled={!isEditable()}
-                placeholder="Metrics and targets"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
+
+              <div>
+                <FieldLabel helpKey="governance">Governance</FieldLabel>
+                <textarea
+                  value={reportForm.esrs2.governance}
+                  onChange={(e) =>
+                    setNestedField("esrs2", "governance", e.target.value)
+                  }
+                  disabled={!isEditable()}
+                  placeholder="Governance"
+                  rows={3}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
+
+              <div>
+                <FieldLabel helpKey="strategy">Strategy</FieldLabel>
+                <textarea
+                  value={reportForm.esrs2.strategy}
+                  onChange={(e) =>
+                    setNestedField("esrs2", "strategy", e.target.value)
+                  }
+                  disabled={!isEditable()}
+                  placeholder="Strategy"
+                  rows={3}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
+
+              <div>
+                <FieldLabel helpKey="iro">
+                  Impacts, Risks and Opportunities
+                </FieldLabel>
+                <textarea
+                  value={reportForm.esrs2.impactsRisksOpportunities}
+                  onChange={(e) =>
+                    setNestedField(
+                      "esrs2",
+                      "impactsRisksOpportunities",
+                      e.target.value
+                    )
+                  }
+                  disabled={!isEditable()}
+                  placeholder="Impacts, risks and opportunities"
+                  rows={3}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
+
+              <div>
+                <FieldLabel helpKey="metricsTargets">
+                  Metrics and Targets
+                </FieldLabel>
+                <textarea
+                  value={reportForm.esrs2.metricsTargets}
+                  onChange={(e) =>
+                    setNestedField("esrs2", "metricsTargets", e.target.value)
+                  }
+                  disabled={!isEditable()}
+                  placeholder="Metrics and targets"
+                  rows={3}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
 
               <h3>E1 - Climate</h3>
+
               <div
                 style={{
                   display: "grid",
@@ -1579,135 +1691,180 @@ const cancelSubscription = async () => {
                   gap: "12px"
                 }}
               >
+                <div>
+                  <FieldLabel helpKey="scope1">Scope 1 Emissions</FieldLabel>
+                  <input
+                    type="number"
+                    value={reportForm.e1.scope1Emissions}
+                    onChange={(e) =>
+                      setNestedField(
+                        "e1",
+                        "scope1Emissions",
+                        Number(e.target.value)
+                      )
+                    }
+                    disabled={!isEditable()}
+                    placeholder="Scope 1 emissions"
+                    style={{
+                      padding: "12px",
+                      borderRadius: "10px",
+                      border: "1px solid #d1d5db",
+                      width: "100%"
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <FieldLabel helpKey="scope2">Scope 2 Emissions</FieldLabel>
+                  <input
+                    type="number"
+                    value={reportForm.e1.scope2Emissions}
+                    onChange={(e) =>
+                      setNestedField(
+                        "e1",
+                        "scope2Emissions",
+                        Number(e.target.value)
+                      )
+                    }
+                    disabled={!isEditable()}
+                    placeholder="Scope 2 emissions"
+                    style={{
+                      padding: "12px",
+                      borderRadius: "10px",
+                      border: "1px solid #d1d5db",
+                      width: "100%"
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <FieldLabel helpKey="scope3">Scope 3 Emissions</FieldLabel>
                 <input
                   type="number"
-                  value={reportForm.e1.scope1Emissions}
+                  value={reportForm.e1.scope3Emissions}
                   onChange={(e) =>
-                    setNestedField(
-                      "e1",
-                      "scope1Emissions",
-                      Number(e.target.value)
-                    )
+                    setNestedField("e1", "scope3Emissions", Number(e.target.value))
                   }
                   disabled={!isEditable()}
-                  placeholder="Scope 1 emissions"
+                  placeholder="Scope 3 emissions"
                   style={{
                     padding: "12px",
                     borderRadius: "10px",
-                    border: "1px solid #d1d5db"
-                  }}
-                />
-                <input
-                  type="number"
-                  value={reportForm.e1.scope2Emissions}
-                  onChange={(e) =>
-                    setNestedField(
-                      "e1",
-                      "scope2Emissions",
-                      Number(e.target.value)
-                    )
-                  }
-                  disabled={!isEditable()}
-                  placeholder="Scope 2 emissions"
-                  style={{
-                    padding: "12px",
-                    borderRadius: "10px",
-                    border: "1px solid #d1d5db"
+                    border: "1px solid #d1d5db",
+                    width: "100%"
                   }}
                 />
               </div>
 
-              <input
-                type="number"
-                value={reportForm.e1.scope3Emissions}
-                onChange={(e) =>
-                  setNestedField("e1", "scope3Emissions", Number(e.target.value))
-                }
-                disabled={!isEditable()}
-                placeholder="Scope 3 emissions"
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-
-              <textarea
-                value={reportForm.e1.climatePolicies}
-                onChange={(e) =>
-                  setNestedField("e1", "climatePolicies", e.target.value)
-                }
-                disabled={!isEditable()}
-                placeholder="Climate policies"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
+              <div>
+                <FieldLabel helpKey="climatePolicies">Climate Policies</FieldLabel>
+                <textarea
+                  value={reportForm.e1.climatePolicies}
+                  onChange={(e) =>
+                    setNestedField("e1", "climatePolicies", e.target.value)
+                  }
+                  disabled={!isEditable()}
+                  placeholder="Climate policies"
+                  rows={3}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
 
               <h3>S1 - Own Workforce</h3>
-              <textarea
-                value={reportForm.s1.workforcePolicies}
-                onChange={(e) =>
-                  setNestedField("s1", "workforcePolicies", e.target.value)
-                }
-                disabled={!isEditable()}
-                placeholder="Workforce policies"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-              <textarea
-                value={reportForm.s1.diversityInclusion}
-                onChange={(e) =>
-                  setNestedField("s1", "diversityInclusion", e.target.value)
-                }
-                disabled={!isEditable()}
-                placeholder="Diversity and inclusion"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
+
+              <div>
+                <FieldLabel helpKey="workforcePolicies">
+                  Workforce Policies
+                </FieldLabel>
+                <textarea
+                  value={reportForm.s1.workforcePolicies}
+                  onChange={(e) =>
+                    setNestedField("s1", "workforcePolicies", e.target.value)
+                  }
+                  disabled={!isEditable()}
+                  placeholder="Workforce policies"
+                  rows={3}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
+
+              <div>
+                <FieldLabel helpKey="diversityInclusion">
+                  Diversity and Inclusion
+                </FieldLabel>
+                <textarea
+                  value={reportForm.s1.diversityInclusion}
+                  onChange={(e) =>
+                    setNestedField("s1", "diversityInclusion", e.target.value)
+                  }
+                  disabled={!isEditable()}
+                  placeholder="Diversity and inclusion"
+                  rows={3}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
 
               <h3>G1 - Business Conduct</h3>
-              <textarea
-                value={reportForm.g1.antiCorruption}
-                onChange={(e) =>
-                  setNestedField("g1", "antiCorruption", e.target.value)
-                }
-                disabled={!isEditable()}
-                placeholder="Anti-corruption"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-              <textarea
-                value={reportForm.g1.whistleblowing}
-                onChange={(e) =>
-                  setNestedField("g1", "whistleblowing", e.target.value)
-                }
-                disabled={!isEditable()}
-                placeholder="Whistleblowing"
-                rows={3}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
 
-              <h3>Double Materiality</h3>
+              <div>
+                <FieldLabel helpKey="antiCorruption">Anti-corruption</FieldLabel>
+                <textarea
+                  value={reportForm.g1.antiCorruption}
+                  onChange={(e) =>
+                    setNestedField("g1", "antiCorruption", e.target.value)
+                  }
+                  disabled={!isEditable()}
+                  placeholder="Anti-corruption"
+                  rows={3}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
+
+              <div>
+                <FieldLabel helpKey="whistleblowing">Whistleblowing</FieldLabel>
+                <textarea
+                  value={reportForm.g1.whistleblowing}
+                  onChange={(e) =>
+                    setNestedField("g1", "whistleblowing", e.target.value)
+                  }
+                  disabled={!isEditable()}
+                  placeholder="Whistleblowing"
+                  rows={3}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
+
+              <h3>
+                Double Materiality
+                <HelpTooltip content={HELP.materiality} />
+              </h3>
+
               {reportForm.materialityTopics.map((topic, index) => {
                 const scores = calculateMaterialityScores(topic);
 
@@ -1729,40 +1886,57 @@ const cancelSubscription = async () => {
                           gap: "10px"
                         }}
                       >
-                        <input
-                          value={topic.topicCode}
-                          onChange={(e) =>
-                            updateMaterialityTopic(
-                              index,
-                              "topicCode",
-                              e.target.value
-                            )
-                          }
-                          disabled={!isEditable()}
-                          placeholder="Topic code"
-                          style={{
-                            padding: "10px",
-                            borderRadius: "10px",
-                            border: "1px solid #d1d5db"
-                          }}
-                        />
-                        <input
-                          value={topic.topicLabel}
-                          onChange={(e) =>
-                            updateMaterialityTopic(
-                              index,
-                              "topicLabel",
-                              e.target.value
-                            )
-                          }
-                          disabled={!isEditable()}
-                          placeholder="Topic label"
-                          style={{
-                            padding: "10px",
-                            borderRadius: "10px",
-                            border: "1px solid #d1d5db"
-                          }}
-                        />
+                        <div>
+                          <label
+                            style={{ fontWeight: "bold", marginBottom: "6px", display: "block" }}
+                          >
+                            Topic Code
+                          </label>
+                          <input
+                            value={topic.topicCode}
+                            onChange={(e) =>
+                              updateMaterialityTopic(
+                                index,
+                                "topicCode",
+                                e.target.value
+                              )
+                            }
+                            disabled={!isEditable()}
+                            placeholder="Topic code"
+                            style={{
+                              padding: "10px",
+                              borderRadius: "10px",
+                              border: "1px solid #d1d5db",
+                              width: "100%"
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label
+                            style={{ fontWeight: "bold", marginBottom: "6px", display: "block" }}
+                          >
+                            Topic Label
+                          </label>
+                          <input
+                            value={topic.topicLabel}
+                            onChange={(e) =>
+                              updateMaterialityTopic(
+                                index,
+                                "topicLabel",
+                                e.target.value
+                              )
+                            }
+                            disabled={!isEditable()}
+                            placeholder="Topic label"
+                            style={{
+                              padding: "10px",
+                              borderRadius: "10px",
+                              border: "1px solid #d1d5db",
+                              width: "100%"
+                            }}
+                          />
+                        </div>
                       </div>
 
                       <div
@@ -1780,12 +1954,7 @@ const cancelSubscription = async () => {
                           ["likelihood", "Impact Likelihood"]
                         ].map(([field, label]) => (
                           <div key={field}>
-                            <div
-                              style={{
-                                fontSize: "12px",
-                                marginBottom: "4px"
-                              }}
-                            >
+                            <div style={{ fontSize: "12px", marginBottom: "4px" }}>
                               {label}
                             </div>
                             <input
@@ -1820,12 +1989,7 @@ const cancelSubscription = async () => {
                         }}
                       >
                         <div>
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              marginBottom: "4px"
-                            }}
-                          >
+                          <div style={{ fontSize: "12px", marginBottom: "4px" }}>
                             Magnitude
                           </div>
                           <input
@@ -1851,12 +2015,7 @@ const cancelSubscription = async () => {
                         </div>
 
                         <div>
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              marginBottom: "4px"
-                            }}
-                          >
+                          <div style={{ fontSize: "12px", marginBottom: "4px" }}>
                             Likelihood
                           </div>
                           <input
@@ -1882,12 +2041,7 @@ const cancelSubscription = async () => {
                         </div>
 
                         <div>
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              marginBottom: "4px"
-                            }}
-                          >
+                          <div style={{ fontSize: "12px", marginBottom: "4px" }}>
                             Time horizon
                           </div>
                           <select
@@ -1914,23 +2068,29 @@ const cancelSubscription = async () => {
                         </div>
                       </div>
 
-                      <input
-                        value={topic.stakeholdersConsulted}
-                        onChange={(e) =>
-                          updateMaterialityTopic(
-                            index,
-                            "stakeholdersConsulted",
-                            e.target.value
-                          )
-                        }
-                        disabled={!isEditable()}
-                        placeholder="Stakeholders consulted (comma-separated)"
-                        style={{
-                          padding: "10px",
-                          borderRadius: "10px",
-                          border: "1px solid #d1d5db"
-                        }}
-                      />
+                      <div>
+                        <FieldLabel helpKey="stakeholders">
+                          Stakeholders Consulted
+                        </FieldLabel>
+                        <input
+                          value={topic.stakeholdersConsulted}
+                          onChange={(e) =>
+                            updateMaterialityTopic(
+                              index,
+                              "stakeholdersConsulted",
+                              e.target.value
+                            )
+                          }
+                          disabled={!isEditable()}
+                          placeholder="Stakeholders consulted (comma-separated)"
+                          style={{
+                            padding: "10px",
+                            borderRadius: "10px",
+                            border: "1px solid #d1d5db",
+                            width: "100%"
+                          }}
+                        />
+                      </div>
 
                       <label style={{ fontSize: "14px", color: "#4b5563" }}>
                         <input
@@ -1949,24 +2109,28 @@ const cancelSubscription = async () => {
                         Mark as material
                       </label>
 
-                      <textarea
-                        value={topic.rationale}
-                        onChange={(e) =>
-                          updateMaterialityTopic(
-                            index,
-                            "rationale",
-                            e.target.value
-                          )
-                        }
-                        disabled={!isEditable()}
-                        placeholder="Rationale"
-                        rows={3}
-                        style={{
-                          padding: "10px",
-                          borderRadius: "10px",
-                          border: "1px solid #d1d5db"
-                        }}
-                      />
+                      <div>
+                        <FieldLabel helpKey="rationale">Rationale</FieldLabel>
+                        <textarea
+                          value={topic.rationale}
+                          onChange={(e) =>
+                            updateMaterialityTopic(
+                              index,
+                              "rationale",
+                              e.target.value
+                            )
+                          }
+                          disabled={!isEditable()}
+                          placeholder="Rationale"
+                          rows={3}
+                          style={{
+                            padding: "10px",
+                            borderRadius: "10px",
+                            border: "1px solid #d1d5db",
+                            width: "100%"
+                          }}
+                        />
+                      </div>
 
                       <div
                         style={{
@@ -1976,12 +2140,7 @@ const cancelSubscription = async () => {
                           padding: "12px"
                         }}
                       >
-                        <div
-                          style={{
-                            fontWeight: "bold",
-                            marginBottom: "8px"
-                          }}
-                        >
+                        <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
                           Materiality Score
                         </div>
                         <div>Impact Score: {scores.impactScore100}/100</div>
@@ -2078,287 +2237,330 @@ const cancelSubscription = async () => {
                 </div>
               )}
 
-              <textarea
-                value={reportForm.aiDraft.executiveSummary}
-                onChange={(e) =>
-                  setNestedField("aiDraft", "executiveSummary", e.target.value)
-                }
-                disabled={!isEditable()}
-                placeholder="AI executive summary"
-                rows={4}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-
-              <textarea
-                value={reportForm.aiDraft.disclosureDraft}
-                onChange={(e) =>
-                  setNestedField("aiDraft", "disclosureDraft", e.target.value)
-                }
-                disabled={!isEditable()}
-                placeholder="AI disclosure draft"
-                rows={8}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-
-              <textarea
-                value={reportForm.aiDraft.dataGaps}
-                onChange={(e) =>
-                  setNestedField("aiDraft", "dataGaps", e.target.value)
-                }
-                disabled={!isEditable()}
-                placeholder="AI data gaps"
-                rows={4}
-                style={{
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #d1d5db"
-                }}
-              />
-
-              <div
-  style={{
-    background: "#f9fafb",
-    border: "1px solid #e5e7eb",
-    borderRadius: "12px",
-    padding: "16px",
-    marginBottom: "12px"
-  }}
->
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: "12px",
-      flexWrap: "wrap",
-      marginBottom: "14px"
-    }}
-  >
-    <strong style={{ fontSize: "16px" }}>AI Recommendations</strong>
-
-    <select
-      value={recommendationFilter}
-      onChange={(e) => setRecommendationFilter(e.target.value)}
-      style={{
-        padding: "10px 12px",
-        borderRadius: "10px",
-        border: "1px solid #d1d5db",
-        background: "#ffffff"
-      }}
-    >
-      <option value="all">All</option>
-      <option value="high">High Priority</option>
-      <option value="compliance">Compliance</option>
-      <option value="strategy">Strategy</option>
-    </select>
-  </div>
-
-  {filteredRecommendations.length === 0 ? (
-    <div style={{ color: "#6b7280" }}>No AI recommendations</div>
-  ) : (
-    <div style={{ display: "grid", gap: "14px" }}>
-      {filteredRecommendations.map((item) => {
-        const priorityStyle = getPriorityColor(item.priority);
-
-        return (
-          <div
-            key={item.id}
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "12px",
-              padding: "16px",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "start",
-                gap: "12px",
-                flexWrap: "wrap",
-                marginBottom: "12px"
-              }}
-            >
               <div>
-                <div
+                <label
                   style={{
-                    fontSize: "16px",
                     fontWeight: "bold",
+                    display: "block",
                     marginBottom: "6px"
                   }}
                 >
-                  {item.title}
-                </div>
+                  AI Executive Summary
+                </label>
+                <textarea
+                  value={reportForm.aiDraft.executiveSummary}
+                  onChange={(e) =>
+                    setNestedField("aiDraft", "executiveSummary", e.target.value)
+                  }
+                  disabled={!isEditable()}
+                  placeholder="AI executive summary"
+                  rows={4}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
 
+              <div>
+                <label
+                  style={{
+                    fontWeight: "bold",
+                    display: "block",
+                    marginBottom: "6px"
+                  }}
+                >
+                  AI Disclosure Draft
+                </label>
+                <textarea
+                  value={reportForm.aiDraft.disclosureDraft}
+                  onChange={(e) =>
+                    setNestedField("aiDraft", "disclosureDraft", e.target.value)
+                  }
+                  disabled={!isEditable()}
+                  placeholder="AI disclosure draft"
+                  rows={8}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    fontWeight: "bold",
+                    display: "block",
+                    marginBottom: "6px"
+                  }}
+                >
+                  AI Data Gaps
+                </label>
+                <textarea
+                  value={reportForm.aiDraft.dataGaps}
+                  onChange={(e) =>
+                    setNestedField("aiDraft", "dataGaps", e.target.value)
+                  }
+                  disabled={!isEditable()}
+                  placeholder="AI data gaps"
+                  rows={4}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #d1d5db",
+                    width: "100%"
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  background: "#f9fafb",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "12px",
+                  padding: "16px",
+                  marginBottom: "12px"
+                }}
+              >
                 <div
                   style={{
                     display: "flex",
-                    gap: "8px",
-                    flexWrap: "wrap"
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                    marginBottom: "14px"
                   }}
                 >
-                  {item.category && (
-                    <span
-                      style={{
-                        padding: "4px 10px",
-                        borderRadius: "999px",
-                        background: "#eef2ff",
-                        color: "#4338ca",
-                        fontSize: "12px",
-                        fontWeight: "bold"
-                      }}
-                    >
-                      {item.category}
-                    </span>
-                  )}
+                  <strong style={{ fontSize: "16px" }}>AI Recommendations</strong>
 
-                  {item.timeline && (
-                    <span
-                      style={{
-                        padding: "4px 10px",
-                        borderRadius: "999px",
-                        background: "#f3f4f6",
-                        color: "#374151",
-                        fontSize: "12px",
-                        fontWeight: "bold"
-                      }}
-                    >
-                      {item.timeline}
-                    </span>
-                  )}
-
-                  {item.esrsReference && (
-                    <span
-                      style={{
-                        padding: "4px 10px",
-                        borderRadius: "999px",
-                        background: "#ecfeff",
-                        color: "#0f766e",
-                        fontSize: "12px",
-                        fontWeight: "bold"
-                      }}
-                    >
-                      {item.esrsReference}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {item.priority && (
-                <span
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: "999px",
-                    background: priorityStyle.bg,
-                    color: priorityStyle.text,
-                    border: `1px solid ${priorityStyle.border}`,
-                    fontSize: "12px",
-                    fontWeight: "bold"
-                  }}
-                >
-                  {item.priority} Priority
-                </span>
-              )}
-            </div>
-
-            <div style={{ display: "grid", gap: "12px" }}>
-              {item.currentGap && (
-                <div>
-                  <div
+                  <select
+                    value={recommendationFilter}
+                    onChange={(e) => setRecommendationFilter(e.target.value)}
                     style={{
-                      fontWeight: "bold",
-                      marginBottom: "4px",
-                      color: "#111827"
+                      padding: "10px 12px",
+                      borderRadius: "10px",
+                      border: "1px solid #d1d5db",
+                      background: "#ffffff"
                     }}
                   >
-                    Current Gap
-                  </div>
-                  <div style={{ color: "#4b5563" }}>{item.currentGap}</div>
+                    <option value="all">All</option>
+                    <option value="high">High Priority</option>
+                    <option value="compliance">Compliance</option>
+                    <option value="strategy">Strategy</option>
+                  </select>
                 </div>
-              )}
 
-              {item.riskImpact && (
-                <div>
-                  <div
-                    style={{
-                      fontWeight: "bold",
-                      marginBottom: "4px",
-                      color: "#111827"
-                    }}
-                  >
-                    Risk / Impact
-                  </div>
-                  <div style={{ color: "#4b5563" }}>{item.riskImpact}</div>
-                </div>
-              )}
+                {filteredRecommendations.length === 0 ? (
+                  <div style={{ color: "#6b7280" }}>No AI recommendations</div>
+                ) : (
+                  <div style={{ display: "grid", gap: "14px" }}>
+                    {filteredRecommendations.map((item) => {
+                      const priorityStyle = getPriorityColor(item.priority);
 
-              {Array.isArray(item.actions) && item.actions.length > 0 && (
-                <div>
-                  <div
-                    style={{
-                      fontWeight: "bold",
-                      marginBottom: "6px",
-                      color: "#111827"
-                    }}
-                  >
-                    Recommended Actions
-                  </div>
-                  <ul
-                    style={{
-                      margin: 0,
-                      paddingLeft: "18px",
-                      color: "#4b5563"
-                    }}
-                  >
-                    {item.actions.map((action, idx) => (
-                      <li key={`${item.id}-action-${idx}`}>{action}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                      return (
+                        <div
+                          key={item.id}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "12px",
+                            padding: "16px",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "start",
+                              gap: "12px",
+                              flexWrap: "wrap",
+                              marginBottom: "12px"
+                            }}
+                          >
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: "16px",
+                                  fontWeight: "bold",
+                                  marginBottom: "6px"
+                                }}
+                              >
+                                {item.title}
+                              </div>
 
-              {Array.isArray(item.suggestedKPIs) &&
-                item.suggestedKPIs.length > 0 && (
-                  <div>
-                    <div
-                      style={{
-                        fontWeight: "bold",
-                        marginBottom: "6px",
-                        color: "#111827"
-                      }}
-                    >
-                      Suggested KPIs
-                    </div>
-                    <ul
-                      style={{
-                        margin: 0,
-                        paddingLeft: "18px",
-                        color: "#4b5563"
-                      }}
-                    >
-                      {item.suggestedKPIs.map((kpi, idx) => (
-                        <li key={`${item.id}-kpi-${idx}`}>{kpi}</li>
-                      ))}
-                    </ul>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: "8px",
+                                  flexWrap: "wrap"
+                                }}
+                              >
+                                {item.category && (
+                                  <span
+                                    style={{
+                                      padding: "4px 10px",
+                                      borderRadius: "999px",
+                                      background: "#eef2ff",
+                                      color: "#4338ca",
+                                      fontSize: "12px",
+                                      fontWeight: "bold"
+                                    }}
+                                  >
+                                    {item.category}
+                                  </span>
+                                )}
+
+                                {item.timeline && (
+                                  <span
+                                    style={{
+                                      padding: "4px 10px",
+                                      borderRadius: "999px",
+                                      background: "#f3f4f6",
+                                      color: "#374151",
+                                      fontSize: "12px",
+                                      fontWeight: "bold"
+                                    }}
+                                  >
+                                    {item.timeline}
+                                  </span>
+                                )}
+
+                                {item.esrsReference && (
+                                  <span
+                                    style={{
+                                      padding: "4px 10px",
+                                      borderRadius: "999px",
+                                      background: "#ecfeff",
+                                      color: "#0f766e",
+                                      fontSize: "12px",
+                                      fontWeight: "bold"
+                                    }}
+                                  >
+                                    {item.esrsReference}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {item.priority && (
+                              <span
+                                style={{
+                                  padding: "6px 12px",
+                                  borderRadius: "999px",
+                                  background: priorityStyle.bg,
+                                  color: priorityStyle.text,
+                                  border: `1px solid ${priorityStyle.border}`,
+                                  fontSize: "12px",
+                                  fontWeight: "bold"
+                                }}
+                              >
+                                {item.priority} Priority
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ display: "grid", gap: "12px" }}>
+                            {item.currentGap && (
+                              <div>
+                                <div
+                                  style={{
+                                    fontWeight: "bold",
+                                    marginBottom: "4px",
+                                    color: "#111827"
+                                  }}
+                                >
+                                  Current Gap
+                                </div>
+                                <div style={{ color: "#4b5563" }}>
+                                  {item.currentGap}
+                                </div>
+                              </div>
+                            )}
+
+                            {item.riskImpact && (
+                              <div>
+                                <div
+                                  style={{
+                                    fontWeight: "bold",
+                                    marginBottom: "4px",
+                                    color: "#111827"
+                                  }}
+                                >
+                                  Risk / Impact
+                                </div>
+                                <div style={{ color: "#4b5563" }}>
+                                  {item.riskImpact}
+                                </div>
+                              </div>
+                            )}
+
+                            {Array.isArray(item.actions) &&
+                              item.actions.length > 0 && (
+                                <div>
+                                  <div
+                                    style={{
+                                      fontWeight: "bold",
+                                      marginBottom: "6px",
+                                      color: "#111827"
+                                    }}
+                                  >
+                                    Recommended Actions
+                                  </div>
+                                  <ul
+                                    style={{
+                                      margin: 0,
+                                      paddingLeft: "18px",
+                                      color: "#4b5563"
+                                    }}
+                                  >
+                                    {item.actions.map((action, idx) => (
+                                      <li key={`${item.id}-action-${idx}`}>
+                                        {action}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                            {Array.isArray(item.suggestedKPIs) &&
+                              item.suggestedKPIs.length > 0 && (
+                                <div>
+                                  <div
+                                    style={{
+                                      fontWeight: "bold",
+                                      marginBottom: "6px",
+                                      color: "#111827"
+                                    }}
+                                  >
+                                    Suggested KPIs
+                                  </div>
+                                  <ul
+                                    style={{
+                                      margin: 0,
+                                      paddingLeft: "18px",
+                                      color: "#4b5563"
+                                    }}
+                                  >
+                                    {item.suggestedKPIs.map((kpi, idx) => (
+                                      <li key={`${item.id}-kpi-${idx}`}>{kpi}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  )}
-</div>
+              </div>
 
               <button
                 onClick={saveReport}
@@ -2738,6 +2940,9 @@ const cancelSubscription = async () => {
           ) : (
             reports.map((report) => {
               const score = Number(report.scorecard?.overallScore || 0);
+              const reportRecommendations = parseRecommendationsText(
+                report.aiDraft?.recommendations || ""
+              );
 
               return (
                 <div
@@ -2881,94 +3086,102 @@ const cancelSubscription = async () => {
                   </div>
 
                   <div
-  style={{
-    background: "#f9fafb",
-    border: "1px solid #e5e7eb",
-    borderRadius: "10px",
-    padding: "14px",
-    marginBottom: "12px"
-  }}
->
-  <strong>AI Recommendations</strong>
-
-  <div style={{ marginTop: "10px", display: "grid", gap: "12px" }}>
-    {parseRecommendationsText(report.aiDraft?.recommendations || "").length ===
-    0 ? (
-      <div style={{ color: "#6b7280" }}>No AI recommendations</div>
-    ) : (
-      parseRecommendationsText(report.aiDraft?.recommendations || "").map(
-        (item) => {
-          const priorityStyle = getPriorityColor(item.priority);
-
-          return (
-            <div
-              key={item.id}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e5e7eb",
-                borderRadius: "12px",
-                padding: "14px"
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "start",
-                  gap: "10px",
-                  flexWrap: "wrap",
-                  marginBottom: "8px"
-                }}
-              >
-                <div style={{ fontWeight: "bold" }}>{item.title}</div>
-
-                {item.priority && (
-                  <span
                     style={{
-                      padding: "5px 10px",
-                      borderRadius: "999px",
-                      background: priorityStyle.bg,
-                      color: priorityStyle.text,
-                      border: `1px solid ${priorityStyle.border}`,
-                      fontSize: "12px",
-                      fontWeight: "bold"
+                      background: "#f9fafb",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "10px",
+                      padding: "14px",
+                      marginBottom: "12px"
                     }}
                   >
-                    {item.priority}
-                  </span>
-                )}
-              </div>
+                    <strong>AI Recommendations</strong>
 
-              <div style={{ color: "#6b7280", marginBottom: "6px" }}>
-                {[item.category, item.timeline, item.esrsReference]
-                  .filter(Boolean)
-                  .join(" • ")}
-              </div>
+                    <div style={{ marginTop: "10px", display: "grid", gap: "12px" }}>
+                      {reportRecommendations.length === 0 ? (
+                        <div style={{ color: "#6b7280" }}>
+                          No AI recommendations
+                        </div>
+                      ) : (
+                        reportRecommendations.map((item) => {
+                          const priorityStyle = getPriorityColor(item.priority);
 
-              {item.currentGap && (
-                <div style={{ marginBottom: "8px" }}>
-                  <strong>Gap:</strong> {item.currentGap}
-                </div>
-              )}
+                          return (
+                            <div
+                              key={item.id}
+                              style={{
+                                background: "#ffffff",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: "12px",
+                                padding: "14px"
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "start",
+                                  gap: "10px",
+                                  flexWrap: "wrap",
+                                  marginBottom: "8px"
+                                }}
+                              >
+                                <div style={{ fontWeight: "bold" }}>
+                                  {item.title}
+                                </div>
 
-              {Array.isArray(item.actions) && item.actions.length > 0 && (
-                <div>
-                  <strong>Actions:</strong>
-                  <ul style={{ marginBottom: 0, paddingLeft: "18px" }}>
-                    {item.actions.map((action, idx) => (
-                      <li key={`${item.id}-report-action-${idx}`}>{action}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          );
-        }
-      )
-    )}
-  </div>
-</div>
+                                {item.priority && (
+                                  <span
+                                    style={{
+                                      padding: "5px 10px",
+                                      borderRadius: "999px",
+                                      background: priorityStyle.bg,
+                                      color: priorityStyle.text,
+                                      border: `1px solid ${priorityStyle.border}`,
+                                      fontSize: "12px",
+                                      fontWeight: "bold"
+                                    }}
+                                  >
+                                    {item.priority}
+                                  </span>
+                                )}
+                              </div>
 
+                              <div style={{ color: "#6b7280", marginBottom: "6px" }}>
+                                {[item.category, item.timeline, item.esrsReference]
+                                  .filter(Boolean)
+                                  .join(" • ")}
+                              </div>
+
+                              {item.currentGap && (
+                                <div style={{ marginBottom: "8px" }}>
+                                  <strong>Gap:</strong> {item.currentGap}
+                                </div>
+                              )}
+
+                              {Array.isArray(item.actions) &&
+                                item.actions.length > 0 && (
+                                  <div>
+                                    <strong>Actions:</strong>
+                                    <ul
+                                      style={{
+                                        marginBottom: 0,
+                                        paddingLeft: "18px"
+                                      }}
+                                    >
+                                      {item.actions.map((action, idx) => (
+                                        <li key={`${item.id}-report-action-${idx}`}>
+                                          {action}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
 
                   <div
                     style={{
