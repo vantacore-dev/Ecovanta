@@ -22,10 +22,21 @@ router.post("/cancel-subscription", auth, async (req, res) => {
     }
 
     if (!user.stripeSubscriptionId) {
-      return res.status(400).json({ error: "No active subscription found" });
+      return res.status(400).json({
+        error: "No active Stripe subscription ID found for this user"
+      });
     }
 
-    await stripe.subscriptions.del(user.stripeSubscriptionId);
+    try {
+      await stripe.subscriptions.del(user.stripeSubscriptionId);
+    } catch (stripeErr) {
+      console.error("Stripe cancellation error:", stripeErr);
+
+      return res.status(500).json({
+        error: "Stripe cancellation failed",
+        details: stripeErr.message
+      });
+    }
 
     user.plan = "free";
     user.subscriptionStatus = "cancelled";
@@ -37,6 +48,7 @@ router.post("/cancel-subscription", auth, async (req, res) => {
     });
   } catch (err) {
     console.error("Cancel subscription error:", err);
+
     return res.status(500).json({
       error: "Failed to cancel subscription",
       details: err.message
