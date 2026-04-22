@@ -15,16 +15,6 @@ import {
 import HelpTooltip from "./components/HelpTooltip";
 import { HELP } from "./helpContent";
 import EcovantaLandingPage from "./EcovantaLandingPage";
-
-function App() {
-  const isLoggedIn = localStorage.getItem("token");
-
-  if (!isLoggedIn) {
-    return <EcovantaLandingPage />;
-  }
-
-  return <MainPlatform />;
-}
 const API = "https://ecovanta.onrender.com";
 
 const defaultMaterialityTopic = {
@@ -3409,8 +3399,14 @@ function FieldLabel({ children, helpKey }) {
   );
 }
 
-//export default App;
-//export default MainPlatform;
+function App() {
+  const isLoggedIn = localStorage.getItem("token");
 
+  if (!isLoggedIn) {
+    return <EcovantaLandingPage />;
+  }
+
+  return <MainPlatform />;
+}
 
 export default App;
