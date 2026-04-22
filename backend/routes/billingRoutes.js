@@ -17,18 +17,30 @@ router.post("/cancel-subscription", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
 
-    if (!user?.stripeSubscriptionId) {
-      return res.status(400).json({ error: "No active subscription" });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
 
-    await stripe.subscriptions.update(user.stripeSubscriptionId, {
-      cancel_at_period_end: true // safer (no immediate cutoff)
-    });
+    if (!user.stripeSubscriptionId) {
+      return res.status(400).json({ error: "No active subscription found" });
+    }
 
-    return res.json({ message: "Subscription will be cancelled at period end" });
+    await stripe.subscriptions.del(user.stripeSubscriptionId);
+
+    user.plan = "free";
+    user.subscriptionStatus = "cancelled";
+    user.stripeSubscriptionId = "";
+    await user.save();
+
+    return res.json({
+      message: "Subscription cancelled successfully. You are now on the Free plan."
+    });
   } catch (err) {
     console.error("Cancel subscription error:", err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      error: "Failed to cancel subscription",
+      details: err.message
+    });
   }
 });
 
