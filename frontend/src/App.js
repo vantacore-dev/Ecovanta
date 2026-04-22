@@ -1,3 +1,16 @@
+import EcovantaLandingPage from "./EcovantaLandingPage";
+
+function App() {
+  const isLoggedIn = localStorage.getItem("token");
+
+  if (!isLoggedIn) {
+    return <EcovantaLandingPage />;
+  }
+
+  return <MainPlatform />;
+}
+
+export default App;
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   BarChart,
@@ -14,11 +27,7 @@ import {
 } from "recharts";
 import HelpTooltip from "./components/HelpTooltip";
 import { HELP } from "./helpContent";
-import EcovantaLandingPage from "./EcovantaLandingPage";
 
-export default function App() {
-  return <EcovantaLandingPage />;
-}
 const API = "https://ecovanta.onrender.com";
 
 const defaultMaterialityTopic = {
@@ -435,7 +444,8 @@ function FieldLabel({ children, helpKey }) {
   );
 }
 
-function App() {
+//function App() {
+  function MainPlatform() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState("login");
@@ -3402,4 +3412,5 @@ function App() {
   );
 }
 
-export default App;
+//export default App;
+export default MainPlatform;
