@@ -15,6 +15,7 @@ import {
 import HelpTooltip from "./components/HelpTooltip";
 import { HELP } from "./helpContent";
 import EcovantaLandingPage from "./EcovantaLandingPage";
+import { calculateBig4ESGScore } from "./esgScoring";
 const API = "https://ecovanta.onrender.com";
 
 const defaultMaterialityTopic = {
@@ -962,7 +963,11 @@ function FieldLabel({ children, helpKey }) {
       setLoading(true);
       setStatusMessage("");
 
-      const overallScore = calculateOverallESGScore(reportForm);
+      const {
+      overallScore,
+      riskLevel,
+      pillarScores
+      } = calculateBig4ESGScore(reportForm);
 
       const payload = {
         ...reportForm,
@@ -973,8 +978,10 @@ function FieldLabel({ children, helpKey }) {
           recommendations: reportForm.aiDraft?.recommendations || ""
         }),
         scorecard: {
-          benchmark,
-          overallScore
+        benchmark,
+        overallScore,
+        riskLevel,
+        pillarScores
         },
         materialityTopics: reportForm.materialityTopics.map((topic) => {
           const scores = calculateMaterialityScores(topic);
@@ -1141,6 +1148,9 @@ function FieldLabel({ children, helpKey }) {
     reportForm,
     analytics
   );
+
+  const { overallScore, riskLevel, pillarScores } = calculateBig4ESGScore(reportForm);
+
   const materialityHeatmapData = getMaterialityHeatmapData(
     reportForm.materialityTopics
   );
