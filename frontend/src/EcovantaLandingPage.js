@@ -71,7 +71,7 @@ export default function EcovantaLandingPage() {
                 ecovanta.ai
               </div>
               <div style={{ fontSize: "12px", color: "#64748b" }}>
-                AI-powered ESG reporting
+                AI-powered ESG reporting platform
               </div>
             </div>
           </div>
@@ -593,8 +593,8 @@ export default function EcovantaLandingPage() {
               lineHeight: 1.7
             }}
           >
-            Join forward-thinking companies using AI to accelerate CSRD
-            readiness, improve ESG reporting quality, and deliver investor-grade
+            Join Ecovanta, a green-tech and forward-thinking company using AI to accelerate CSRD
+            compliance, improve ESG reporting quality, and deliver investor-grade
             disclosures.
           </p>
 
