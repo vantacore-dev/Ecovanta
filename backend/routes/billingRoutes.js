@@ -100,7 +100,7 @@ router.post("/create-checkout-session", auth, async (req, res) => {
           quantity: 1
         }
       ],
-      success_url: `${process.env.FRONTEND_URL}?checkout=success&plan=${plan}`,
+      success_url: `${process.env.FRONTEND_URL}?checkout=success`,
       cancel_url: `${process.env.FRONTEND_URL}?checkout=cancelled`,
       metadata: {
         userId: String(user._id),
