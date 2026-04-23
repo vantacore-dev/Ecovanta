@@ -527,13 +527,13 @@ const markAutoCheckoutStarted = () => {
 
 //const AUTO_CHECKOUT_LOCK_KEY = "ecovanta_auto_checkout_started";
 
-const clearPendingPlanFromUrl = () => {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("plan");
-  url.searchParams.delete("signup");
-  url.searchParams.delete("checkout");
-  window.history.replaceState({}, "", url.pathname + url.search);
-};
+//const clearPendingPlanFromUrl = () => {
+  //const url = new URL(window.location.href);
+  //url.searchParams.delete("plan");
+  //url.searchParams.delete("signup");
+  //url.searchParams.delete("checkout");
+  //window.history.replaceState({}, "", url.pathname + url.search);
+//};
 
 const clearAutoCheckoutLock = () => {
   sessionStorage.removeItem(AUTO_CHECKOUT_LOCK_KEY);
