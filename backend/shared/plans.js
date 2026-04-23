@@ -45,7 +45,7 @@ const PLAN_CONFIG = {
   [PLAN_KEYS.PRO]: {
     key: PLAN_KEYS.PRO,
     name: "Pro",
-    priceDisplay: "€49/mo",
+    priceDisplay: "€799/mo",
     interval: "monthly",
     cta: "Upgrade to Pro",
     stripeEnvKey: "STRIPE_PRICE_PRO",
@@ -79,9 +79,9 @@ const PLAN_CONFIG = {
   [PLAN_KEYS.ENTERPRISE]: {
     key: PLAN_KEYS.ENTERPRISE,
     name: "Enterprise",
-    priceDisplay: "Custom",
+    priceDisplay: "€899",
     interval: "",
-    cta: "Contact Sales",
+    cta: "Upgrade to Entgerprise€",
     stripeEnvKey: "STRIPE_PRICE_ENTERPRISE",
     highlighted: false,
     description:
