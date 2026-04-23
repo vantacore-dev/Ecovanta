@@ -10,8 +10,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const {
   PLAN_KEYS,
   PLAN_CONFIG
-} = require("../../shared/plans");
-
+//} = require("../../shared/plans");
+} = require("../shared/plans");
 const PRICE_MAP = {
   [PLAN_KEYS.PRO]: process.env[PLAN_CONFIG[PLAN_KEYS.PRO].stripeEnvKey],
   [PLAN_KEYS.ENTERPRISE]:
