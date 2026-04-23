@@ -7,11 +7,16 @@ const router = express.Router();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-const PRICE_MAP = {
-  pro: process.env.STRIPE_PRICE_PRO,
-  enterprise: process.env.STRIPE_PRICE_ENTERPRISE
-};
+const {
+  PLAN_KEYS,
+  PLAN_CONFIG
+} = require("../../shared/plans");
 
+const PRICE_MAP = {
+  [PLAN_KEYS.PRO]: process.env[PLAN_CONFIG[PLAN_KEYS.PRO].stripeEnvKey],
+  [PLAN_KEYS.ENTERPRISE]:
+    process.env[PLAN_CONFIG[PLAN_KEYS.ENTERPRISE].stripeEnvKey]
+};
 
 router.post("/cancel-subscription", auth, async (req, res) => {
   try {
