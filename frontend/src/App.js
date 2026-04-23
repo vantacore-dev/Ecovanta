@@ -438,7 +438,12 @@ function FieldLabel({ children, helpKey }) {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState("login");
-
+  const clearPendingPlanFromUrl = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("plan");
+    url.searchParams.delete("signup");
+    window.history.replaceState({}, "", url.pathname + url.search);
+    };
   const [authForm, setAuthForm] = useState({
     email: "",
     password: "",
@@ -457,6 +462,11 @@ function FieldLabel({ children, helpKey }) {
     highRisk: 0,
     moderateRisk: 0,
     lowRisk: 0
+  });
+
+  const [pendingUpgradePlan, setPendingUpgradePlan] = useState(() => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("plan") || "";
   });
 
   const [benchmark, setBenchmark] = useState(60);
@@ -565,60 +575,79 @@ function FieldLabel({ children, helpKey }) {
     return false;
   };
 
-  const login = useCallback(async () => {
-    try {
-      setLoading(true);
-      setStatusMessage("");
+const login = useCallback(async () => {
+  try {
+    setLoading(true);
+    setStatusMessage("");
 
-      const data = await fetchJson(`${API}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: authForm.email,
-          password: authForm.password
-        })
-      });
+    const data = await fetchJson(`${API}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: authForm.email,
+        password: authForm.password
+      })
+    });
 
-      setToken(data.token);
-      localStorage.setItem("token", data.token);
+    setToken(data.token);
+    localStorage.setItem("token", data.token);
+
+    if (pendingUpgradePlan === "pro" || pendingUpgradePlan === "enterprise") {
+      setStatusMessage(
+        `Logged in. Redirecting to ${pendingUpgradePlan} checkout...`
+      );
+    } else {
       setStatusMessage("Logged in successfully.");
-    } catch (err) {
-      console.error("Login error:", err);
-      setStatusMessage(`Login failed: ${err.message}`);
-    } finally {
-      setLoading(false);
     }
-  }, [authForm.email, authForm.password, fetchJson]);
+  } catch (err) {
+    console.error("Login error:", err);
+    setStatusMessage(`Login failed: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+}, [authForm.email, authForm.password, fetchJson, pendingUpgradePlan]);
 
   const register = useCallback(async () => {
-    try {
-      setLoading(true);
-      setStatusMessage("");
+  try {
+    setLoading(true);
+    setStatusMessage("");
 
-      await fetchJson(`${API}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: authForm.email,
-          password: authForm.password,
-          companyName: authForm.companyName
-        })
-      });
+    await fetchJson(`${API}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: authForm.email,
+        password: authForm.password,
+        companyName: authForm.companyName
+      })
+    });
 
+    if (pendingUpgradePlan === "pro" || pendingUpgradePlan === "enterprise") {
+      setStatusMessage(
+        `Registration successful. Please log in to continue to ${pendingUpgradePlan} checkout.`
+      );
+    } else {
       setStatusMessage("Registration successful. Please log in.");
-      setAuthMode("login");
-      setAuthForm((prev) => ({
-        ...prev,
-        password: ""
-      }));
-    } catch (err) {
-      console.error("Register error:", err);
-      setStatusMessage(`Register failed: ${err.message}`);
-    } finally {
-      setLoading(false);
     }
-  }, [authForm.email, authForm.password, authForm.companyName, fetchJson]);
 
+    setAuthMode("login");
+    setAuthForm((prev) => ({
+      ...prev,
+      password: ""
+    }));
+  } catch (err) {
+    console.error("Register error:", err);
+    setStatusMessage(`Register failed: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+}, [
+  authForm.email,
+  authForm.password,
+  authForm.companyName,
+  fetchJson,
+  pendingUpgradePlan
+]);
   const logout = () => {
     localStorage.removeItem("token");
     setToken("");
@@ -740,6 +769,25 @@ function FieldLabel({ children, helpKey }) {
   useEffect(() => {
     loadBenchmark();
   }, [loadBenchmark]);
+
+useEffect(() => {
+  if (!token || !pendingUpgradePlan) return;
+
+  if (pendingUpgradePlan === "pro" || pendingUpgradePlan === "enterprise") {
+    const runCheckout = async () => {
+      try {
+        await upgradePlan(pendingUpgradePlan);
+      } catch (err) {
+        console.error("Auto-upgrade error:", err);
+      } finally {
+        setPendingUpgradePlan("");
+        clearPendingPlanFromUrl();
+      }
+    };
+
+    runCheckout();
+  }
+  }, [token, pendingUpgradePlan]);
 
   const updateReportStatus = async (reportId, status) => {
     if (!token) {
