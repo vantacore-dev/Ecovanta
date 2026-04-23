@@ -535,17 +535,17 @@ const markAutoCheckoutStarted = () => {
   //window.history.replaceState({}, "", url.pathname + url.search);
 //};
 
-const clearAutoCheckoutLock = () => {
-  sessionStorage.removeItem(AUTO_CHECKOUT_LOCK_KEY);
-};
+//const clearAutoCheckoutLock = () => {
+  //sessionStorage.removeItem(AUTO_CHECKOUT_LOCK_KEY);
+//};
 
-const hasAutoCheckoutStarted = () => {
-  return sessionStorage.getItem(AUTO_CHECKOUT_LOCK_KEY) === "true";
-};
+//const hasAutoCheckoutStarted = () => {
+  //return sessionStorage.getItem(AUTO_CHECKOUT_LOCK_KEY) === "true";
+//};
 
-const markAutoCheckoutStarted = () => {
-  sessionStorage.setItem(AUTO_CHECKOUT_LOCK_KEY, "true");
-};
+//const markAutoCheckoutStarted = () => {
+ // sessionStorage.setItem(AUTO_CHECKOUT_LOCK_KEY, "true");
+//};
 
   const normalizeAiDraft = useCallback((aiDraft) => {
     return {
