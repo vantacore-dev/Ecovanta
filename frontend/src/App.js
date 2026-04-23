@@ -525,7 +525,7 @@ const markAutoCheckoutStarted = () => {
     return data;
   }, []);
 
-const AUTO_CHECKOUT_LOCK_KEY = "ecovanta_auto_checkout_started";
+//const AUTO_CHECKOUT_LOCK_KEY = "ecovanta_auto_checkout_started";
 
 const clearPendingPlanFromUrl = () => {
   const url = new URL(window.location.href);
