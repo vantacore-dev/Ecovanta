@@ -47,7 +47,7 @@ const PLAN_CONFIG = {
     name: "Pro",
     priceDisplay: "€799/mo",
     interval: "monthly",
-    cta: "Upgrade to Pro",
+    cta: "Get Started",
     stripeEnvKey: "STRIPE_PRICE_PRO",
     highlighted: true,
     description:
@@ -81,7 +81,7 @@ const PLAN_CONFIG = {
     name: "Enterprise",
     priceDisplay: "€899",
     interval: "",
-    cta: "Upgrade to Entgerprise€",
+    cta: "Upgrade to Entgerprise",
     stripeEnvKey: "STRIPE_PRICE_ENTERPRISE",
     highlighted: false,
     description:
