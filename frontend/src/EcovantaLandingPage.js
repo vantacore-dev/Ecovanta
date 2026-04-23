@@ -1,3 +1,4 @@
+import { PLAN_KEYS, PLAN_CONFIG } from "./plans";
 import React from "react";
 
 export default function EcovantaLandingPage() {
@@ -521,52 +522,33 @@ export default function EcovantaLandingPage() {
               alignItems: "stretch"
             }}
           >
-            <PricingCard
-              name="Free"
-              price="€0"
-              description="Get started with structured ESG reporting and basic analytics."
-              features={[
-                "Manual ESG data input",
-                "Basic report creation",
-                "Limited analytics",
-                "Single-user access"
-              ]}
-              buttonText="Start Free"
-              onAction={goToSignup}
-            />
+            <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "20px",
+    alignItems: "stretch"
+  }}
+>
+  {[PLAN_KEYS.FREE, PLAN_KEYS.PRO, PLAN_KEYS.ENTERPRISE].map((planKey) => {
+    const plan = PLAN_CONFIG[planKey];
 
-            <PricingCard
-              name="Pro"
-              price="€799/month"
-              description="For growing teams automating ESG workflows and report generation."
-              features={[
-                "Free Plan features +",
-                "AI-powered draft generation",
-                "Structured recommendations",
-                "Benchmark comparison",
-                "PDF export",
-                "Advanced analytics"
-              ]}
-              highlighted
-              buttonText="Upgrade to Pro"
-              onAction={goToSignup}
-            />
-
-            <PricingCard
-              name="Enterprise"
-              price="€899/month"
-              description="For organizations requiring governance, scale, and audit-grade control."
-              features={[
-                "Pro Plan features +",
-                "Review & approval workflows",
-                "Audit logs and traceability",
-                "Team collaboration",
-                "Priority support",
-                "API access"
-              ]}
-              buttonText="Upgrade to Enterprise"
-              onAction={goToDemo}
-            />
+    return (
+      <PricingCard
+        key={plan.key}
+        name={plan.name}
+        price={plan.priceDisplay}
+        description={plan.description}
+        features={plan.marketingFeatures}
+        highlighted={plan.highlighted}
+        buttonText={plan.cta}
+        onAction={
+          plan.key === PLAN_KEYS.ENTERPRISE ? goToDemo : goToSignup
+        }
+          />
+            );
+              })}
+            </div>
           </div>
         </div>
       </section>

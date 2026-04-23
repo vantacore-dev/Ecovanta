@@ -1,3 +1,4 @@
+import { PLAN_KEYS, canAccess, getPlanConfig } from "./plans";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   BarChart,
@@ -463,9 +464,15 @@ function FieldLabel({ children, helpKey }) {
   const [reportForm, setReportForm] = useState(initialReportForm);
   const [recommendationFilter, setRecommendationFilter] = useState("all");
 
-  const currentPlan = user?.plan || "free";
-  const hasProAccess = ["pro", "enterprise"].includes(currentPlan);
-  const hasEnterpriseAccess = currentPlan === "enterprise";
+   const currentPlan = user?.plan || PLAN_KEYS.FREE;
+  const currentPlanConfig = getPlanConfig(currentPlan);
+
+  const hasAiDraftAccess = canAccess(currentPlan, "aiDraft");
+  const hasPdfExportAccess = canAccess(currentPlan, "pdfExport");
+  const hasAdvancedAnalyticsAccess = canAccess(currentPlan, "advancedAnalytics");
+  const hasWorkflowAccess = canAccess(currentPlan, "workflow");
+  const hasAuditTrailAccess = canAccess(currentPlan, "auditTrail");
+
 
   const authHeaders = useMemo(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -688,11 +695,11 @@ function FieldLabel({ children, helpKey }) {
     }
   }, [token, authHeaders, fetchJson]);
 
-  const loadAuditLogs = useCallback(async () => {
-    if (!token || !hasEnterpriseAccess) {
-      setAuditLogs([]);
-      return;
-    }
+ const loadAuditLogs = useCallback(async () => {
+  if (!token || !canAccess(currentPlan, "auditTrail")) {
+    setAuditLogs([]);
+    return;
+  }
 
     try {
       const data = await fetchJson(`${API}/audit`, {
@@ -702,7 +709,7 @@ function FieldLabel({ children, helpKey }) {
     } catch (err) {
       console.error("Load audit logs error:", err);
     }
-  }, [token, authHeaders, fetchJson, hasEnterpriseAccess]);
+}, [token, authHeaders, fetchJson, currentPlan]);
 
   const loadBenchmark = useCallback(async () => {
     try {
@@ -740,10 +747,14 @@ function FieldLabel({ children, helpKey }) {
       return;
     }
 
-    if (!hasEnterpriseAccess) {
-      alert("Workflow features are available on Enterprise only.");
-      return;
-    }
+   if (
+  !requireFeature(
+    "workflow",
+    "Workflow features are available on Enterprise only."
+  )
+) {
+  return;
+}
 
     try {
       const res = await fetch(`${API}/reports/${reportId}/status`, {
@@ -768,6 +779,14 @@ function FieldLabel({ children, helpKey }) {
       alert(`Failed: ${err.message}`);
     }
   };
+
+const requireFeature = (featureName, message) => {
+  if (!canAccess(currentPlan, featureName)) {
+    alert(message);
+    return false;
+  }
+  return true;
+};
 
   const upgradePlan = async (plan) => {
     if (!token) {
@@ -876,10 +895,14 @@ function FieldLabel({ children, helpKey }) {
       return;
     }
 
-    if (!hasProAccess) {
-      alert("AI Draft is available on Pro and Enterprise plans only.");
-      return;
-    }
+   if (
+  !requireFeature(
+    "aiDraft",
+    "AI Draft is available on Pro and Enterprise plans only."
+  )
+) {
+  return;
+}
 
     const payload = {
       companyName: String(reportForm.companyName || "").trim(),
@@ -1087,10 +1110,14 @@ function FieldLabel({ children, helpKey }) {
       return;
     }
 
-    if (!hasProAccess) {
-      alert("PDF export is available on Pro and Enterprise plans only.");
-      return;
-    }
+   if (
+  !requireFeature(
+    "pdfExport",
+    "PDF export is available on Pro and Enterprise plans only."
+  )
+) {
+  return;
+}
 
     try {
       const res = await fetch(`${API}/reports/${reportId}/pdf`, {
@@ -1337,9 +1364,9 @@ function FieldLabel({ children, helpKey }) {
           </div>
 
           <div style={{ textAlign: "right" }}>
-            <div style={{ marginBottom: "8px" }}>
-              <strong>Plan:</strong> {user?.plan || "free"}
-            </div>
+           <div style={{ marginBottom: "8px" }}>
+          <strong>Plan:</strong> {currentPlanConfig.name}
+        </div>
 
             <div style={{ marginBottom: "8px" }}>
               <strong>Role:</strong> {user?.role || "preparer"}
@@ -1353,7 +1380,7 @@ function FieldLabel({ children, helpKey }) {
                 justifyContent: "flex-end"
               }}
             >
-              {currentPlan === "free" && (
+              {currentPlan === PLAN_KEYS.FREE && (
                 <>
                   <button
                     onClick={() => upgradePlan("pro")}
@@ -1367,7 +1394,7 @@ function FieldLabel({ children, helpKey }) {
                       cursor: "pointer"
                     }}
                   >
-                    Upgrade to Pro
+                   {getPlanConfig(PLAN_KEYS.PRO).cta}
                   </button>
 
                   <button
@@ -1382,12 +1409,12 @@ function FieldLabel({ children, helpKey }) {
                       cursor: "pointer"
                     }}
                   >
-                    Upgrade to Enterprise
+                   {getPlanConfig(PLAN_KEYS.ENTERPRISE).cta}
                   </button>
                 </>
               )}
 
-              {currentPlan === "pro" && (
+             {currentPlan === PLAN_KEYS.PRO && (
                 <button
                   onClick={() => upgradePlan("enterprise")}
                   style={{
@@ -1404,7 +1431,7 @@ function FieldLabel({ children, helpKey }) {
                 </button>
               )}
 
-              {["pro", "enterprise"].includes(currentPlan) && (
+              {currentPlan !== PLAN_KEYS.FREE && (
                 <button
                   onClick={cancelSubscription}
                   style={{
@@ -2214,7 +2241,7 @@ function FieldLabel({ children, helpKey }) {
 
               <h3>AI Draft</h3>
 
-              {hasProAccess ? (
+           {hasAiDraftAccess ? (
                 <button
                   onClick={generateAiDraft}
                   disabled={aiLoading || !isEditable()}
@@ -2688,7 +2715,7 @@ function FieldLabel({ children, helpKey }) {
           </div>
         </div>
 
-        {hasProAccess && (
+      {hasAdvancedAnalyticsAccess && (
           <div
             style={{
               display: "grid",
@@ -3213,7 +3240,7 @@ function FieldLabel({ children, helpKey }) {
                       flexWrap: "wrap"
                     }}
                   >
-                    {hasProAccess ? (
+                    {hasPdfExportAccess ? (
                       <button
                         onClick={() =>
                           downloadSingleReportPDF(
@@ -3279,8 +3306,7 @@ function FieldLabel({ children, helpKey }) {
                       Delete
                     </button>
 
-                    {hasEnterpriseAccess &&
-                      report.reviewStatus === "draft" && (
+                    {hasWorkflowAccess && report.reviewStatus === "draft" && (
                         <button
                           onClick={() =>
                             updateReportStatus(
@@ -3302,8 +3328,7 @@ function FieldLabel({ children, helpKey }) {
                         </button>
                       )}
 
-                    {hasEnterpriseAccess &&
-                      report.reviewStatus === "in_review" &&
+                    {hasWorkflowAccess && report.reviewStatus === "in_review" &&
                       ["reviewer", "approver", "admin"].includes(user?.role) && (
                         <button
                           onClick={() =>
@@ -3326,8 +3351,7 @@ function FieldLabel({ children, helpKey }) {
                         </button>
                       )}
 
-                    {hasEnterpriseAccess &&
-                      report.reviewStatus === "approved" &&
+                        {hasWorkflowAccess && report.reviewStatus === "approved" &&
                       ["approver", "admin"].includes(user?.role) && (
                         <button
                           onClick={() =>
@@ -3356,7 +3380,7 @@ function FieldLabel({ children, helpKey }) {
           )}
         </div>
 
-        {hasEnterpriseAccess && (
+        {hasAuditTrailAccess && (
           <div
             style={{
               background: "#ffffff",
