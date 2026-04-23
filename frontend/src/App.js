@@ -438,12 +438,27 @@ function FieldLabel({ children, helpKey }) {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState("login");
-  const clearPendingPlanFromUrl = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete("plan");
-    url.searchParams.delete("signup");
-    window.history.replaceState({}, "", url.pathname + url.search);
-    };
+const AUTO_CHECKOUT_LOCK_KEY = "ecovanta_auto_checkout_started";
+
+const clearPendingPlanFromUrl = () => {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("plan");
+  url.searchParams.delete("signup");
+  url.searchParams.delete("checkout");
+  window.history.replaceState({}, "", url.pathname + url.search);
+};
+
+const clearAutoCheckoutLock = () => {
+  sessionStorage.removeItem(AUTO_CHECKOUT_LOCK_KEY);
+};
+
+const hasAutoCheckoutStarted = () => {
+  return sessionStorage.getItem(AUTO_CHECKOUT_LOCK_KEY) === "true";
+};
+
+const markAutoCheckoutStarted = () => {
+  sessionStorage.setItem(AUTO_CHECKOUT_LOCK_KEY, "true");
+};
   const [authForm, setAuthForm] = useState({
     email: "",
     password: "",
@@ -509,6 +524,28 @@ function FieldLabel({ children, helpKey }) {
 
     return data;
   }, []);
+
+const AUTO_CHECKOUT_LOCK_KEY = "ecovanta_auto_checkout_started";
+
+const clearPendingPlanFromUrl = () => {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("plan");
+  url.searchParams.delete("signup");
+  url.searchParams.delete("checkout");
+  window.history.replaceState({}, "", url.pathname + url.search);
+};
+
+const clearAutoCheckoutLock = () => {
+  sessionStorage.removeItem(AUTO_CHECKOUT_LOCK_KEY);
+};
+
+const hasAutoCheckoutStarted = () => {
+  return sessionStorage.getItem(AUTO_CHECKOUT_LOCK_KEY) === "true";
+};
+
+const markAutoCheckoutStarted = () => {
+  sessionStorage.setItem(AUTO_CHECKOUT_LOCK_KEY, "true");
+};
 
   const normalizeAiDraft = useCallback((aiDraft) => {
     return {
@@ -770,24 +807,52 @@ const login = useCallback(async () => {
     loadBenchmark();
   }, [loadBenchmark]);
 
+//ici
+
 useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const checkoutStatus = params.get("checkout");
+
+  // Clear the lock after Stripe redirects back
+  if (checkoutStatus === "success" || checkoutStatus === "cancelled") {
+    clearAutoCheckoutLock();
+    setPendingUpgradePlan("");
+    clearPendingPlanFromUrl();
+
+    if (checkoutStatus === "success") {
+      setStatusMessage("Subscription activated successfully.");
+      refreshDashboard();
+    }
+
+    if (checkoutStatus === "cancelled") {
+      setStatusMessage("Checkout cancelled.");
+    }
+
+    return;
+  }
+
   if (!token || !pendingUpgradePlan) return;
 
-  if (pendingUpgradePlan === "pro" || pendingUpgradePlan === "enterprise") {
-    const runCheckout = async () => {
-      try {
-        await upgradePlan(pendingUpgradePlan);
-      } catch (err) {
-        console.error("Auto-upgrade error:", err);
-      } finally {
-        setPendingUpgradePlan("");
-        clearPendingPlanFromUrl();
-      }
-    };
-
-    runCheckout();
+  if (!(pendingUpgradePlan === "pro" || pendingUpgradePlan === "enterprise")) {
+    return;
   }
-  }, [token, pendingUpgradePlan]);
+
+  // Prevent looping checkout launches
+  if (hasAutoCheckoutStarted()) return;
+
+  markAutoCheckoutStarted();
+
+  const runCheckout = async () => {
+    try {
+      await upgradePlan(pendingUpgradePlan);
+    } catch (err) {
+      console.error("Auto-upgrade error:", err);
+      clearAutoCheckoutLock();
+    }
+  };
+
+  runCheckout();
+}, [token, pendingUpgradePlan, refreshDashboard]);
 
   const updateReportStatus = async (reportId, status) => {
     if (!token) {
