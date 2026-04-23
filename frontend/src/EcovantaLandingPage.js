@@ -540,6 +540,7 @@ export default function EcovantaLandingPage() {
               price="€799/month"
               description="For growing teams automating ESG workflows and report generation."
               features={[
+                "Free Plan features +",
                 "AI-powered draft generation",
                 "Structured recommendations",
                 "Benchmark comparison",
@@ -556,6 +557,7 @@ export default function EcovantaLandingPage() {
               price="€899/month"
               description="For organizations requiring governance, scale, and audit-grade control."
               features={[
+                "Pro Plan features +",
                 "Review & approval workflows",
                 "Audit logs and traceability",
                 "Team collaboration",
@@ -615,7 +617,7 @@ export default function EcovantaLandingPage() {
               lineHeight: 1.7
             }}
           >
-            Join forward-thinking companies using AI to accelerate CSRD
+            Join Ecovanta, a green-tech & forward-thinking company using AI to accelerate CSRD
             readiness, improve ESG reporting quality, and deliver investor-grade
             disclosures.
           </p>
