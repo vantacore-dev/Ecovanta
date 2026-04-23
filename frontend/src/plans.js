@@ -36,7 +36,7 @@ export const PLAN_CONFIG = {
   [PLAN_KEYS.PRO]: {
     key: PLAN_KEYS.PRO,
     name: "Pro",
-    priceDisplay: "€49/mo",
+    priceDisplay: "€799/mo",
     cta: "Upgrade to Pro",
     description:
       "For teams automating ESG workflows, reporting, and AI-driven analysis.",
@@ -67,8 +67,8 @@ export const PLAN_CONFIG = {
   [PLAN_KEYS.ENTERPRISE]: {
     key: PLAN_KEYS.ENTERPRISE,
     name: "Enterprise",
-    priceDisplay: "Custom",
-    cta: "Contact Sales",
+    priceDisplay: "€899/mo",
+    cta: "Upgrade to Enterprise",
     description:
       "For organizations requiring governance controls, review workflows, and audit-grade traceability.",
     marketingFeatures: [
