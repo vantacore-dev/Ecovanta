@@ -2,9 +2,9 @@ import React from "react";
 import { PLAN_KEYS, PLAN_CONFIG } from "./plans";
 
 export default function EcovantaLandingPage() {
-  const goToSignup = () => {
-    window.location.href = "/?signup=true";
-  };
+const goToSignup = (plan = "free") => {
+  window.location.href = `/?signup=true&plan=${plan}`;
+};
 
   const goToDemo = () => {
     window.location.href =
@@ -539,7 +539,9 @@ export default function EcovantaLandingPage() {
                 highlighted={Boolean(plan.highlighted)}
                 buttonText={plan.cta}
                 onAction={
-                  plan.key === PLAN_KEYS.ENTERPRISE ? goToDemo : goToSignup
+                plan.key === PLAN_KEYS.ENTERPRISE
+                ? goToDemo
+                : () => goToSignup(plan.key)
                 }
               />
             ))}
