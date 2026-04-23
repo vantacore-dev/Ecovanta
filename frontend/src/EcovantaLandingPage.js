@@ -1,5 +1,5 @@
-import { PLAN_KEYS, PLAN_CONFIG } from "./plans";
 import React from "react";
+import { PLAN_KEYS, PLAN_CONFIG } from "./plans";
 
 export default function EcovantaLandingPage() {
   const goToSignup = () => {
@@ -7,8 +7,15 @@ export default function EcovantaLandingPage() {
   };
 
   const goToDemo = () => {
-    window.location.href = "mailto:hello@ecovanta.ai?subject=Ecovanta Demo Request";
+    window.location.href =
+      "mailto:hello@ecovanta.ai?subject=Ecovanta Demo Request";
   };
+
+  const orderedPlans = [
+    PLAN_KEYS.FREE,
+    PLAN_KEYS.PRO,
+    PLAN_KEYS.ENTERPRISE
+  ].map((key) => PLAN_CONFIG[key]);
 
   return (
     <div
@@ -90,7 +97,7 @@ export default function EcovantaLandingPage() {
               Book Demo
             </button>
             <button style={primaryButtonStyle} onClick={goToSignup}>
-              Start Free
+              {PLAN_CONFIG[PLAN_KEYS.FREE].cta}
             </button>
           </nav>
         </div>
@@ -164,7 +171,7 @@ export default function EcovantaLandingPage() {
               }}
             >
               <button style={primaryButtonLargeStyle} onClick={goToSignup}>
-                Start Free
+                {PLAN_CONFIG[PLAN_KEYS.FREE].cta}
               </button>
               <button style={secondaryButtonLargeStyle} onClick={goToDemo}>
                 Book Demo
@@ -522,33 +529,20 @@ export default function EcovantaLandingPage() {
               alignItems: "stretch"
             }}
           >
-            <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "20px",
-    alignItems: "stretch"
-  }}
->
-  {[PLAN_KEYS.FREE, PLAN_KEYS.PRO, PLAN_KEYS.ENTERPRISE].map((planKey) => {
-    const plan = PLAN_CONFIG[planKey];
-
-    return (
-      <PricingCard
-        key={plan.key}
-        name={plan.name}
-        price={plan.priceDisplay}
-        description={plan.description}
-        features={plan.marketingFeatures}
-        highlighted={plan.highlighted}
-        buttonText={plan.cta}
-        onAction={
-          plan.key === PLAN_KEYS.ENTERPRISE ? goToDemo : goToSignup
-        }
-          />
-            );
-              })}
-            </div>
+            {orderedPlans.map((plan) => (
+              <PricingCard
+                key={plan.key}
+                name={plan.name}
+                price={plan.priceDisplay}
+                description={plan.description}
+                features={plan.marketingFeatures}
+                highlighted={Boolean(plan.highlighted)}
+                buttonText={plan.cta}
+                onAction={
+                  plan.key === PLAN_KEYS.ENTERPRISE ? goToDemo : goToSignup
+                }
+              />
+            ))}
           </div>
         </div>
       </section>
@@ -599,7 +593,7 @@ export default function EcovantaLandingPage() {
               lineHeight: 1.7
             }}
           >
-            Join Ecovanta, a green-tech & forward-thinking company using AI to accelerate CSRD
+            Join forward-thinking companies using AI to accelerate CSRD
             readiness, improve ESG reporting quality, and deliver investor-grade
             disclosures.
           </p>
@@ -613,7 +607,7 @@ export default function EcovantaLandingPage() {
             }}
           >
             <button style={finalPrimaryButtonStyle} onClick={goToSignup}>
-              Start Free
+              {PLAN_CONFIG[PLAN_KEYS.FREE].cta}
             </button>
             <button style={finalSecondaryButtonStyle} onClick={goToDemo}>
               Book Demo
