@@ -490,6 +490,9 @@ const markAutoCheckoutStarted = () => {
   const [recommendationFilter, setRecommendationFilter] = useState("all");
 
    const currentPlan = user?.plan || PLAN_KEYS.FREE;
+   console.log("currentPlan", currentPlan);
+   console.log("aiDraft access", canAccess(currentPlan, "aiDraft"));
+   console.log("user", user);
   const currentPlanConfig = getPlanConfig(currentPlan);
 
   const hasAiDraftAccess = canAccess(currentPlan, "aiDraft");
