@@ -711,6 +711,29 @@ const buildMaterialityHeatmapChart = async (report) => {
   return chartJSNodeCanvas.renderToBuffer(configuration);
 };
 
+
+const { generateStyledPDF } = require("../services/pdfService");
+const { getReportHTML } = require("../templates/reportTemplate");
+
+router.post("/export-pdf", async (req, res) => {
+  try {
+    const report = req.body;
+
+    const html = getReportHTML(report);
+    const pdfBuffer = await generateStyledPDF(html);
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "attachment; filename=report.pdf"
+    });
+
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("PDF generation failed");
+  }
+});
+
 const buildComplianceGaugeChart = async (report) => {
   const score = getComplianceScore(report);
 
