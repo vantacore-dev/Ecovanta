@@ -5,8 +5,10 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"
+    "postinstall": "npx puppeteer browsers install chrome"
   },
-  "dependencies": {
+  
+    "dependencies": {
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "chart.js": "^4.5.1",
@@ -21,4 +23,6 @@
     "puppeteer": "^24.42.0",
     "stripe": "^22.0.1"
   }
+
+  
 }
