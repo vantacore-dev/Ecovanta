@@ -1,15 +1,15 @@
 const puppeteer = require("puppeteer");
 
 async function generateStyledPDF(html) {
-const browser = await puppeteer.launch({
-  headless: "new",
-  args: [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-gpu"
-  ]
-});
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu"
+    ]
+  });
 
   const page = await browser.newPage();
 
@@ -17,7 +17,7 @@ const browser = await puppeteer.launch({
     waitUntil: "networkidle0"
   });
 
-  const pdf = await page.pdf({
+  const pdfBuffer = await page.pdf({
     format: "A4",
     printBackground: true,
     margin: {
@@ -29,8 +29,7 @@ const browser = await puppeteer.launch({
   });
 
   await browser.close();
-
-  return pdf;
+  return pdfBuffer;
 }
 
 module.exports = { generateStyledPDF };

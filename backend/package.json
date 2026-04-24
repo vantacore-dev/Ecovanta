@@ -4,11 +4,10 @@
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js",
-    "postinstall": "npx puppeteer browsers install chrome"
-  },
-  
-    "dependencies": {
+  "start": "node server.js",
+  "postinstall": "npx puppeteer browsers install chrome --path /opt/render/.cache/puppeteer"
+},
+      "dependencies": {
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "chart.js": "^4.5.1",
