@@ -1130,7 +1130,48 @@ const requireFeature = (featureName, message) => {
       });
 
 
-      const savedReport = await fetchJson(url, options);
+  const saveReport = async () => {
+  try {
+    const savedReport = await fetchJson(`${API}/reports`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders
+      },
+      body: JSON.stringify(reportForm)
+    });
+
+    const savedId = savedReport._id || savedReport.id;
+
+    // ✅ Update form with ID (critical for download)
+    setReportForm((prev) => ({
+      ...prev,
+      ...savedReport,
+      _id: savedId,
+      id: savedId
+    }));
+
+    // ✅ Avoid duplicate reports in list
+    setReports((prev) => {
+      const exists = prev.some(
+        (item) => (item._id || item.id) === savedId
+      );
+
+      if (exists) {
+        return prev.map((item) =>
+          (item._id || item.id) === savedId ? savedReport : item
+        );
+      }
+
+      return [savedReport, ...prev];
+    });
+
+    setStatusMessage("Report saved successfully.");
+  } catch (err) {
+    console.error("Save error:", err);
+    alert("Save failed");
+  }
+};   
 
 const savedId = savedReport._id || savedReport.id;
 
