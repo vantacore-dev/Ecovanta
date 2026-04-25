@@ -128,6 +128,30 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
+// CREATE report
+router.post("/", auth, async (req, res) => {
+  try {
+    const payload = buildReportPayload(req);
+
+    const report = await ESRSReport.create(payload);
+
+    await createAuditLog({
+      user: req.user,
+      action: "REPORT_CREATED",
+      entityId: report._id,
+      companyName: report.companyName,
+      details: {
+        reviewStatus: report.reviewStatus,
+        reportingYear: report.reportingYear
+      }
+    });
+
+    return res.json(report);
+  } catch (err) {
+    console.error("Save report error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // ========================
 // UPDATE REPORT
@@ -203,14 +227,32 @@ const html = getReportHTML({
 // ========================
 router.delete("/:id", auth, async (req, res) => {
   try {
-    await ESRSReport.findOneAndDelete({
+    const report = await ESRSReport.findOneAndDelete({
       _id: req.params.id,
       userId: req.user.userId
     });
 
-    res.json({ message: "Deleted" });
+    if (!report) {
+      return res.status(404).json({ error: "Report not found" });
+    }
+
+    await createAuditLog({
+      user: req.user,
+      action: "REPORT_DELETED",
+      entityId: report._id,
+      companyName: report.companyName,
+      details: {
+        reportingYear: report.reportingYear
+      }
+    });
+
+    return res.json({
+      message: "Report deleted successfully",
+      deletedId: report._id
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Delete report error:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
