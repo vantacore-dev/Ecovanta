@@ -1173,15 +1173,6 @@ const requireFeature = (featureName, message) => {
   }
 };   
 
-const savedId = savedReport._id || savedReport.id;
-
-setReportForm((prev) => ({
-  ...prev,
-  ...savedReport,
-  _id: savedId,
-  id: savedId
-}));
-
 setReports((prev) => {
   const exists = prev.some((item) => (item._id || item.id) === savedId);
 
