@@ -1129,6 +1129,33 @@ const requireFeature = (featureName, message) => {
         body: JSON.stringify(payload)
       });
 
+
+      const savedReport = await fetchJson(url, options);
+
+const savedId = savedReport._id || savedReport.id;
+
+setReportForm((prev) => ({
+  ...prev,
+  ...savedReport,
+  _id: savedId,
+  id: savedId
+}));
+
+setReports((prev) => {
+  const exists = prev.some((item) => (item._id || item.id) === savedId);
+
+  if (exists) {
+    return prev.map((item) =>
+      (item._id || item.id) === savedId ? savedReport : item
+    );
+  }
+
+  return [savedReport, ...prev];
+});
+
+setSelectedReportId(savedId);
+setStatusMessage("Report saved successfully.");
+
       setReports((prev) => [saved, ...prev]);
       setSelectedReportId(saved._id || "");
       setReportForm(initialReportForm);
@@ -1199,63 +1226,30 @@ const requireFeature = (featureName, message) => {
     setStatusMessage("Report loaded into form.");
   };
 
- const downloadSingleReportPDF = async (report) => {
-  if (!report?._id && !report?.id) {
+const downloadSingleReportPDF = async (report) => {
+  const reportId = report?._id || report?.id;
+
+  if (!reportId) {
     alert("Please save the report before downloading PDF.");
     return;
   }
 
-  if (!canAccess(currentPlan, "pdfExport")) {
-    alert("PDF export is available on Pro and Enterprise plans only.");
-    return;
-  }
+  const response = await fetch(`${API}/reports/${reportId}/pdf`, {
+    headers: authHeaders
+  });
 
-  const reportId = report._id || report.id;
+  const blob = await response.blob();
 
-  try {
-    const response = await fetch(`${API}/reports/${reportId}/pdf`, {
-      method: "GET",
-      headers: {
-        ...authHeaders
-      }
-    });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
 
-    const contentType = response.headers.get("content-type") || "";
+  link.href = url;
+  link.download = `${(report.companyName || "report").replace(
+    /[^a-z0-9]/gi,
+    "_"
+  )}.pdf`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || "PDF download failed");
-    }
-
-    if (!contentType.includes("application/pdf")) {
-      const text = await response.text();
-      throw new Error(`Expected PDF but received: ${text.slice(0, 200)}`);
-    }
-
-    const blob = await response.blob();
-
-    if (!blob || blob.size < 1000) {
-      throw new Error("Downloaded PDF is empty or invalid.");
-    }
-
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = `${(report.companyName || "report").replace(
-      /[^a-z0-9]/gi,
-      "_"
-    )}.pdf`;
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error("PDF download error:", err);
-    alert(`Download failed: ${err.message}`);
-  }
+  link.click();
 };
 
  const deleteReport = async (report) => {
@@ -3378,13 +3372,8 @@ const requireFeature = (featureName, message) => {
                     }}
                   >
                     {hasPdfExportAccess ? (
-                      <button
-                        onClick={() =>
-                          downloadSingleReportPDF(
-                            report._id || report.id,
-                            report.companyName
-                          )
-                        }
+                    <button
+                     onClick={() => downloadSingleReportPDF(report)}
                         style={{
                           padding: "10px 14px",
                           borderRadius: "10px",
