@@ -1,3 +1,4 @@
+const { buildPdfCharts } = require("../services/chartService");
 const express = require("express");
 const auth = require("../middleware/auth");
 const ESRSReport = require("../models/ESRSReport");
@@ -166,7 +167,12 @@ router.get("/:id/pdf", auth, async (req, res) => {
       return res.status(404).json({ error: "Report not found" });
     }
 
-    const html = getReportHTML(report);
+  const charts = await buildPdfCharts(report);
+
+const html = getReportHTML({
+  ...report,
+  charts
+});
     const pdfBuffer = await generateStyledPDF(html);
 
     if (!pdfBuffer || pdfBuffer.length < 1000) {

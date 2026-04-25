@@ -329,7 +329,42 @@ function getReportHTML(report) {
 
     <div class="section">
       <h2>Executive ESG Snapshot</h2>
+        <div class="section page-break">
+  <h2>Analytics & Visual Insights</h2>
 
+  ${
+    report.charts?.benchmarkChart
+      ? `
+        <div class="chart-card">
+          <h3>Benchmark Comparison</h3>
+          <img src="${report.charts.benchmarkChart}" />
+        </div>
+      `
+      : ""
+  }
+
+  ${
+    report.charts?.materialityHeatmap
+      ? `
+        <div class="chart-card">
+          <h3>Materiality Heatmap</h3>
+          <img src="${report.charts.materialityHeatmap}" />
+        </div>
+      `
+      : ""
+  }
+
+  ${
+    report.charts?.complianceGauge
+      ? `
+        <div class="chart-card">
+          <h3>Compliance Gap Dashboard</h3>
+          <img src="${report.charts.complianceGauge}" />
+        </div>
+      `
+      : ""
+  }
+</div>
       <div class="grid-3">
         <div class="metric-card">
           <div class="metric-label">ESG Score</div>

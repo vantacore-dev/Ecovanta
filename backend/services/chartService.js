@@ -6,6 +6,9 @@ const chartJSNodeCanvas = new ChartJSNodeCanvas({
   backgroundColour: "white"
 });
 
+const toDataUri = (buffer) =>
+  `data:image/png;base64,${Buffer.from(buffer).toString("base64")}`;
+
 const getSectorBenchmarks = (sector) => {
   const benchmarks = {
     tech: { sectorAverage: 65, topQuartile: 82 },
@@ -43,9 +46,6 @@ const getComplianceScore = (report) => {
   return checks.length ? Math.round((complete / checks.length) * 100) : 0;
 };
 
-const bufferToDataUri = (buffer) =>
-  `data:image/png;base64,${buffer.toString("base64")}`;
-
 async function buildBenchmarkChart(report) {
   const sectorBench = getSectorBenchmarks(report.sector);
 
@@ -55,11 +55,10 @@ async function buildBenchmarkChart(report) {
       labels: ["Company Score", "Sector Average", "Top Quartile"],
       datasets: [
         {
-          label: "Score",
           data: [
             Number(report.scorecard?.overallScore || 0),
-            sectorBench.sectorAverage,
-            sectorBench.topQuartile
+            Number(report.scorecard?.sectorAverage || sectorBench.sectorAverage),
+            Number(report.scorecard?.topQuartile || sectorBench.topQuartile)
           ],
           backgroundColor: ["#5B8DB8", "#C7A86D", "#6FA287"],
           borderRadius: 8,
@@ -84,17 +83,18 @@ async function buildBenchmarkChart(report) {
         y: {
           beginAtZero: true,
           max: 100,
-          ticks: { stepSize: 20 },
+          ticks: { stepSize: 20, color: "#6B7280" },
           grid: { color: "#E5E7EB" }
         },
         x: {
+          ticks: { color: "#4B5563" },
           grid: { display: false }
         }
       }
     }
   });
 
-  return bufferToDataUri(buffer);
+  return toDataUri(buffer);
 }
 
 async function buildMaterialityHeatmapChart(report) {
@@ -103,7 +103,6 @@ async function buildMaterialityHeatmapChart(report) {
         x: Number(topic.financialScore100 || 0),
         y: Number(topic.impactScore100 || 0),
         label: topic.topicCode || topic.topicLabel || "Topic",
-        overall: Number(topic.overallMaterialityScore || 0),
         isMaterial: Boolean(topic.isMaterial)
       }))
     : [];
@@ -113,7 +112,6 @@ async function buildMaterialityHeatmapChart(report) {
     data: {
       datasets: [
         {
-          label: "Materiality Topics",
           data: points,
           backgroundColor: points.map((p) =>
             p.isMaterial ? "#7A6AAE" : "#B8B4C7"
@@ -142,19 +140,13 @@ async function buildMaterialityHeatmapChart(report) {
         x: {
           min: 0,
           max: 100,
-          title: {
-            display: true,
-            text: "Financial Materiality"
-          },
+          title: { display: true, text: "Financial Materiality" },
           grid: { color: "#E5E7EB" }
         },
         y: {
           min: 0,
           max: 100,
-          title: {
-            display: true,
-            text: "Impact Materiality"
-          },
+          title: { display: true, text: "Impact Materiality" },
           grid: { color: "#E5E7EB" }
         }
       }
@@ -169,13 +161,10 @@ async function buildMaterialityHeatmapChart(report) {
           ctx.save();
           ctx.font = "bold 11px Arial";
           ctx.fillStyle = "#374151";
-          ctx.textAlign = "left";
 
           meta.data.forEach((point, index) => {
             const raw = chart.data.datasets[0].data[index];
-            if (raw?.label) {
-              ctx.fillText(raw.label, point.x + 8, point.y - 8);
-            }
+            if (raw?.label) ctx.fillText(raw.label, point.x + 8, point.y - 8);
           });
 
           ctx.restore();
@@ -184,7 +173,7 @@ async function buildMaterialityHeatmapChart(report) {
     ]
   });
 
-  return bufferToDataUri(buffer);
+  return toDataUri(buffer);
 }
 
 async function buildComplianceGaugeChart(report) {
@@ -198,8 +187,7 @@ async function buildComplianceGaugeChart(report) {
         {
           data: [40, 30, 30],
           backgroundColor: ["#C96A5A", "#D7B26D", "#6FA287"],
-          borderWidth: 0,
-          hoverOffset: 0
+          borderWidth: 0
         }
       ]
     },
@@ -240,13 +228,6 @@ async function buildComplianceGaugeChart(report) {
           ctx.save();
 
           ctx.beginPath();
-          ctx.lineWidth = 4;
-          ctx.strokeStyle = "rgba(0,0,0,0.12)";
-          ctx.moveTo(centerX + 1, centerY + 1);
-          ctx.lineTo(needleX + 1, needleY + 1);
-          ctx.stroke();
-
-          ctx.beginPath();
           ctx.lineWidth = 3;
           ctx.lineCap = "round";
           ctx.strokeStyle = "#1F2937";
@@ -273,35 +254,13 @@ async function buildComplianceGaugeChart(report) {
           ctx.fillStyle = "#6B7280";
           ctx.fillText("Compliance Score", centerX, centerY + 20);
 
-          ctx.font = "13px Arial";
-          const labelRadius = outerRadius + 18;
-
-          [
-            { text: "Low", angle: -Math.PI + Math.PI * 0.2, color: "#A54E43" },
-            {
-              text: "Moderate",
-              angle: -Math.PI + Math.PI * 0.55,
-              color: "#9A7A38"
-            },
-            {
-              text: "Strong",
-              angle: -Math.PI + Math.PI * 0.85,
-              color: "#4E7D66"
-            }
-          ].forEach((label) => {
-            const lx = centerX + Math.cos(label.angle) * labelRadius;
-            const ly = centerY + Math.sin(label.angle) * labelRadius + 18;
-            ctx.fillStyle = label.color;
-            ctx.fillText(label.text, lx, ly);
-          });
-
           ctx.restore();
         }
       }
     ]
   });
 
-  return bufferToDataUri(buffer);
+  return toDataUri(buffer);
 }
 
 async function buildPdfCharts(report) {
@@ -319,6 +278,4 @@ async function buildPdfCharts(report) {
   };
 }
 
-module.exports = {
-  buildPdfCharts
-};
+module.exports = { buildPdfCharts };
