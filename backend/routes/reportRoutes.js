@@ -109,24 +109,21 @@ const buildReportPayload = (req) => ({
 });
 
 
+
 // ========================
 // CREATE REPORT
 // ========================
-router.post("/", auth, async (req, res) => {
+// GET all reports for current user
+router.get("/", auth, async (req, res) => {
   try {
-    const report = await ESRSReport.create(buildReportPayload(req));
+    const reports = await ESRSReport.find({
+      userId: req.user.userId
+    }).sort({ createdAt: -1 });
 
-    await createAuditLog({
-      user: req.user,
-      action: "REPORT_CREATED",
-      entityId: report._id,
-      companyName: report.companyName
-    });
-
-    res.json(report);
+    return res.json(reports);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("Load reports error:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
