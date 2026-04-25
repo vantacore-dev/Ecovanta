@@ -32,7 +32,6 @@ const normalizeMaterialityTopics = (topics) => {
   return topics.map((topic) => ({
     topicCode: topic?.topicCode || "",
     topicLabel: topic?.topicLabel || "",
-
     impactMateriality: {
       severity: Number(topic?.impactMateriality?.severity || 0),
       scale: Number(topic?.impactMateriality?.scale || 0),
@@ -40,20 +39,16 @@ const normalizeMaterialityTopics = (topics) => {
       irremediability: Number(topic?.impactMateriality?.irremediability || 0),
       likelihood: Number(topic?.impactMateriality?.likelihood || 0)
     },
-
     financialMateriality: {
       magnitude: Number(topic?.financialMateriality?.magnitude || 0),
       likelihood: Number(topic?.financialMateriality?.likelihood || 0),
       timeHorizon: topic?.financialMateriality?.timeHorizon || "medium"
     },
-
     stakeholdersConsulted: Array.isArray(topic?.stakeholdersConsulted)
       ? topic.stakeholdersConsulted
       : topic?.stakeholdersConsulted || "",
-
     isMaterial: Boolean(topic?.isMaterial),
     rationale: topic?.rationale || "",
-
     impactScore100: Number(topic?.impactScore100 || 0),
     financialScore100: Number(topic?.financialScore100 || 0),
     overallMaterialityScore: Number(topic?.overallMaterialityScore || 0)
@@ -110,50 +105,35 @@ const buildReportPayload = (req) => ({
   },
 
   reviewStatus: req.body?.reviewStatus || "draft",
-
   materialityTopics: normalizeMaterialityTopics(req.body?.materialityTopics)
 });
 
-// GET all reports for current user
-router.get("/", auth, async (req, res) => {
-  try {
-    const reports = await ESRSReport.find({
-      userId: req.user.userId
-    }).sort({ createdAt: -1 });
 
-    res.json(reports);
-  } catch (err) {
-    console.error("Load reports error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// CREATE report
+// ========================
+// CREATE REPORT
+// ========================
 router.post("/", auth, async (req, res) => {
   try {
-    const payload = buildReportPayload(req);
-
-    const report = await ESRSReport.create(payload);
+    const report = await ESRSReport.create(buildReportPayload(req));
 
     await createAuditLog({
       user: req.user,
       action: "REPORT_CREATED",
       entityId: report._id,
-      companyName: report.companyName,
-      details: {
-        reviewStatus: report.reviewStatus,
-        reportingYear: report.reportingYear
-      }
+      companyName: report.companyName
     });
 
     res.json(report);
   } catch (err) {
-    console.error("Save report error:", err);
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// UPDATE full report
+
+// ========================
+// UPDATE REPORT
+// ========================
 router.put("/:id", auth, async (req, res) => {
   try {
     const report = await ESRSReport.findOne({
@@ -161,125 +141,23 @@ router.put("/:id", auth, async (req, res) => {
       userId: req.user.userId
     });
 
-    if (!report) {
-      return res.status(404).json({ error: "Report not found" });
-    }
+    if (!report) return res.status(404).json({ error: "Not found" });
 
-    if (report.reviewStatus === "in_review" && req.user.role === "preparer") {
-      return res.status(403).json({
-        error: "Preparer cannot edit report in review"
-      });
-    }
-
-    const payload = buildReportPayload(req);
-
-    report.companyName = payload.companyName || report.companyName;
-    report.sector = payload.sector || report.sector;
-    report.reportingYear = payload.reportingYear;
-
-    report.esrs2 = payload.esrs2;
-    report.e1 = payload.e1;
-    report.s1 = payload.s1;
-    report.g1 = payload.g1;
-    report.aiDraft = payload.aiDraft;
-    report.scorecard = payload.scorecard;
-    report.reviewStatus = payload.reviewStatus || report.reviewStatus;
-    report.materialityTopics = payload.materialityTopics;
+    Object.assign(report, buildReportPayload(req));
 
     await report.save();
-
-    await createAuditLog({
-      user: req.user,
-      action: "REPORT_UPDATED",
-      entityId: report._id,
-      companyName: report.companyName,
-      details: {
-        fieldsUpdated: [
-          "companyName",
-          "sector",
-          "reportingYear",
-          "esrs2",
-          "e1",
-          "s1",
-          "g1",
-          "aiDraft",
-          "scorecard",
-          "materialityTopics"
-        ]
-      }
-    });
 
     res.json(report);
   } catch (err) {
-    console.error("Update report error:", err);
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// UPDATE workflow status
-router.put("/:id/status", auth, async (req, res) => {
-  try {
-    const { status } = req.body;
-    const userRole = req.user.role || "preparer";
 
-    const allowedStatuses = ["draft", "in_review", "approved", "published"];
-
-    if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({ error: "Invalid status" });
-    }
-
-    if (!canMoveToStatus(userRole, status)) {
-      return res.status(403).json({
-        error: `Role '${userRole}' cannot move report to status '${status}'`
-      });
-    }
-
-    const report = await ESRSReport.findOne({
-      _id: req.params.id,
-      userId: req.user.userId
-    });
-
-    if (!report) {
-      return res.status(404).json({ error: "Report not found" });
-    }
-
-    report.reviewStatus = status;
-
-    if (status === "approved") {
-      report.reviewedBy = req.user.userId;
-      report.reviewedAt = new Date();
-    }
-
-    if (status === "published") {
-      report.publishedAt = new Date();
-    }
-
-    await report.save();
-
-    await createAuditLog({
-      user: req.user,
-      action: "REPORT_STATUS_UPDATED",
-      entityId: report._id,
-      companyName: report.companyName,
-      details: {
-        newStatus: report.reviewStatus,
-        reviewedBy: report.reviewedBy,
-        reviewedAt: report.reviewedAt,
-        publishedAt: report.publishedAt
-      }
-    });
-
-    res.json({
-      message: "Report status updated successfully",
-      report
-    });
-  } catch (err) {
-    console.error("Status update error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// DOWNLOAD STYLED PDF FROM SAVED REPORT
+// ========================
+// DOWNLOAD PDF (FIXED)
+// ========================
 router.get("/:id/pdf", auth, async (req, res) => {
   try {
     const report = await ESRSReport.findOne({
@@ -291,92 +169,44 @@ router.get("/:id/pdf", auth, async (req, res) => {
       return res.status(404).json({ error: "Report not found" });
     }
 
-    const auditLogs = await AuditLog.find({
-      entityId: report._id
-    })
-      .sort({ createdAt: 1 })
-      .lean();
-
-    const reportForPdf = {
-      ...report,
-      auditLogs
-    };
-
-    await createAuditLog({
-      user: req.user,
-      action: "REPORT_PDF_DOWNLOADED",
-      entityId: report._id,
-      companyName: report.companyName,
-      details: {
-        reportingYear: report.reportingYear
-      }
-    });
-
-    const html = getReportHTML(reportForPdf);
-    const pdfBuffer = await generateStyledPDF(html);
-    console.log("PDF buffer length:", pdfBuffer?.length);
-   res.set({
-  "Content-Type": "application/pdf",
-  "Content-Disposition": `attachment; filename="${filename}"`,
-  "Content-Length": pdfBuffer.length
-});
-return res.end(pdfBuffer);
-
-    return res.send(pdfBuffer);
-  } catch (err) {
-    console.error("PDF generation error:", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// OPTIONAL: EXPORT PDF FROM FRONTEND PAYLOAD
-router.post("/export-pdf", auth, async (req, res) => {
-  try {
-    const report = req.body || {};
-
     const html = getReportHTML(report);
     const pdfBuffer = await generateStyledPDF(html);
-    console.log("PDF buffer length:", pdfBuffer?.length);
-    console.log("PDF buffer header:", pdfBuffer?.slice(0, 5).toString());
+
+    if (!pdfBuffer || pdfBuffer.length < 1000) {
+      throw new Error("Generated PDF is invalid");
+    }
+
+    const filename = `${(report.companyName || "report").replace(
+      /[^a-z0-9]/gi,
+      "_"
+    )}.pdf`;
+
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename=${(
-        report.companyName || "report"
-      ).replace(/[^a-z0-9]/gi, "_")}.pdf`
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Length": pdfBuffer.length
     });
 
-    return res.send(pdfBuffer);
+    return res.end(pdfBuffer);
   } catch (err) {
-    console.error("PDF export error:", err);
+    console.error("PDF error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
 
-// DELETE report
+
+// ========================
+// DELETE REPORT
+// ========================
 router.delete("/:id", auth, async (req, res) => {
   try {
-    const report = await ESRSReport.findOneAndDelete({
+    await ESRSReport.findOneAndDelete({
       _id: req.params.id,
       userId: req.user.userId
     });
 
-    if (!report) {
-      return res.status(404).json({ error: "Report not found" });
-    }
-
-    await createAuditLog({
-      user: req.user,
-      action: "REPORT_DELETED",
-      entityId: report._id,
-      companyName: report.companyName,
-      details: {
-        reportingYear: report.reportingYear
-      }
-    });
-
-    res.json({ message: "Report deleted successfully" });
+    res.json({ message: "Deleted" });
   } catch (err) {
-    console.error("Delete report error:", err);
     res.status(500).json({ error: err.message });
   }
 });
