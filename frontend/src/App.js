@@ -528,27 +528,6 @@ const markAutoCheckoutStarted = () => {
     return data;
   }, []);
 
-//const AUTO_CHECKOUT_LOCK_KEY = "ecovanta_auto_checkout_started";
-
-//const clearPendingPlanFromUrl = () => {
-  //const url = new URL(window.location.href);
-  //url.searchParams.delete("plan");
-  //url.searchParams.delete("signup");
-  //url.searchParams.delete("checkout");
-  //window.history.replaceState({}, "", url.pathname + url.search);
-//};
-
-//const clearAutoCheckoutLock = () => {
-  //sessionStorage.removeItem(AUTO_CHECKOUT_LOCK_KEY);
-//};
-
-//const hasAutoCheckoutStarted = () => {
-  //return sessionStorage.getItem(AUTO_CHECKOUT_LOCK_KEY) === "true";
-//};
-
-//const markAutoCheckoutStarted = () => {
- // sessionStorage.setItem(AUTO_CHECKOUT_LOCK_KEY, "true");
-//};
 
   const normalizeAiDraft = useCallback((aiDraft) => {
     return {
@@ -1220,55 +1199,97 @@ const requireFeature = (featureName, message) => {
     setStatusMessage("Report loaded into form.");
   };
 
-  const downloadSingleReportPDF = async (reportId, companyName) => {
-    if (!token) {
-      alert("Login required.");
-      return;
-    }
+ const downloadSingleReportPDF = async (report) => {
+  if (!report?._id && !report?.id) {
+    alert("Please save the report before downloading PDF.");
+    return;
+  }
 
-   if (
-  !requireFeature(
-    "pdfExport",
-    "PDF export is available on Pro and Enterprise plans only."
-  )
-) {
-  return;
-}
+  if (!canAccess(currentPlan, "pdfExport")) {
+    alert("PDF export is available on Pro and Enterprise plans only.");
+    return;
+  }
 
-    try {
-      const res = await fetch(`${API}/reports/${reportId}/pdf`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+  const reportId = report._id || report.id;
 
-      if (!res.ok) {
-        const text = await res.text();
-        alert(`Download failed: ${text}`);
-        return;
+  try {
+    const response = await fetch(`${API}/reports/${reportId}/pdf`, {
+      method: "GET",
+      headers: {
+        ...authHeaders
       }
+    });
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const safeName = (companyName || "report").replace(/[^a-z0-9]/gi, "_");
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${safeName}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("PDF download error:", err);
-      alert("Download failed");
+    const contentType = response.headers.get("content-type") || "";
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "PDF download failed");
     }
-  };
 
-  const deleteReport = async () => {
-    alert(
-      "Delete route is not included yet. Add DELETE /reports/:id on the backend first."
+    if (!contentType.includes("application/pdf")) {
+      const text = await response.text();
+      throw new Error(`Expected PDF but received: ${text.slice(0, 200)}`);
+    }
+
+    const blob = await response.blob();
+
+    if (!blob || blob.size < 1000) {
+      throw new Error("Downloaded PDF is empty or invalid.");
+    }
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `${(report.companyName || "report").replace(
+      /[^a-z0-9]/gi,
+      "_"
+    )}.pdf`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("PDF download error:", err);
+    alert(`Download failed: ${err.message}`);
+  }
+};
+
+ const deleteReport = async (report) => {
+  const reportId = report?._id || report?.id;
+
+  if (!reportId) {
+    alert("Missing report ID.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this report?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await fetchJson(`${API}/reports/${reportId}`, {
+      method: "DELETE",
+      headers: {
+        ...authHeaders
+      }
+    });
+
+    setReports((prev) =>
+      prev.filter((item) => (item._id || item.id) !== reportId)
     );
-  };
+
+    setStatusMessage("Report deleted successfully.");
+  } catch (err) {
+    console.error("Delete report error:", err);
+    alert(`Delete failed: ${err.message}`);
+  }
+};
 
   const getRiskColor = (score) => {
     if (score >= 80) return "#2e7d32";
@@ -3408,7 +3429,7 @@ const requireFeature = (featureName, message) => {
                     </button>
 
                     <button
-                      onClick={() => deleteReport(report._id || report.id)}
+                     onClick={() => deleteReport(report)}
                       style={{
                         padding: "10px 14px",
                         borderRadius: "10px",
