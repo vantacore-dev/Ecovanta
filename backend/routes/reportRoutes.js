@@ -314,13 +314,13 @@ router.get("/:id/pdf", auth, async (req, res) => {
 
     const html = getReportHTML(reportForPdf);
     const pdfBuffer = await generateStyledPDF(html);
-
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename=${(
-        report.companyName || "report"
-      ).replace(/[^a-z0-9]/gi, "_")}.pdf`
-    });
+    console.log("PDF buffer length:", pdfBuffer?.length);
+   res.set({
+  "Content-Type": "application/pdf",
+  "Content-Disposition": `attachment; filename="${filename}"`,
+  "Content-Length": pdfBuffer.length
+});
+return res.end(pdfBuffer);
 
     return res.send(pdfBuffer);
   } catch (err) {
@@ -336,7 +336,8 @@ router.post("/export-pdf", auth, async (req, res) => {
 
     const html = getReportHTML(report);
     const pdfBuffer = await generateStyledPDF(html);
-
+    console.log("PDF buffer length:", pdfBuffer?.length);
+    console.log("PDF buffer header:", pdfBuffer?.slice(0, 5).toString());
     res.set({
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename=${(
