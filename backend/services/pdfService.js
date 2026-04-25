@@ -18,7 +18,7 @@ async function generateStyledPDF(html) {
       waitUntil: "networkidle0"
     });
 
-    const pdfBuffer = await page.pdf({
+    const rawPdf = await page.pdf({
       format: "A4",
       printBackground: true,
       margin: {
@@ -29,11 +29,16 @@ async function generateStyledPDF(html) {
       }
     });
 
+    const pdfBuffer = Buffer.from(rawPdf);
+
     if (!pdfBuffer || pdfBuffer.length < 1000) {
       throw new Error("Generated PDF buffer is empty or too small");
     }
 
-    if (pdfBuffer.slice(0, 5).toString() !== "%PDF-") {
+    const header = pdfBuffer.subarray(0, 5).toString("utf8");
+
+    if (header !== "%PDF-") {
+      console.error("Invalid PDF header:", header);
       throw new Error("Generated file is not a valid PDF");
     }
 
