@@ -1066,6 +1066,60 @@ const requireFeature = (featureName, message) => {
     }
   };
 
+const loadReportIntoForm = (report) => {
+  if (!report) return;
+
+  const reportId = report._id || report.id || "";
+
+  setSelectedReportId(reportId);
+
+  setReportForm((prev) => ({
+    ...prev,
+    ...report,
+    _id: reportId,
+    id: reportId,
+    companyName: report.companyName || "",
+    sector: report.sector || "tech",
+    reportingYear: report.reportingYear || new Date().getFullYear(),
+
+    esrs2: {
+      ...prev.esrs2,
+      ...(report.esrs2 || {})
+    },
+
+    e1: {
+      ...prev.e1,
+      ...(report.e1 || {})
+    },
+
+    s1: {
+      ...prev.s1,
+      ...(report.s1 || {})
+    },
+
+    g1: {
+      ...prev.g1,
+      ...(report.g1 || {})
+    },
+
+    aiDraft: {
+      ...prev.aiDraft,
+      ...(report.aiDraft || {})
+    },
+
+    scorecard: {
+      ...prev.scorecard,
+      ...(report.scorecard || {})
+    },
+
+    materialityTopics: Array.isArray(report.materialityTopics)
+      ? report.materialityTopics
+      : []
+  }));
+
+  setStatusMessage(`Loaded report: ${report.companyName || "Untitled report"}`);
+};
+
 const saveReport = async () => {
   try {
     setLoading(true);
