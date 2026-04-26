@@ -1161,7 +1161,11 @@ const saveReport = async () => {
 
     const isExistingReport = Boolean(reportForm._id || reportForm.id);
     const reportId = reportForm._id || reportForm.id;
-    const pillarScores = calculatePillarScores(reportForm);
+   const {
+  overallScore,
+  riskLevel,
+  pillarScores
+  } = calculateBig4ESGScore(reportForm);
     const savedReport = await fetchJson(
       isExistingReport ? `${API}/reports/${reportId}` : `${API}/reports`,
       {
@@ -1170,13 +1174,15 @@ const saveReport = async () => {
           "Content-Type": "application/json",
           ...authHeaders
         },
-      body: JSON.stringify({
+    body: JSON.stringify({
   ...reportForm,
   scorecard: {
     ...reportForm.scorecard,
+    overallScore,
+    riskLevel,
     pillarScores
-        }
-      })
+      }
+    })
       }
     );
 
