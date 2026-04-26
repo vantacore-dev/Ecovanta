@@ -269,67 +269,79 @@ function getReportHTML(report) {
       color: #64748b;
     }
 
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
+   .grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
 
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
+.metric-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
 
-    .mini-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin: 10px 0 12px 0;
-    }
+.metric-label {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
-    .metric-label {
-      display: block;
-      color: #64748b;
-      font-size: 11px;
-      margin-bottom: 5px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
+.metric-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+}
 
-    .metric-value {
-      font-size: 24px;
-      font-weight: 800;
-      color: #0f172a;
-    }
+.badge {
+  display: inline-block;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
 
-    .badge {
-      display: inline-block;
-      padding: 5px 11px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
+.badge.high {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
 
-    .badge.high {
-      background: #fee2e2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
-    }
+.badge.medium {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
 
-    .badge.medium {
-      background: #fef3c7;
-      color: #92400e;
-      border: 1px solid #fde68a;
-    }
+.badge.low {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
 
-    .badge.low {
-      background: #dcfce7;
-      color: #166534;
-      border: 1px solid #bbf7d0;
-    }
+.chart-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 18px;
+  page-break-inside: avoid;
+}
+
+.chart-card img {
+  width: 100%;
+  height: auto;
+  max-height: 360px;
+  object-fit: contain;
+  display: block;
+  margin: 8px auto 0 auto;
+}
 
     .status-pill {
       display: inline-block;

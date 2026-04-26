@@ -74,7 +74,9 @@ async function buildBenchmarkChart(report) {
           backgroundColor: ["#5B8DB8", "#C7A86D", "#6FA287"],
           borderRadius: 8,
           borderSkipped: false,
-          barThickness: 50
+          barThickness: 80,
+          categoryPercentage: 0.8,
+          barPercentage: 0.9
         }
       ]
     },
