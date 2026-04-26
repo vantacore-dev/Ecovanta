@@ -1120,6 +1120,40 @@ const loadReportIntoForm = (report) => {
   setStatusMessage(`Loaded report: ${report.companyName || "Untitled report"}`);
 };
 
+
+const calculatePillarScores = (report) => {
+  // Environmental (E)
+  let eScore = 0;
+  let eMax = 4;
+
+  if (report.e1?.scope1Emissions) eScore++;
+  if (report.e1?.scope2Emissions) eScore++;
+  if (report.e1?.scope3Emissions) eScore++;
+  if (report.e1?.climatePolicies) eScore++;
+
+  // Social (S)
+  let sScore = 0;
+  let sMax = 2;
+
+  if (report.s1?.workforcePolicies) sScore++;
+  if (report.s1?.diversityInclusion) sScore++;
+
+  // Governance (G)
+  let gScore = 0;
+  let gMax = 4;
+
+  if (report.g1?.antiCorruption) gScore++;
+  if (report.g1?.whistleblowing) gScore++;
+  if (report.esrs2?.governance) gScore++;
+  if (report.esrs2?.strategy) gScore++;
+
+  return {
+    E: Math.round((eScore / eMax) * 100),
+    S: Math.round((sScore / sMax) * 100),
+    G: Math.round((gScore / gMax) * 100)
+  };
+};
+
 const saveReport = async () => {
   try {
     setLoading(true);
@@ -1127,7 +1161,7 @@ const saveReport = async () => {
 
     const isExistingReport = Boolean(reportForm._id || reportForm.id);
     const reportId = reportForm._id || reportForm.id;
-
+    const pillarScores = calculatePillarScores(reportForm);
     const savedReport = await fetchJson(
       isExistingReport ? `${API}/reports/${reportId}` : `${API}/reports`,
       {
@@ -1136,7 +1170,13 @@ const saveReport = async () => {
           "Content-Type": "application/json",
           ...authHeaders
         },
-        body: JSON.stringify(reportForm)
+      body: JSON.stringify({
+  ...reportForm,
+  scorecard: {
+    ...reportForm.scorecard,
+    pillarScores
+        }
+      })
       }
     );
 
