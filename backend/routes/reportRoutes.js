@@ -191,12 +191,29 @@ router.get("/:id/pdf", auth, async (req, res) => {
       return res.status(404).json({ error: "Report not found" });
     }
 
-  const charts = await buildPdfCharts(report);
+  const reportForPdf = {
+  ...report,
+  scorecard: {
+    ...(report.scorecard || {}),
+    overallScore: Number(report.scorecard?.overallScore || 0),
+    benchmark: Number(report.scorecard?.benchmark || 0),
+    sectorAverage: Number(report.scorecard?.sectorAverage || 0),
+    topQuartile: Number(report.scorecard?.topQuartile || 0),
+    riskLevel: report.scorecard?.riskLevel || "Not assessed",
+    pillarScores: report.scorecard?.pillarScores || {}
+  },
+  materialityTopics: Array.isArray(report.materialityTopics)
+    ? report.materialityTopics
+    : []
+};
+
+const charts = await buildPdfCharts(reportForPdf);
 
 const html = getReportHTML({
-  ...report,
+  ...reportForPdf,
   charts
 });
+
     const pdfBuffer = await generateStyledPDF(html);
 
     if (!pdfBuffer || pdfBuffer.length < 1000) {
