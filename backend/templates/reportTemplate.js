@@ -375,7 +375,7 @@ function getReportHTML(report) {
     <span class="status-pill">${status}</span>
   </div>
 </div>
-
+<h2 style="color:red;">SNAPSHOT TEST</h2>
 <div class="section">
   <h2>Executive ESG Snapshot</h2>
 
