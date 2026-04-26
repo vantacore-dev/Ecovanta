@@ -367,14 +367,14 @@ function getReportHTML(report) {
 <body>
   <div class="page">
 
-    <div class="cover">
-      <div class="brand">ECOVANTA</div>
-      <h1>${companyName} ESG / ESRS Report</h1>
-      <div class="subtitle">
-        Reporting year: ${year} · Sector: ${sector} · Status:
-        <span class="status-pill">${status}</span>
-      </div>
-    </div>
+   <div class="cover">
+  <div class="brand">ECOVANTA</div>
+  <h1>${companyName} ESG / ESRS Report</h1>
+  <div class="subtitle">
+    Reporting year: ${year} · Sector: ${sector} · Status:
+    <span class="status-pill">${status}</span>
+  </div>
+</div>
 
 <div class="section">
   <h2>Executive ESG Snapshot</h2>
