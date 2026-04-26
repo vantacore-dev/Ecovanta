@@ -1199,7 +1199,7 @@ const downloadSingleReportPDF = async (report) => {
   link.click();
 };
 
- const deleteReport = async (report) => {
+const deleteReport = async (report) => {
   const reportId = report?._id || report?.id;
 
   if (!reportId) {
@@ -1214,6 +1214,8 @@ const downloadSingleReportPDF = async (report) => {
   if (!confirmed) return;
 
   try {
+    setLoading(true);
+
     await fetchJson(`${API}/reports/${reportId}`, {
       method: "DELETE",
       headers: {
@@ -1221,14 +1223,26 @@ const downloadSingleReportPDF = async (report) => {
       }
     });
 
+    // Remove deleted report from UI list
     setReports((prev) =>
       prev.filter((item) => (item._id || item.id) !== reportId)
     );
 
+    // If deleted report was loaded in the form, reset form
+    if ((reportForm._id || reportForm.id) === reportId) {
+      setSelectedReportId("");
+      setReportForm(initialReportForm);
+    }
+
+    // Refresh dashboard totals/cards
+    await refreshDashboard();
+
     setStatusMessage("Report deleted successfully.");
   } catch (err) {
     console.error("Delete report error:", err);
-    alert(`Delete failed: ${err.message}`);
+    setStatusMessage(`Delete failed: ${err.message}`);
+  } finally {
+    setLoading(false);
   }
 };
 
