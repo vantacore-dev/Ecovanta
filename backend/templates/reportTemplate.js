@@ -468,34 +468,7 @@ function getReportHTML(report) {
         ${renderPillarScores(scorecard.pillarScores)}
       </div>
     </div>
-
-<div class="section">
-  <h2>Executive ESG Snapshot</h2>
-
-  <div class="grid-3">
-    <div class="metric-card">
-      <div class="metric-label">ESG Score</div>
-      <div class="metric-value">
-        ${escapeHtml(report.scorecard?.overallScore ?? "N/A")}/100
-      </div>
-    </div>
-
-    <div class="metric-card">
-      <div class="metric-label">Risk Level</div>
-      <span class="badge ${getRiskClass(report.scorecard?.riskLevel)}">
-        ${escapeHtml(report.scorecard?.riskLevel || "Not assessed")}
-      </span>
-    </div>
-
-    <div class="metric-card">
-      <div class="metric-label">Benchmark</div>
-      <div class="metric-value">
-        ${escapeHtml(report.scorecard?.benchmark ?? "N/A")}
-      </div>
-    </div>
-  </div>
-</div>
-    
+ 
     <div class="section">
       <h2>AI Executive Summary</h2>
       <div class="card">${formatText(report.aiDraft?.executiveSummary || "No executive summary generated.")}</div>
