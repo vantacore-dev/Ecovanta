@@ -1066,84 +1066,28 @@ const requireFeature = (featureName, message) => {
     }
   };
 
-  const saveReport = async () => {
-    if (!token) {
-      alert("Login required.");
-      return;
-    }
+const saveReport = async () => {
+  try {
+    setLoading(true);
+    setStatusMessage("");
 
-    if (!reportForm.companyName.trim()) {
-      alert("Company name is required.");
-      return;
-    }
+    const isExistingReport = Boolean(reportForm._id || reportForm.id);
+    const reportId = reportForm._id || reportForm.id;
 
-    try {
-      setLoading(true);
-      setStatusMessage("");
-
-      const {
-      overallScore,
-      riskLevel,
-      pillarScores
-      } = calculateBig4ESGScore(reportForm);
-
-      const payload = {
-        ...reportForm,
-        aiDraft: normalizeAiDraft({
-          executiveSummary: reportForm.aiDraft?.executiveSummary || "",
-          disclosureDraft: reportForm.aiDraft?.disclosureDraft || "",
-          dataGaps: reportForm.aiDraft?.dataGaps || "",
-          recommendations: reportForm.aiDraft?.recommendations || ""
-        }),
-        scorecard: {
-        benchmark,
-        overallScore,
-        riskLevel,
-        pillarScores
-        },
-        materialityTopics: reportForm.materialityTopics.map((topic) => {
-          const scores = calculateMaterialityScores(topic);
-
-          return {
-            ...topic,
-            stakeholdersConsulted: topic.stakeholdersConsulted
-              ? topic.stakeholdersConsulted
-                  .split(",")
-                  .map((item) => item.trim())
-                  .filter(Boolean)
-              : [],
-            impactScore100: scores.impactScore100,
-            financialScore100: scores.financialScore100,
-            overallMaterialityScore: scores.overallMaterialityScore,
-            isMaterial: scores.isMaterial
-          };
-        })
-      };
-
-      const saved = await fetchJson(`${API}/reports`, {
-        method: "POST",
+    const savedReport = await fetchJson(
+      isExistingReport ? `${API}/reports/${reportId}` : `${API}/reports`,
+      {
+        method: isExistingReport ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
           ...authHeaders
         },
-        body: JSON.stringify(payload)
-      });
-
-
-  const saveReport = async () => {
-  try {
-    const savedReport = await fetchJson(`${API}/reports`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeaders
-      },
-      body: JSON.stringify(reportForm)
-    });
+        body: JSON.stringify(reportForm)
+      }
+    );
 
     const savedId = savedReport._id || savedReport.id;
 
-    // ✅ Update form with ID (critical for download)
     setReportForm((prev) => ({
       ...prev,
       ...savedReport,
@@ -1151,11 +1095,8 @@ const requireFeature = (featureName, message) => {
       id: savedId
     }));
 
-    // ✅ Avoid duplicate reports in list
     setReports((prev) => {
-      const exists = prev.some(
-        (item) => (item._id || item.id) === savedId
-      );
+      const exists = prev.some((item) => (item._id || item.id) === savedId);
 
       if (exists) {
         return prev.map((item) =>
@@ -1166,97 +1107,17 @@ const requireFeature = (featureName, message) => {
       return [savedReport, ...prev];
     });
 
+    setSelectedReportId(savedId);
     setStatusMessage("Report saved successfully.");
+
+    await refreshDashboard();
   } catch (err) {
-    console.error("Save error:", err);
-    alert("Save failed");
+    console.error("Save report error:", err);
+    setStatusMessage(`Save failed: ${err.message}`);
+  } finally {
+    setLoading(false);
   }
-};   
-
-setReports((prev) => {
-  const exists = prev.some((item) => (item._id || item.id) === savedId);
-
-  if (exists) {
-    return prev.map((item) =>
-      (item._id || item.id) === savedId ? savedReport : item
-    );
-  }
-
-  return [savedReport, ...prev];
-});
-
-setSelectedReportId(savedId);
-setStatusMessage("Report saved successfully.");
-
-      setReports((prev) => [saved, ...prev]);
-      setSelectedReportId(saved._id || "");
-      setReportForm(initialReportForm);
-      setStatusMessage("Report saved successfully.");
-      await refreshDashboard();
-    } catch (err) {
-      console.error("Save report error:", err);
-      setStatusMessage(`Save failed: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadReportIntoForm = async (reportId) => {
-    if (!reportId) return;
-
-    const found = reports.find((item) => (item._id || item.id) === reportId);
-
-    if (!found) {
-      setStatusMessage("Report not found.");
-      return;
-    }
-
-    setReportForm({
-      companyName: found.companyName || "",
-      sector: found.sector || "tech",
-      reportingYear: found.reportingYear || new Date().getFullYear(),
-      esrs2: {
-        governance: found.esrs2?.governance || "",
-        strategy: found.esrs2?.strategy || "",
-        impactsRisksOpportunities:
-          found.esrs2?.impactsRisksOpportunities || "",
-        metricsTargets: found.esrs2?.metricsTargets || ""
-      },
-      e1: {
-        scope1Emissions: found.e1?.scope1Emissions || 0,
-        scope2Emissions: found.e1?.scope2Emissions || 0,
-        scope3Emissions: found.e1?.scope3Emissions || 0,
-        climatePolicies: found.e1?.climatePolicies || ""
-      },
-      s1: {
-        workforcePolicies: found.s1?.workforcePolicies || "",
-        diversityInclusion: found.s1?.diversityInclusion || ""
-      },
-      g1: {
-        antiCorruption: found.g1?.antiCorruption || "",
-        whistleblowing: found.g1?.whistleblowing || ""
-      },
-      aiDraft: normalizeAiDraft(found.aiDraft),
-      scorecard: {
-        benchmark: found.scorecard?.benchmark || 0,
-        overallScore: found.scorecard?.overallScore || 0
-      },
-      reviewStatus: found.reviewStatus || "draft",
-      materialityTopics:
-        found.materialityTopics?.map((topic) => ({
-          ...topic,
-          stakeholdersConsulted: Array.isArray(topic.stakeholdersConsulted)
-            ? topic.stakeholdersConsulted.join(", ")
-            : topic.stakeholdersConsulted || "",
-          impactScore100: topic.impactScore100 || 0,
-          financialScore100: topic.financialScore100 || 0,
-          overallMaterialityScore: topic.overallMaterialityScore || 0
-        })) || [{ ...defaultMaterialityTopic }]
-    });
-
-    setSelectedReportId(reportId);
-    setStatusMessage("Report loaded into form.");
-  };
+};
 
 const downloadSingleReportPDF = async (report) => {
   const reportId = report?._id || report?.id;
