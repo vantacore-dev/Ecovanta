@@ -405,7 +405,7 @@ function getReportHTML(report) {
 
     
     <div class="section">
-      <h2>Executive ESG Snapshot</h2>
+      
         <div class="section page-break">
   <h2>Analytics & Visual Insights</h2>
 
